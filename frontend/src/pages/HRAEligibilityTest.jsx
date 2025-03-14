@@ -8,6 +8,8 @@ const HRAEligibilityTest = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
+  const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure this is set in .env.local
+
   // Handle file selection via Drag & Drop or manual selection
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
@@ -40,11 +42,10 @@ const HRAEligibilityTest = () => {
     formData.append("file", file);
 
     try {
-      const response = await axios.post(
-        "http://127.0.0.1:8000/upload-csv/hra_eligibility",
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/hra_eligibility`);
+      const response = await axios.post(`${API_URL}/upload-csv/hra_eligibility`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       setResult(response.data.Result);
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err);
@@ -63,7 +64,6 @@ const HRAEligibilityTest = () => {
   };
 
   return (
-    // Outer container is focusable (tabIndex="0") so it receives key events.
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
       onKeyDown={handleKeyDown}
