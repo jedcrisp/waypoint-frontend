@@ -152,6 +152,6 @@ const HealthFSAEligibilityTest = () => {
         </div>
       )}
     </div>
-};
+);
 
 export default HealthFSAEligibilityTest;
