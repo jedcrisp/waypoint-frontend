@@ -8,6 +8,8 @@ const HealthFSABenefitsTest = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
+  const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure this is set in .env.local
+
   // Handle file selection via Drag & Drop or Manual Selection
   const onDrop = useCallback((acceptedFiles) => {
     setFile(acceptedFiles[0]);
@@ -42,10 +44,10 @@ const HealthFSABenefitsTest = () => {
     formData.append("file", file);
 
     try {
-      console.log("🚀 Uploading file to API:", "http://127.0.0.1:8000/upload-health-fsa-benefits/");
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/health_fsa_benefits`);
       console.log("📂 File Selected:", file.name);
 
-      const response = await axios.post("http://127.0.0.1:8000/upload-health-fsa-benefits/", formData, {
+      const response = await axios.post(`${API_URL}/upload-csv/health_fsa_benefits`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
