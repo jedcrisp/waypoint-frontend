@@ -2,7 +2,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
-const firebaseConfig = {
+const firebase = {
   apiKey: "AIzaSyA3FN_gLEYuQMOip49SLrFnfdXPAU9orp0",
   authDomain: "waypoint-auth.firebaseapp.com",
   projectId: "waypoint-auth",
@@ -13,7 +13,7 @@ const firebaseConfig = {
 };
 
 // Check if Firebase has already been initialized
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const app = !getApps().length ? initializeApp(firebase) : getApp();
 const auth = getAuth(app);
 
 export { app, auth };
