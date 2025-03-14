@@ -149,7 +149,7 @@ const DCAPOwnersTest = () => {
             </p>
           </div>
         </div>
-      )}
+      )
     </div>
   );
 };
