@@ -152,6 +152,6 @@ const EligibilityTest = () => {
       )}
     </div>
   );
-};
+;
 
 export default EligibilityTest;
