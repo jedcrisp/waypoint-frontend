@@ -161,7 +161,7 @@ const ClassificationTest = () => {
             </p>
           </div>
         </div>
-      )}
+      )
     </div>
   );
 };
