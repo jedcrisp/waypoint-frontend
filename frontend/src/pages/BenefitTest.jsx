@@ -165,7 +165,7 @@ const BenefitTest = () => {
             </p>
           </div>
         </div>
-      )}
+      )
     </div>
   );
 };
