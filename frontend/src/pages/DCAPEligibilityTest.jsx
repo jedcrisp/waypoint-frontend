@@ -166,6 +166,6 @@ const DCAPEligibilityTest = () => {
       )}
     </div>
   );
-};
+;
 
 export default DCAPEligibilityTest;
