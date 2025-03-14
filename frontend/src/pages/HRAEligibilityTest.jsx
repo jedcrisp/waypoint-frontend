@@ -10,7 +10,7 @@ const HRAEligibilityTest = () => {
 
   const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure this is set in .env.local
 
-  // Handle file selection via Drag & Drop or manual selection
+  // Handle file selection via Drag & Drop
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
       setFile(acceptedFiles[0]);
@@ -19,10 +19,10 @@ const HRAEligibilityTest = () => {
     }
   }, []);
 
-  // Setup dropzone with noClick and noKeyboard so default events don't trigger file picker
+  // Setup dropzone with noClick and noKeyboard so default events won't trigger the file picker
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
-    accept: ".csv, .xlsx",
+    accept: ".csv, .xlsx", // Supports both CSV and Excel files
     multiple: false,
     noClick: true,
     noKeyboard: true,
@@ -43,30 +43,27 @@ const HRAEligibilityTest = () => {
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/hra_eligibility`);
+      console.log("📂 File Selected:", file.name);
       const response = await axios.post(`${API_URL}/upload-csv/hra_eligibility`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+      console.log("✅ API Response:", response.data);
       setResult(response.data.Result);
     } catch (err) {
-      console.error("❌ Upload error:", err.response ? err.response.data : err);
+      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError("❌ Failed to upload file. Please check the format and try again.");
     }
     setLoading(false);
   };
 
-  // Listen for Enter key press to trigger upload
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && file && !loading) {
-      e.preventDefault();
-      e.stopPropagation();
-      handleUpload();
-    }
-  };
-
   return (
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
-      onKeyDown={handleKeyDown}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && file && !loading) {
+          handleUpload();
+        }
+      }}
       tabIndex="0"
     >
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
@@ -150,9 +147,7 @@ const HRAEligibilityTest = () => {
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
-                  result["Test Result"] === "Passed"
-                    ? "bg-green-500 text-white"
-                    : "bg-red-500 text-white"
+                  result["Test Result"] === "Passed" ? "bg-green-500 text-white" : "bg-red-500 text-white"
                 }`}
               >
                 {result["Test Result"] ?? "N/A"}
@@ -163,6 +158,6 @@ const HRAEligibilityTest = () => {
       )}
     </div>
   );
-;
+};
 
 export default HRAEligibilityTest;
