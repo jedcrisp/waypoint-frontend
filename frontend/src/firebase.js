@@ -7,7 +7,8 @@ const firebase = {
   projectId: "adp-frontend",
   storageBucket: "adp-frontend.firebasestorage.app",
   messagingSenderId: "894128539169",
-  appId: "1:894128539169:web:04cf39c44bb03c5185c560"
+  appId: "1:894128539169:web:04cf39c44bb03c5185c560" ,
+  measurementId: "G-TPQS4R0ZFT"
 };
 
 // Initialize Firebase
