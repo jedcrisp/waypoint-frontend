@@ -152,6 +152,6 @@ const DCAPOwnersTest = () => {
       )}
     </div>
   );
-};
+;
 
 export default DCAPOwnersTest;
