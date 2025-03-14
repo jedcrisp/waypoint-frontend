@@ -59,7 +59,11 @@ const EligibilityTest = () => {
   return (
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
-      onKeyDown={(e) => e.key === "Enter" && file && !loading && handleUpload()}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && file && !loading) {
+          handleUpload();
+        }
+      }}
       tabIndex="0"
     >
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
@@ -145,13 +149,13 @@ const EligibilityTest = () => {
                 }`}
               >
                 {result["Test Result"] ?? "N/A"}
-            </span>
+              </span>
             </p>
           </div>
         </div>
       )}
     </div>
   );
-;
+};
 
 export default EligibilityTest;
