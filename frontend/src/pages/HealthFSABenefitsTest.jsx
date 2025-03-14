@@ -166,6 +166,6 @@ const HealthFSABenefitsTest = () => {
       )}
     </div>
   );
-};
+;
 
 export default HealthFSABenefitsTest;
