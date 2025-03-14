@@ -19,7 +19,7 @@ const HealthFSAEligibilityTest = () => {
     }
   }, []);
 
-  // Setup dropzone with noClick and noKeyboard to prevent default events from opening file picker
+  // Setup dropzone with noClick and noKeyboard to prevent default events from opening the file picker
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
     accept: ".csv, .xlsx",
@@ -58,9 +58,19 @@ const HealthFSAEligibilityTest = () => {
     setLoading(false);
   };
 
+  // Listen for Enter key press to trigger upload
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && file && !loading) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleUpload();
+    }
+  };
+
   return (
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
+      onKeyDown={handleKeyDown}
       tabIndex="0"
     >
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
@@ -152,6 +162,7 @@ const HealthFSAEligibilityTest = () => {
         </div>
       )}
     </div>
-);
+  );
+};
 
 export default HealthFSAEligibilityTest;
