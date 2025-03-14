@@ -1,7 +1,11 @@
-const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL; // ✅ Uses Railway backend URL
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+const formData = new FormData();
+formData.append("file", selectedFile);
 
-export async function fetchData() {
-  const response = await fetch(`${API_URL}/your-endpoint`);
-  const data = await response.json();
-  return data;
-}
+const response = await fetch(`${API_URL}/upload-csv/adp`, {
+  method: "POST",
+  body: formData,
+});
+const data = await response.json();
+console.log(data);
+
