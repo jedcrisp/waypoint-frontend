@@ -1,19 +1,19 @@
-import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
+// src/firebaseConfig.js
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 
-const firebase = {
-  apiKey: "AIzaSyCPj-38c8qnKEh64YNn56gKqtsPhWHMV8Y",
-  authDomain: "adp-frontend.firebaseapp.com",
-  projectId: "adp-frontend",
-  storageBucket: "adp-frontend.firebasestorage.app",
-  messagingSenderId: "894128539169",
-  appId: "1:894128539169:web:04cf39c44bb03c5185c560" ,
+const firebaseConfig = {
+  apiKey: "AIzaSyA3FN_gLEYuQMOip49SLrFnfdXPAU9orp0",
+  authDomain: "waypoint-auth.firebaseapp.com",
+  projectId: "waypoint-auth",
+  storageBucket: "waypoint-auth.firebasestorage.app",
+  messagingSenderId: "439038166520",
+  appId: "1:439038166520:web:4a17884a515c2245af020d",
   measurementId: "G-TPQS4R0ZFT"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebase);
+// Check if Firebase has already been initialized
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
 
-export { auth, provider, signInWithPopup, signOut };
+export { app, auth };
