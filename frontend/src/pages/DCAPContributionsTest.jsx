@@ -155,7 +155,7 @@ const DCAPContributionsTest = () => {
                 }`}
               >
                 {result["Test Result"] ?? "N/A"}
-              </span>
+             </span>
             </p>
           </div>
         </div>
