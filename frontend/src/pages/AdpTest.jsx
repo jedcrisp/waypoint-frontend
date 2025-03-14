@@ -9,6 +9,8 @@ const AdpTest = () => {
   const [results, setResults] = useState([]);
   const [error, setError] = useState(null);
 
+  const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure this is set in .env.local
+
   // Handle file selection via drag & drop
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
@@ -45,9 +47,9 @@ const AdpTest = () => {
       formData.append("file", file);
 
       try {
-        console.log("🚀 Uploading file to API:", "http://127.0.0.1:8000/upload-csv/adp");
+        console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/adp`);
         console.log("📂 File Selected:", file.name);
-        const response = await axios.post("http://127.0.0.1:8000/upload-csv/adp", formData, {
+        const response = await axios.post(`${API_URL}/upload-csv/adp`, formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         console.log("✅ API Response:", response.data);
