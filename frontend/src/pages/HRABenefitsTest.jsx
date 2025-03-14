@@ -19,7 +19,7 @@ const HRABenefitsTest = () => {
     }
   }, []);
 
-  // Setup dropzone with noClick and noKeyboard so default events don't trigger file picker
+  // Setup dropzone with noClick and noKeyboard so default events won't trigger the file picker
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
     accept: ".csv, .xlsx", // Supports both CSV and Excel files
@@ -42,38 +42,28 @@ const HRABenefitsTest = () => {
     formData.append("file", file);
 
     try {
-        console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/hra_benefits`);
-        console.log("📂 File Selected:", file.name);
-        const response = await axios.post(`${API_URL}/upload-csv/hra_benefits`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        console.log("✅ API Response:", response.data);
-        // Append file-specific results, using the exact keys returned by the backend.
-        uploadedResults.push({ fileName: file.name, data: response.data.Result });
-      } catch (err) {
-        console.error("❌ Upload error:", err.response ? err.response.data : err.message);
-        setError("❌ Failed to upload file. Please check the format and try again.");
-      }
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/hra_benefits`);
+      console.log("📂 File Selected:", file.name);
+      const response = await axios.post(`${API_URL}/upload-csv/hra_benefits`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      console.log("✅ API Response:", response.data);
+      setResult(response.data.Result);
+    } catch (err) {
+      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
+      setError("❌ Failed to upload file. Please check the format and try again.");
     }
-
-    setResults(uploadedResults);
     setLoading(false);
   };
 
-  // Listen for Enter key press to trigger upload
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && file && !loading) {
-      e.preventDefault();
-      e.stopPropagation();
-      handleUpload();
-    }
-  };
-
   return (
-    // Outer container made focusable (tabIndex="0") so it receives key events.
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
-      onKeyDown={handleKeyDown}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && file && !loading) {
+          handleUpload();
+        }
+      }}
       tabIndex="0"
     >
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
@@ -168,6 +158,6 @@ const HRABenefitsTest = () => {
       )}
     </div>
   );
-;
+};
 
 export default HRABenefitsTest;
