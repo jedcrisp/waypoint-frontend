@@ -8,7 +8,7 @@ const BenefitTest = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-   const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure this is set in .env.local
+  const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure this is set in .env.local
 
   // Handle file selection via Drag & Drop or manual selection
   const onDrop = useCallback((acceptedFiles) => {
@@ -42,21 +42,18 @@ const BenefitTest = () => {
     formData.append("file", file);
 
     try {
-        console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/benefit`);
-        console.log("📂 File Selected:", file.name);
-        const response = await axios.post(`${API_URL}/upload-csv/benefit`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        console.log("✅ API Response:", response.data);
-        // Append file-specific results, using the exact keys returned by the backend.
-        uploadedResults.push({ fileName: file.name, data: response.data.Result });
-      } catch (err) {
-        console.error("❌ Upload error:", err.response ? err.response.data : err.message);
-        setError("❌ Failed to upload file. Please check the format and try again.");
-      }
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/benefit`);
+      console.log("📂 File Selected:", file.name);
+      const response = await axios.post(`${API_URL}/upload-csv/benefit`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      console.log("✅ API Response:", response.data);
+      // Directly set the result using the API response.
+      setResult(response.data.Result);
+    } catch (err) {
+      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
+      setError("❌ Failed to upload file. Please check the format and try again.");
     }
-
-    setResults(uploadedResults);
     setLoading(false);
   };
 
@@ -157,16 +154,19 @@ const BenefitTest = () => {
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
-                  result["Test Result"] === "Passed" ? "bg-green-500 text-white" : "bg-red-500 text-white"
+                  result["Test Result"] === "Passed"
+                    ? "bg-green-500 text-white"
+                    : "bg-red-500 text-white"
                 }`}
               >
                 {result["Test Result"] ?? "N/A"}
-            </span>
+              </span>
             </p>
           </div>
         </div>
       )}
     </div>
-);
+  );
+};
 
 export default BenefitTest;
