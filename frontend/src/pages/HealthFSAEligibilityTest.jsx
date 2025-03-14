@@ -150,7 +150,7 @@ const HealthFSAEligibilityTest = () => {
             </p>
           </div>
         </div>
-      )}
+      )
     </div>
   );
 };
