@@ -149,7 +149,7 @@ const EligibilityTest = () => {
             </p>
           </div>
         </div>
-      )}
+      )
     </div>
   );
 };
