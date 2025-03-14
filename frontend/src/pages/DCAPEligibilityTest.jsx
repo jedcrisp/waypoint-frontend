@@ -163,7 +163,7 @@ const DCAPEligibilityTest = () => {
             </p>
           </div>
         </div>
-      )}
+      )
     </div>
   );
 };
