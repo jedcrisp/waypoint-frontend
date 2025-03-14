@@ -8,6 +8,8 @@ const ACPTest = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
+  const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure this is set in .env.local
+
   // Handle file selection via Drag & Drop or manual selection
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
@@ -63,7 +65,6 @@ const ACPTest = () => {
   };
 
   return (
-    // Outer container is made focusable (tabIndex="0") so it receives key events.
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
       onKeyDown={handleKeyDown}
