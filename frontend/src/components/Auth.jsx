@@ -1,70 +1,72 @@
-// src/components/Auth.jsx
 import { useState, useEffect } from "react";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
-import { auth } from "../firebase"; // Note: No "provider" here
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import Navbar from "./components/Navbar";
+import Home from "./pages/Home";
+import TestSelection from "./pages/TestSelection";
+import AdpTest from "./pages/AdpTest";
+import ACPTest from "./pages/ACPTest";
+import KeyEmployeeTest from "./pages/KeyEmployeeTest";
+import EligibilityTest from "./pages/EligibilityTest";
+import ClassificationTest from "./pages/ClassificationTest";
+import BenefitTest from "./pages/BenefitTest";
+import HealthFSAEligibilityTest from "./pages/HealthFSAEligibilityTest";
+import HealthFSABenefitsTest from "./pages/HealthFSABenefitsTest";
+import DCAPEligibilityTest from "./pages/DCAPEligibilityTest";
+import DCAPOwnersTest from "./pages/DCAPOwnersTest";
+import DCAP55BenefitsTest from "./pages/DCAP55BenefitsTest";
+import DCAPContributionsTest from "./pages/DCAPContributionsTest";
+import HRABenefitsTest from "./pages/HRABenefitsTest";
+import HRAEligibilityTest from "./pages/HRAEligibilityTest";
+import SignIn from "./pages/SignIn"; // A component you'll create for sign in
+import "./index.css";
 
-const Auth = () => {
+function App() {
   const [user, setUser] = useState(null);
-  const [error, setError] = useState(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
+  const auth = getAuth();
 
   useEffect(() => {
+    // Listen for changes to the user's sign-in state.
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      setLoadingAuth(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [auth]);
 
-  const login = async () => {
-    setError(null);
-    try {
-      // Replace these with actual user inputs
-      const email = "user@example.com";
-      const password = "userPassword";
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log("User signed in:", userCredential.user);
-    } catch (err) {
-      console.error("Login error:", err);
-      setError("Failed to sign in. Please try again.");
-    }
-  };
+  if (loadingAuth) {
+    return <div>Loading authentication...</div>;
+  }
 
-  const logout = async () => {
-    try {
-      await signOut(auth);
-      setUser(null);
-    } catch (err) {
-      console.error("Logout error:", err);
-      setError("Failed to log out. Please try again.");
-    }
-  };
+  // If no user is logged in, render the SignIn component.
+  if (!user) {
+    return <SignIn />;
+  }
 
   return (
-    <div className="text-center p-4 bg-white shadow-lg rounded-lg max-w-sm mx-auto">
-      {user ? (
-        <>
-          <p className="text-lg font-semibold text-gray-700">
-            Welcome, {user.email}!
-          </p>
-          <button
-            className="mt-4 px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-            onClick={logout}
-          >
-            Logout
-          </button>
-        </>
-      ) : (
-        <>
-          <button
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-            onClick={login}
-          >
-            Sign in with Email & Password
-          </button>
-          {error && <p className="mt-2 text-red-500">{error}</p>}
-        </>
-      )}
-    </div>
+    <Router>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/select-test" element={<TestSelection />} />
+        <Route path="/test-adp" element={<AdpTest />} />
+        <Route path="/test-acp" element={<ACPTest />} />
+        <Route path="/test-key-employee" element={<KeyEmployeeTest />} />
+        <Route path="/test-eligibility" element={<EligibilityTest />} />
+        <Route path="/test-classification" element={<ClassificationTest />} />
+        <Route path="/test-benefit" element={<BenefitTest />} />
+        <Route path="/test-health-fsa-eligibility" element={<HealthFSAEligibilityTest />} />
+        <Route path="/test-health-fsa-benefits" element={<HealthFSABenefitsTest />} />
+        <Route path="/test-dcap-eligibility" element={<DCAPEligibilityTest />} />
+        <Route path="/test-dcap-owners" element={<DCAPOwnersTest />} />
+        <Route path="/test-dcap-55-benefits" element={<DCAP55BenefitsTest />} />
+        <Route path="/test-dcap-contributions" element={<DCAPContributionsTest />} />
+        <Route path="/test-hra-benefits" element={<HRABenefitsTest />} />
+        <Route path="/test-hra-eligibility" element={<HRAEligibilityTest />} />
+      </Routes>
+    </Router>
   );
-};
+}
 
-export default Auth;
+export default App;
