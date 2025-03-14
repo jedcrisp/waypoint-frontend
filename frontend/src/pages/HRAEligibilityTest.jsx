@@ -163,6 +163,6 @@ const HRAEligibilityTest = () => {
       )}
     </div>
   );
-};
+;
 
 export default HRAEligibilityTest;
