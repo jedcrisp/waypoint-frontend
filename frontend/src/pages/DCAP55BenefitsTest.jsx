@@ -160,6 +160,6 @@ const DCAP55BenefitsTest = () => {
       )}
     </div>
   );
-};
+;
 
 export default DCAP55BenefitsTest;
