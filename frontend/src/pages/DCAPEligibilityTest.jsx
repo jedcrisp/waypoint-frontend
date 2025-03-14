@@ -42,21 +42,17 @@ const DCAPEligibilityTest = () => {
     formData.append("file", file);
 
     try {
-        console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/dcap_eligibility`);
-        console.log("📂 File Selected:", file.name);
-        const response = await axios.post(`${API_URL}/upload-csv/dcap_eligibility`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        console.log("✅ API Response:", response.data);
-        // Append file-specific results, using the exact keys returned by the backend.
-        uploadedResults.push({ fileName: file.name, data: response.data.Result });
-      } catch (err) {
-        console.error("❌ Upload error:", err.response ? err.response.data : err.message);
-        setError("❌ Failed to upload file. Please check the format and try again.");
-      }
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/dcap_eligibility`);
+      console.log("📂 File Selected:", file.name);
+      const response = await axios.post(`${API_URL}/upload-csv/dcap_eligibility`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      console.log("✅ API Response:", response.data);
+      setResult(response.data.Result);
+    } catch (err) {
+      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
+      setError("❌ Failed to upload file. Please check the format and try again.");
     }
-
-    setResults(uploadedResults);
     setLoading(false);
   };
 
@@ -70,7 +66,6 @@ const DCAPEligibilityTest = () => {
   };
 
   return (
-    // Outer container made focusable (tabIndex="0") so it receives key events.
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
       onKeyDown={handleKeyDown}
@@ -159,13 +154,13 @@ const DCAPEligibilityTest = () => {
                 }`}
               >
                 {result["DCAP Eligibility Test Result"] ?? "N/A"}
-            </span>
+              </span>
             </p>
           </div>
         </div>
       )}
     </div>
   );
-;
+};
 
 export default DCAPEligibilityTest;
