@@ -159,11 +159,11 @@ const DCAPEligibilityTest = () => {
                 }`}
               >
                 {result["DCAP Eligibility Test Result"] ?? "N/A"}
-              </span>
+            </span>
             </p>
           </div>
         </div>
-      )
+      )}
     </div>
   );
 };
