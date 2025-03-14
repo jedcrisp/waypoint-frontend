@@ -144,7 +144,7 @@ const HealthFSABenefitsTest = () => {
             </p>
           </div>
         </div>
-      )}
+      )
     </div>
   );
 };
