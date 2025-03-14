@@ -167,7 +167,6 @@ const BenefitTest = () => {
         </div>
       )}
     </div>
-  );
 };
 
 export default BenefitTest;
