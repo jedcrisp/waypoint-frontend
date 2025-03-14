@@ -39,15 +39,12 @@ const ACPTest = () => {
     formData.append("file", file);
 
     try {
-      console.log("🚀 Uploading file to API:", "http://127.0.0.1:8000/upload-csv/acp");
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/acp`);
       console.log("📂 File Selected:", file.name);
-      const response = await axios.post(
-        "http://127.0.0.1:8000/upload-csv/acp",
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
+      const response = await axios.post(`${API_URL}/upload-csv/acp`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       console.log("✅ Response received:", response.data);
-      // Extract the nested Result object from the backend response
       setResult(response.data.Result);
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err);
