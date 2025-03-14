@@ -168,6 +168,6 @@ const HRABenefitsTest = () => {
       )}
     </div>
   );
-};
+;
 
 export default HRABenefitsTest;
