@@ -145,12 +145,12 @@ const EligibilityTest = () => {
                 }`}
               >
                 {result["Test Result"] ?? "N/A"}
-              </span>
+               </span>
             </p>
           </div>
         </div>
       )}
     </div>
   );
-
+};
 export default EligibilityTest;
