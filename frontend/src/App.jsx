@@ -1,4 +1,7 @@
+import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import TestSelection from "./pages/TestSelection";
 import AdpTest from "./pages/AdpTest";
@@ -15,9 +18,32 @@ import DCAP55BenefitsTest from "./pages/DCAP55BenefitsTest";
 import DCAPContributionsTest from "./pages/DCAPContributionsTest";
 import HRABenefitsTest from "./pages/HRABenefitsTest";
 import HRAEligibilityTest from "./pages/HRAEligibilityTest";
-import Navbar from "./components/Navbar";
+import SignIn from "./pages/SignIn"; // A component you'll create for sign in
+import "./index.css";
 
 function App() {
+  const [user, setUser] = useState(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
+  const auth = getAuth();
+
+  useEffect(() => {
+    // Listen for changes to the user's sign-in state.
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoadingAuth(false);
+    });
+    return () => unsubscribe();
+  }, [auth]);
+
+  if (loadingAuth) {
+    return <div>Loading authentication...</div>;
+  }
+
+  // If no user is logged in, render the SignIn component.
+  if (!user) {
+    return <SignIn />;
+  }
+
   return (
     <Router>
       <Navbar />
