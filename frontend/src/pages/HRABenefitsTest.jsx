@@ -165,7 +165,7 @@ const HRABenefitsTest = () => {
             </p>
           </div>
         </div>
-      )}
+      )
     </div>
   );
 };
