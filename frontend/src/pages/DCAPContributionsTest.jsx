@@ -42,21 +42,18 @@ const DCAPContributionsTest = () => {
     formData.append("file", file);
 
     try {
-        console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/dcap_contributions`);
-        console.log("📂 File Selected:", file.name);
-        const response = await axios.post(`${API_URL}/upload-csv/dcap_contributions`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        console.log("✅ API Response:", response.data);
-        // Append file-specific results, using the exact keys returned by the backend.
-        uploadedResults.push({ fileName: file.name, data: response.data.Result });
-      } catch (err) {
-        console.error("❌ Upload error:", err.response ? err.response.data : err.message);
-        setError("❌ Failed to upload file. Please check the format and try again.");
-      }
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/dcap_contributions`);
+      console.log("📂 File Selected:", file.name);
+      const response = await axios.post(`${API_URL}/upload-csv/dcap_contributions`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      console.log("✅ API Response:", response.data);
+      // Set the result directly from the API response.
+      setResult(response.data.Result);
+    } catch (err) {
+      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
+      setError("❌ Failed to upload file. Please check the format and try again.");
     }
-
-    setResults(uploadedResults);
     setLoading(false);
   };
 
@@ -155,13 +152,13 @@ const DCAPContributionsTest = () => {
                 }`}
               >
                 {result["Test Result"] ?? "N/A"}
-             </span>
+              </span>
             </p>
           </div>
         </div>
       )}
     </div>
   );
-;
+};
 
 export default DCAPContributionsTest;
