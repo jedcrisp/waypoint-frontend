@@ -164,6 +164,6 @@ const ClassificationTest = () => {
       )}
     </div>
   );
-};
+;
 
 export default ClassificationTest;
