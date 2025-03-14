@@ -1,7 +1,15 @@
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
-import { UploadCloud, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+
+// Helper function to format numbers as currency (USD)
+const formatCurrency = (value) => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(value);
+};
 
 const AdpTest = () => {
   const [files, setFiles] = useState([]);
@@ -93,7 +101,9 @@ const AdpTest = () => {
       >
         <input {...getInputProps()} />
         {files.length > 0 ? (
-          <p className="text-green-600 font-semibold">Selected {files.length} file(s)</p>
+          <p className="text-green-600 font-semibold">
+            Selected {files.length} file(s)
+          </p>
         ) : isDragActive ? (
           <p className="text-blue-600">📂 Drop the CSV files here</p>
         ) : (
@@ -163,6 +173,71 @@ const AdpTest = () => {
               >
                 ✅ Result: {resultObj.data["Test Result"]}
               </p>
+
+              {/* Horizontal rule after result */}
+              <hr className="my-4" />
+
+              {/* Detailed Math Breakdown */}
+              {resultObj.data.Breakdown && (
+                <div className="p-3 bg-gray-100 border border-gray-200 rounded-md">
+                  <h3 className="font-bold text-lg text-gray-700 mb-4">
+                    Math Breakdown
+                  </h3>
+
+                  {/* Separate containers for each category */}
+                  <div className="mb-4 p-3 bg-white border border-gray-300 rounded-md">
+                    <h4 className="font-semibold underline mb-2 text-indigo-600">
+                      Sums
+                    </h4>
+                    <p>
+                      <strong>HCE Deferral Sum:</strong>{" "}
+                      {formatCurrency(resultObj.data.Breakdown["HCE Deferral Sum"])}
+                    </p>
+                    <p>
+                      <strong>HCE Compensation Sum:</strong>{" "}
+                      {formatCurrency(resultObj.data.Breakdown["HCE Compensation Sum"])}
+                    </p>
+                    <p>
+                      <strong>NHCE Deferral Sum:</strong>{" "}
+                      {formatCurrency(resultObj.data.Breakdown["NHCE Deferral Sum"])}
+                    </p>
+                    <p>
+                      <strong>NHCE Compensation Sum:</strong>{" "}
+                      {formatCurrency(resultObj.data.Breakdown["NHCE Compensation Sum"])}
+                    </p>
+                  </div>
+
+                  <div className="mb-4 p-3 bg-white border border-gray-300 rounded-md">
+                    <h4 className="font-semibold underline mb-2 text-indigo-600">
+                      Percentages
+                    </h4>
+                    <p>
+                      <strong>HCE ADP:</strong> {resultObj.data.Breakdown["HCE ADP"]}%
+                    </p>
+                    <p>
+                      <strong>NHCE ADP:</strong> {resultObj.data.Breakdown["NHCE ADP"]}%
+                    </p>
+                    <p>
+                      <strong>1.25 × NHCE ADP:</strong> {resultObj.data.Breakdown["1.25 * NHCE ADP"]}%
+                    </p>
+                  </div>
+
+                  <div className="mb-4 p-3 bg-white border border-gray-300 rounded-md">
+                    <h4 className="font-semibold underline mb-2 text-indigo-600">
+                      Formulas
+                    </h4>
+                    <p>HCE ADP = (HCE Deferral Sum / HCE Compensation Sum) × 100</p>
+                    <p>NHCE ADP = (NHCE Deferral Sum / NHCE Compensation Sum) × 100</p>
+                  </div>
+
+                  <div className="p-3 bg-white border border-gray-300 rounded-md">
+                    <h4 className="font-semibold underline mb-2 text-indigo-600">
+                      Test Criterion
+                    </h4>
+                    <p>{resultObj.data.Breakdown["Test Criterion"]}</p>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
