@@ -162,6 +162,6 @@ const DCAPContributionsTest = () => {
       )}
     </div>
   );
-};
+;
 
 export default DCAPContributionsTest;
