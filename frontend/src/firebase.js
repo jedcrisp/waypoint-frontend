@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 
-const firebaseConfig = {
+const firebase = {
   apiKey: "AIzaSyCPj-38c8qnKEh64YNn56gKqtsPhWHMV8Y",
   authDomain: "adp-frontend.firebaseapp.com",
   projectId: "adp-frontend",
@@ -11,7 +11,7 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+const app = initializeApp(firebase);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
