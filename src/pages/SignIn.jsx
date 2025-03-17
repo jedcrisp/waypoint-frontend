@@ -69,20 +69,20 @@ const SignIn = () => {
   };
 
   return (
-    <div style={{ textAlign: "center", marginTop: "1.5rem" }}>
+    <div style={{ textAlign: "center", marginTop: "1.5rem", backgroundColor: "#d0074d9", padding: "2rem", borderRadius: "0.5rem" }}>
       {/* Banner */}
-      <div style={{ backgroundColor: "#e0e0e0", padding: "1rem", marginBottom: "1rem" }}>
+      <div style={{ backgroundColor: "#e0e0e0", padding: "1rem", marginBottom: "1rem", borderRadius: "0.5rem" }}>
         <h1 style={{ margin: 0, fontSize: "1.75rem", color: "#333" }}>
           Welcome to the Waypoint Non-Discrimination Testing Platform
         </h1>
       </div>
-      <p style={{ fontSize: "1.1rem", marginBottom: "1rem", color: "#555" }}>
+      <p style={{ fontSize: "1.1rem", marginBottom: "1rem", color: "#fff" }}>
         Authorized users, please sign-in below:
       </p>
 
       {user ? (
         <>
-          <h2>Welcome, {user.email}!</h2>
+          <h2 style={{ color: "#fff" }}>Welcome, {user.email}!</h2>
           <button
             onClick={handleSignOut}
             style={{
@@ -112,7 +112,11 @@ const SignIn = () => {
                   padding: "0.5rem",
                   fontSize: "1rem",
                   width: "250px",
-                  marginBottom: "0.5rem"
+                  marginBottom: "0.5rem",
+                  backgroundColor: "#333", // Darker background color
+                  color: "#fff", // White text color
+                  border: "1px solid #555", // Border color
+                  borderRadius: "0.25rem" // Border radius
                 }}
               />
             </div>
@@ -126,7 +130,11 @@ const SignIn = () => {
                   padding: "0.5rem",
                   fontSize: "1rem",
                   width: "250px",
-                  marginBottom: "0.5rem"
+                  marginBottom: "0.5rem",
+                  backgroundColor: "#333", // Darker background color
+                  color: "#fff", // White text color
+                  border: "1px solid #555", // Border color
+                  borderRadius: "0.25rem" // Border radius
                 }}
               />
             </div>

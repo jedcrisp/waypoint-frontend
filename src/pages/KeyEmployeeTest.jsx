@@ -59,7 +59,8 @@ const KeyEmployeeTest = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
       console.log("✅ Response received:", response.data);
-      setResult(response.data.Result);
+      setResult(response.data["Test Results"]);
+      console.log("📝 Result state updated:", response.data["Test Results"]);
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err);
       setError("❌ Failed to upload file. Please check the format and try again.");
@@ -143,8 +144,8 @@ const KeyEmployeeTest = () => {
             <p className="text-lg">
               <strong className="text-gray-700">Key Employee Percentage:</strong>{" "}
               <span className="font-semibold text-blue-600">
-                {result["Key Employee Percentage"] !== undefined
-                  ? result["Key Employee Percentage"] + "%"
+                {result["key_employee"]?.["Key Employee Percentage"] !== undefined
+                  ? result["key_employee"]["Key Employee Percentage"] + "%"
                   : "N/A"}
               </span>
             </p>
@@ -152,17 +153,17 @@ const KeyEmployeeTest = () => {
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
-                  result["Test Result"] === "Passed"
+                  result["key_employee"]?.["Test Result"] === "Passed"
                     ? "bg-green-500 text-white"
                     : "bg-red-500 text-white"
                 }`}
               >
-                {result["Test Result"] ?? "N/A"}
+                {result["key_employee"]?.["Test Result"] ?? "N/A"}
               </span>
             </p>
 
             {/* Display corrective actions if the test fails */}
-            {result["Test Result"] === "Failed" && (
+            {result["key_employee"]?.["Test Result"] === "Failed" && (
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
@@ -174,7 +175,7 @@ const KeyEmployeeTest = () => {
             )}
 
             {/* Display consequences if the test fails */}
-            {result["Test Result"] === "Failed" && (
+            {result["key_employee"]?.["Test Result"] === "Failed" && (
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
