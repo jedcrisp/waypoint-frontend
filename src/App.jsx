@@ -1,9 +1,11 @@
 import React, { useState, useEffect, createContext, useRef } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
-import Navbar from "./components/Navbar";
-import ChatComponent from "./components/ChatComponent"; // <-- Added ChatComponent import
+
+// Pages
 import Home from "./pages/Home";
+import UploadButton from "./components/UploadButton";
+import ReportPage from "./pages/ReportPage";
 import TestSelection from "./pages/TestSelection";
 import AdpTest from "./pages/AdpTest";
 import ADPSafeHarbor401kTest from "./pages/ADPSafeHarbor401kTest";
@@ -42,6 +44,10 @@ import AdditionalNDTTests from "./pages/AdditionalNDTTests";
 import RetirementPlanTests from "./pages/RetirementPlanTests";
 import HealthHRATests from "./pages/HealthHRATests";
 import AverageBenefitTest from "./pages/AverageBenefitTest";
+
+// Components
+import Navbar from "./components/Navbar";
+import ChatComponent from "./components/ChatComponent";
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./index.css";
 
@@ -99,8 +105,9 @@ function App() {
       <TestContext.Provider value={{ selectedTests, setSelectedTests, uploadedFile, setUploadedFile }}>
         <Router>
           <Navbar />
-          {/* Added ChatComponent so it is displayed on every page */}
+          {/* Render ChatComponent once, either here or in your layout */}
           <ChatComponent />
+          <UploadButton /> {/* Upload button for CSV files */}
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/select-test" element={<TestSelection />} />
@@ -140,9 +147,8 @@ function App() {
             <Route path="/test-hra-25-owner-rule" element={<HRA25OwnerRuleTest />} />
             <Route path="/additional-ndt-tests" element={<AdditionalNDTTests />} />
             <Route path="/test-average-benefit" element={<AverageBenefitTest />} />
+            <Route path="/report" element={<ReportPage />} />
           </Routes>
-          {/* Chat Component */}
-          <ChatComponent />
         </Router>
       </TestContext.Provider>
     </ErrorBoundary>
