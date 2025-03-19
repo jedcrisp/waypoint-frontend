@@ -2,7 +2,7 @@ import React, { useState, useEffect, createContext, useRef } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import Navbar from "./components/Navbar";
-import ChatComponent from "./components/ChatComponent"; // Import Chat Component
+import ChatComponent from "./components/ChatComponent"; // <-- Added ChatComponent import
 import Home from "./pages/Home";
 import TestSelection from "./pages/TestSelection";
 import AdpTest from "./pages/AdpTest";
@@ -99,6 +99,8 @@ function App() {
       <TestContext.Provider value={{ selectedTests, setSelectedTests, uploadedFile, setUploadedFile }}>
         <Router>
           <Navbar />
+          {/* Added ChatComponent so it is displayed on every page */}
+          <ChatComponent />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/select-test" element={<TestSelection />} />
@@ -139,9 +141,6 @@ function App() {
             <Route path="/additional-ndt-tests" element={<AdditionalNDTTests />} />
             <Route path="/test-average-benefit" element={<AverageBenefitTest />} />
           </Routes>
-
-          {/* 🗨️ Global Chat Component (Appears on Every Page) */}
-            <ChatComponent />
         </Router>
       </TestContext.Provider>
     </ErrorBoundary>
