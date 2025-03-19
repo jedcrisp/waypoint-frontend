@@ -16,11 +16,20 @@ const CsvTemplateDownloader = () => {
       "HCI",
       "Health FSA Benefits",
       "Eligible for DCAP",
-      "TestOwnership %",
+      "Ownership %",
       "DCAP Benefits",
       "DCAP Contributions",
       "HRA Benefits",
-      "Eligible for HRA"
+      "Eligible for HRA",
+      "Employer Contribution",
+      "Plan Assets",
+      "Hours Worked",
+      "Earnings",
+      "Total Benefits",
+      "NHCE Average Benefit",
+      "HCE Average Benefit",
+      "Owner-Attributed Benefits",
+      "Employee Contribution",
     ],
     [
       "Employee 1",
@@ -39,7 +48,8 @@ const CsvTemplateDownloader = () => {
       "917",
       "2365",
       "220",
-      "No"
+      "No",
+      "4324"
     ],
     [
       "Employee 2",
@@ -58,7 +68,8 @@ const CsvTemplateDownloader = () => {
       "4609",
       "2602",
       "4917",
-      "No"
+      "No",
+      "4543"
     ],
     [
       "Employee 3",
@@ -77,8 +88,9 @@ const CsvTemplateDownloader = () => {
       "1635",
       "5000",
       "4773",
-      "No"
-    ]
+      "No",
+      "8947"
+    ],
   ];
 
   const csvContent = csvArray.map((row) => row.join(",")).join("\n");
