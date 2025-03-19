@@ -21,16 +21,29 @@ const ChatComponent = () => {
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault(); // Prevent default form submission behavior
+      handleSendMessage();
+    }
+  };
+
   return (
     <div className={`fixed bottom-5 right-5 z-50 ${isOpen ? "w-80 h-96" : "w-25 h-12"} bg-white rounded-lg shadow-lg`}>
-      <div className="flex items-center justify-center h-full" onClick={() => setIsOpen(!isOpen)}>
+      <div
+        className="flex items-center justify-center h-full"
+        onClick={() => !isOpen && setIsOpen(true)} // Only toggle open when minimized
+      >
         {!isOpen ? (
           <button className="text-black text-lg w-full">Chat</button>
         ) : (
-          <div className="flex flex-col w-full h-full p-2 bg-white rounded-lg">
+          <div
+            className="flex flex-col w-full h-full p-2 bg-white rounded-lg"
+            onClick={(e) => e.stopPropagation()} // Prevent click propagation
+          >
             {/* Close Button */}
             <div className="flex justify-between items-center mb-2">
-              <h3 className="text-lg font-bold text-gray-700">Chat</h3>
+              <h3 className="text-lg font-bold text-gray-700">Waypoint AI Assitant</h3>
               <button
                 className="text-gray-500 hover:text-gray-700"
                 onClick={() => setIsOpen(false)}
@@ -40,7 +53,12 @@ const ChatComponent = () => {
             </div>
             <div className="flex-grow overflow-y-auto">
               {messages.map((msg, index) => (
-                <div key={index} className={`p-2 my-1 rounded ${msg.role === "user" ? "bg-blue-200 text-right" : "bg-gray-200 text-left"}`}>
+                <div
+                  key={index}
+                  className={`p-2 my-1 rounded ${
+                    msg.role === "user" ? "bg-blue-200 text-right" : "bg-gray-200 text-left"
+                  }`}
+                >
                   {msg.content}
                 </div>
               ))}
@@ -51,9 +69,13 @@ const ChatComponent = () => {
                 className="flex-1 p-2 border rounded"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown} // Trigger send on Enter key press
                 placeholder="Type your message..."
               />
-              <button className="ml-2 px-4 py-2 bg-blue-500 text-white rounded" onClick={handleSendMessage}>
+              <button
+                className="ml-2 px-4 py-2 bg-blue-500 text-white rounded"
+                onClick={handleSendMessage}
+              >
                 Send
               </button>
             </div>
