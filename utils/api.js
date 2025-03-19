@@ -1,9 +1,15 @@
-const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+import axios from "axios";
 
-export async function fetchData(endpoint) {
-  const response = await fetch(`${API_URL}/${endpoint}`);
-  if (!response.ok) {
-    throw new Error("Network response was not ok");
+// Use Vite environment variable or default to localhost
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000"; 
+
+export const getOpenAIResponse = async (prompt) => {
+  try {
+    const response = await axios.post(`${API_URL}/openai`, { prompt });
+    return response.data.response;
+  } catch (error) {
+    console.error("API Error:", error.response?.data?.detail || error.message);
+    return "Error: Unable to process your request.";
   }
-  return response.json();
-}
+};
+
