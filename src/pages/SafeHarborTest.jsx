@@ -118,8 +118,9 @@ const ADPSafeHarborTest = () => {
           <h3 className="font-bold text-xl text-gray-700">Safe Harbor Test Results</h3>
           <div className="mt-4">
             <p><strong>Total Employees:</strong> {result?.["Total Employees"] ?? "N/A"}</p>
+            <p><strong>Eligible Employees:</strong> {result?.["Eligible Employees"] ?? "N/A"}</p>
             <p><strong>Eligibility Percentage:</strong> {result?.["Eligibility Percentage (%)"] ?? "N/A"}%</p>
-            <p><strong>Employer Contributions:</strong> ${result?.["Employer Contributions (Avg)"] ?? "N/A"}</p>
+            <p><strong>Average Employer Contribution:</strong> ${result?.["Average Employer Contribution (%)"] ?? "N/A"}</p>
             <p><strong>Test Result:</strong> 
               <span className={`px-3 py-1 rounded-md font-bold ${
                 result?.["Test Result"] === "Passed" ? "bg-green-500 text-white" : "bg-red-500 text-white"
