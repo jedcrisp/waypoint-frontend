@@ -141,7 +141,9 @@ function App() {
           </Routes>
 
           {/* 🗨️ Global Chat Component (Appears on Every Page) */}
-          <ChatComponent />
+          <div className="fixed bottom-5 right-5 z-50 w-[400px] h-[600px] bg-white shadow-lg rounded-lg border border-gray-300">
+            <ChatComponent />
+          </div>
         </Router>
       </TestContext.Provider>
     </ErrorBoundary>
