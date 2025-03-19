@@ -139,7 +139,9 @@ function App() {
             <Route path="/additional-ndt-tests" element={<AdditionalNDTTests />} />
             <Route path="/test-average-benefit" element={<AverageBenefitTest />} />
           </Routes>
-          
+
+          {/* 🗨️ Global Chat Component (Appears on Every Page) */}
+            <ChatComponent />
         </Router>
       </TestContext.Provider>
     </ErrorBoundary>
