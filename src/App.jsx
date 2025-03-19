@@ -141,6 +141,8 @@ function App() {
             <Route path="/additional-ndt-tests" element={<AdditionalNDTTests />} />
             <Route path="/test-average-benefit" element={<AverageBenefitTest />} />
           </Routes>
+          {/* Chat Component */}
+          <ChatComponent />
         </Router>
       </TestContext.Provider>
     </ErrorBoundary>
