@@ -124,7 +124,7 @@ const ADPSafeHarborTest = () => {
               <span className={`px-3 py-1 rounded-md font-bold ${
                 result?.["Test Result"] === "Passed" ? "bg-green-500 text-white" : "bg-red-500 text-white"
               }`}>
-                {result?.["Safe_Harbor_Test_Result"] ?? "N/A"}
+                {result?.["Test Result"] ?? "N/A"}
               </span>
             </p>
 
