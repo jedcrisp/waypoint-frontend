@@ -59,7 +59,7 @@ const ACPTest = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
       console.log("✅ Response received:", response.data);
-      setResult(response.data.Result);
+      setResult(response.data["Test Results"]["acp"]);
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err);
       setError("❌ Failed to upload file. Please check the format and try again.");
@@ -184,7 +184,7 @@ const ACPTest = () => {
 
               {/* Display consequences if the test fails */}
               {result["ACP_Test_Result"] === "Failed" && (
-                <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+                <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                   <h4 className="font-bold text-black-600">Consequences:</h4>
                   <ul className="list-disc list-inside text-black-600">
                     <li>❌ Excess Contributions Must Be Refunded</li>

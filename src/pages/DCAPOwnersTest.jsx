@@ -59,7 +59,13 @@ const DCAPOwnersTest = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
       console.log("✅ API Response:", response.data);
-      setResult(response.data.Result);
+
+      // Check if the response structure is as expected
+      if (response.data && response.data["Test Results"] && response.data["Test Results"]["dcap_owners"]) {
+        setResult(response.data["Test Results"]["dcap_owners"]);
+      } else {
+        setError("❌ Unexpected response structure. Please check the API response.");
+      }
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError("❌ Failed to upload file. Please check the format and try again.");

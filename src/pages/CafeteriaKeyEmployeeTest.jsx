@@ -1,15 +1,15 @@
-import { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust the path as needed
 
-const KeyEmployeeTest = () => {
+const CafeteriaKeyEmployeeTest = () => {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure this is the correct URL for your backend
+  const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure this is correctly set
 
   // Handle file selection via Drag & Drop
   const onDrop = useCallback((acceptedFiles) => {
@@ -20,10 +20,9 @@ const KeyEmployeeTest = () => {
     }
   }, []);
 
-  // Setup dropzone with noClick and noKeyboard to prevent default events from triggering file picker
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
-    accept: ".csv, .xlsx", // Supports CSV and Excel files
+    accept: ".csv, .xlsx",
     multiple: false,
     noClick: true,
     noKeyboard: true,
@@ -36,7 +35,7 @@ const KeyEmployeeTest = () => {
       return;
     }
 
-    // Client-side validation (example: check file type and size)
+    // Validate file type
     const validFileTypes = [".csv", ".xlsx"];
     const fileType = file.name.split('.').pop();
     if (!validFileTypes.includes(`.${fileType}`)) {
@@ -50,17 +49,15 @@ const KeyEmployeeTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("selected_tests", "key_employee"); // Add the selected_tests parameter
+    formData.append("selected_tests", "cafeteria_key_employee"); // Ensures backend processes as a Cafeteria Plan Key Employee test
 
     try {
-      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/key_employee`);
-      console.log("📂 File Selected:", file.name);
-      const response = await axios.post(`${API_URL}/upload-csv/key_employee`, formData, {
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/cafeteria_key_employee`);
+      const response = await axios.post(`${API_URL}/upload-csv/cafeteria_key_employee`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       console.log("✅ Response received:", response.data);
-      setResult(response.data["Test Results"]);
-      console.log("📝 Result state updated:", response.data["Test Results"]);
+      setResult(response.data["Test Results"]["cafeteria_key_employee"]); // Adjust based on your API response structure
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err);
       setError("❌ Failed to upload file. Please check the format and try again.");
@@ -68,24 +65,10 @@ const KeyEmployeeTest = () => {
     setLoading(false);
   };
 
-  // Listen for Enter key press to trigger upload
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && file && !loading) {
-      e.preventDefault();
-      e.stopPropagation();
-      handleUpload();
-    }
-  };
-
   return (
-    // Outer container is focusable (tabIndex="0") so it receives key events.
-    <div
-      className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
-      onKeyDown={handleKeyDown}
-      tabIndex="0"
-    >
+    <div className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200">
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
-        📂 Upload Key Employee Test File
+        📂 Upload Cafeteria Key Employee Test File
       </h2>
 
       <div className="flex justify-center mb-6">
@@ -138,14 +121,14 @@ const KeyEmployeeTest = () => {
       {result && (
         <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
           <h3 className="font-bold text-xl text-gray-700 flex items-center">
-            ✅ Key Employee Test Results
+            ✅ Cafeteria Key Employee Test Results
           </h3>
           <div className="mt-4">
             <p className="text-lg">
-              <strong className="text-gray-700">Key Employee Percentage:</strong>{" "}
+              <strong className="text-gray-700">Key Employee Benefit Percentage:</strong>{" "}
               <span className="font-semibold text-blue-600">
-                {result["key_employee"]?.["Key Employee Percentage"] !== undefined
-                  ? result["key_employee"]["Key Employee Percentage"] + "%"
+                {result["cafeteria_key_employee"]?.["Key Employee Benefit Percentage"] !== undefined
+                  ? result["cafeteria_key_employee"]["Key Employee Benefit Percentage"] + "%"
                   : "N/A"}
               </span>
             </p>
@@ -153,41 +136,39 @@ const KeyEmployeeTest = () => {
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
-                  result["key_employee"]?.["Test Result"] === "Passed"
+                  result["cafeteria_key_employee"]?.["Test Result"] === "Passed"
                     ? "bg-green-500 text-white"
                     : "bg-red-500 text-white"
                 }`}
               >
-                {result["key_employee"]?.["Test Result"] ?? "N/A"}
+                {result["cafeteria_key_employee"]?.["Test Result"] ?? "N/A"}
               </span>
             </p>
 
             {/* Display corrective actions if the test fails */}
-            {result["key_employee"]?.["Test Result"] === "Failed" && (
+            {result["cafeteria_key_employee"]?.["Test Result"] === "Failed" && (
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>Review and adjust the classification of key employees.</li>
-                  <li>Consider increasing the number of non-key employees.</li>
-                  <li>Implement a plan to ensure a more balanced distribution of benefits.</li>
+                  <li>Reallocate Cafeteria Plan benefits to balance distributions.</li>
+                  <br />
+                  <li>Adjust classifications of key employees.</li>
+                  <br />
+                  <li>Review and update contribution policies.</li>
                 </ul>
               </div>
             )}
 
             {/* Display consequences if the test fails */}
-            {result["key_employee"]?.["Test Result"] === "Failed" && (
+            {result["cafeteria_key_employee"]?.["Test Result"] === "Failed" && (
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
-                <ul className="list-disc list-inside text-black-600">
+                <ul className="list-disc list-inside text-yellow-600">
                   <li>❌ Loss of Tax-Exempt Status for Key Employees</li>
                   <br />
                   <li>❌ IRS Scrutiny and Potential Penalties</li>
                   <br />
-                  <li>❌ Reduced Employee Morale and Participation</li>
-                  <br />
                   <li>❌ Risk of Plan Disqualification for Non-Compliance</li>
-                  <br />
-                  <li>❌ Reputational and Legal Risks</li>
                 </ul>
               </div>
             )}
@@ -198,4 +179,4 @@ const KeyEmployeeTest = () => {
   );
 };
 
-export default KeyEmployeeTest;
+export default CafeteriaKeyEmployeeTest;

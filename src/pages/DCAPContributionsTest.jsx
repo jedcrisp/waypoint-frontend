@@ -60,7 +60,7 @@ const DCAPContributionsTest = () => {
       });
       console.log("✅ API Response:", response.data);
       // Set the result directly from the API response.
-      setResult(response.data.Result);
+      setResult(response.data["Test Results"]["dcap_contributions"]);
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError("❌ Failed to upload file. Please check the format and try again.");

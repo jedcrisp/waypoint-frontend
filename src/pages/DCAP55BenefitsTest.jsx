@@ -59,7 +59,7 @@ const DCAP55BenefitsTest = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
       console.log("✅ API Response:", response.data);
-      setResult(response.data.Result);
+      setResult(response.data["Test Results"]["dcap_55_benefits"]);
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError("❌ Failed to upload file. Please check the format and try again.");

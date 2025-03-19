@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
-import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; 
+import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust the path as needed
 
 const EligibilityTest = () => {
   const [file, setFile] = useState(null);
@@ -50,7 +50,7 @@ const EligibilityTest = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
       console.log("✅ API Response:", response.data);
-      setResult(response.data.Result);
+      setResult(response.data["Test Results"]["eligibility"]);
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError("❌ Failed to upload file. Please check the format and try again.");

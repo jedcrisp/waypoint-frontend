@@ -53,13 +53,13 @@ const AdpTest = () => {
     formData.append("selected_tests", "adp"); // Add the selected_tests parameter
 
     try {
-      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/acp`);
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/adp`);
       console.log("📂 File Selected:", file.name);
-      const response = await axios.post(`${API_URL}/upload-csv/acp`, formData, {
+      const response = await axios.post(`${API_URL}/upload-csv/adp`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       console.log("✅ Response received:", response.data);
-      setResult(response.data.Result);
+      setResult(response.data["Test Results"]["adp"]);
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err);
       setError("❌ Failed to upload file. Please check the format and try again.");

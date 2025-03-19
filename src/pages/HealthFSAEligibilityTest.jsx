@@ -61,7 +61,7 @@ const HealthFSAEligibilityTest = () => {
         { headers: { "Content-Type": "multipart/form-data" } }
       );
       console.log("✅ Response received:", response.data);
-      setResult(response.data.Result);
+      setResult(response.data["Test Results"]["health_fsa_eligibility"]);
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err);
       setError("❌ Failed to upload file. Please check the format and try again.");

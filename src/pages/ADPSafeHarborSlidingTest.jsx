@@ -3,15 +3,15 @@ import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust the path as needed
 
-const DCAPEligibilityTest = () => {
+const ADPSafeHarborSlidingTest = () => {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure this is the correct URL for your backend
+  const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure this is set in your environment
 
-  // Handle file selection via Drag & Drop
+  // Handle file selection via drag & drop or manual selection
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
       setFile(acceptedFiles[0]);
@@ -20,10 +20,10 @@ const DCAPEligibilityTest = () => {
     }
   }, []);
 
-  // Setup dropzone with noClick and noKeyboard to prevent default events from opening file picker
+  // Setup dropzone
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
-    accept: ".csv, .xlsx", // Supports both CSV and Excel files
+    accept: ".csv, .xlsx", // Supports CSV and Excel files
     multiple: false,
     noClick: true,
     noKeyboard: true,
@@ -36,10 +36,10 @@ const DCAPEligibilityTest = () => {
       return;
     }
 
-    // Client-side validation (example: check file type and size)
-    const validFileTypes = [".csv", ".xlsx"];
-    const fileType = file.name.split('.').pop();
-    if (!validFileTypes.includes(`.${fileType}`)) {
+    // Validate file type (case insensitive)
+    const validFileTypes = ["csv", "xlsx"];
+    const fileType = file.name.split(".").pop().toLowerCase();
+    if (!validFileTypes.includes(fileType)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
     }
@@ -50,24 +50,26 @@ const DCAPEligibilityTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("selected_tests", "dcap_eligibility"); // Add the selected_tests parameter
+    // Set the test type to "adp_safe_harbor_sliding"
+    formData.append("selected_tests", "adp_safe_harbor_sliding");
 
     try {
-      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/dcap_eligibility`);
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/adp_safe_harbor_sliding`);
       console.log("📂 File Selected:", file.name);
-      const response = await axios.post(`${API_URL}/upload-csv/dcap_eligibility`, formData, {
+      const response = await axios.post(`${API_URL}/upload-csv/adp_safe_harbor_sliding`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      console.log("✅ API Response:", response.data);
-      setResult(response.data["Test Results"]["dcap_eligibility"]);
+      console.log("✅ Response received:", response.data);
+      // Assume the API returns the results under "Test Results" with key "adp_safe_harbor_sliding"
+      setResult(response.data["Test Results"]["adp_safe_harbor_sliding"]);
     } catch (err) {
-      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
+      console.error("❌ Upload error:", err.response ? err.response.data : err);
       setError("❌ Failed to upload file. Please check the format and try again.");
     }
     setLoading(false);
   };
 
-  // Listen for Enter key press to trigger upload
+  // Trigger upload on Enter key press
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && file && !loading) {
       e.preventDefault();
@@ -82,10 +84,11 @@ const DCAPEligibilityTest = () => {
       onKeyDown={handleKeyDown}
       tabIndex="0"
     >
-      <h2 className="text-2xl font-bold text-center text-[#0074d9] mb-6">
-        📂 Upload DCAP Eligibility Test File
+      <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
+        📂 Upload ADP Safe Harbor Sliding Scale Test File
       </h2>
 
+      {/* CSV Template Download Link */}
       <div className="flex justify-center mb-6">
         <CsvTemplateDownloader />
       </div>
@@ -109,7 +112,7 @@ const DCAPEligibilityTest = () => {
         )}
       </div>
 
-      {/* Dedicated "Choose File" Button */}
+      {/* Choose File Button */}
       <button
         type="button"
         onClick={open}
@@ -136,72 +139,98 @@ const DCAPEligibilityTest = () => {
       {result && (
         <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
           <h3 className="font-bold text-xl text-gray-700 flex items-center">
-            DCAP Eligibility Test Results
+            ADP Safe Harbor Sliding Scale Test Results
           </h3>
           <div className="mt-4">
             <p className="text-lg">
-              <strong className="text-gray-700">Total Employees:</strong>{" "}
+              <strong className="text-gray-700">HCE ADP:</strong>{" "}
               <span className="font-semibold text-blue-600">
-                {result["Total Employees"] ?? "N/A"}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Eligible Employees:</strong>{" "}
-              <span className="font-semibold text-green-600">
-                {result["Eligible Employees"] ?? "N/A"}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">DCAP Eligibility Percentage (%):</strong>{" "}
-              <span className="font-semibold text-blue-600">
-                {result["DCAP Eligibility Percentage (%)"] !== undefined
-                  ? result["DCAP Eligibility Percentage (%)"] + "%"
+                {result["HCE ADP (%)"] !== undefined
+                  ? result["HCE ADP (%)"] + "%"
                   : "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">DCAP Eligibility Test Result:</strong>{" "}
+              <strong className="text-gray-700">NHCE ADP:</strong>{" "}
+              <span className="font-semibold text-green-600">
+                {result["NHCE ADP (%)"] !== undefined
+                  ? result["NHCE ADP (%)"] + "%"
+                  : "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">IRS Safe Harbor Limit:</strong>{" "}
+              <span className="font-semibold text-purple-600">
+                {result["IRS Safe Harbor Limit"] !== undefined
+                  ? result["IRS Safe Harbor Limit"] + "%"
+                  : "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
-                  result["DCAP Eligibility Test Result"] === "Passed"
+                  result["Test Result"] === "Passed"
                     ? "bg-green-500 text-white"
                     : "bg-red-500 text-white"
                 }`}
               >
-                {result["DCAP Eligibility Test Result"] ?? "N/A"}
+                {result["Test Result"] ?? "N/A"}
               </span>
             </p>
 
-            {/* Display corrective actions if the test fails */}
-            {result["DCAP Eligibility Test Result"] === "Failed" && (
+            {/* Display corrective actions if the ADP Safe Harbor Sliding Test fails */}
+            {result["Test Result"] === "Failed" && (
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>Expand Eligibility for NHCEs: Remove restrictive criteria that exclude NHCEs from participating in DCAP.</li>
+                  <li>
+                    Reassess employee deferral strategies to bring HCE deferral percentages within the sliding scale limits.
+                  </li>
                   <br />
-                  <li>Increase NHCE Participation: Improve education and awareness, offer enrollment incentives, and simplify the sign-up process.</li>
+                  <li>
+                    Implement targeted communication and education to encourage appropriate deferral behavior among HCEs.
+                  </li>
                   <br />
-                  <li>Adjust Employer Contributions: Ensure employer contributions are evenly distributed among HCEs and NHCEs.</li>
-                  <br />
-                  <li>Amend the Plan Document: Modify eligibility and contribution rules to align with IRS nondiscrimination requirements.</li>
+                  <li>
+                    Consider revising plan design to achieve a more balanced deferral pattern between HCEs and NHCEs.
+                  </li>
                 </ul>
               </div>
             )}
 
-            {/* Display consequences if the test fails */}
-            {result["DCAP Eligibility Test Result"] === "Failed" && (
-              <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+            {/* Display consequences if the ADP Safe Harbor Sliding Test fails */}
+            {result["Test Result"] === "Failed" && (
+              <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>❌ Potential IRS penalties or plan disqualification.</li>
+                  <li>
+                    ❌ Failure to meet sliding scale limits may trigger additional corrective contributions.
+                  </li>
                   <br />
-                  <li>❌ Potential disqualification of the Health FSA plan.</li>
+                  <li>
+                    ❌ Increased administrative burden to manage non-compliance and subsequent testing.
+                  </li>
                   <br />
-                  <li>❌ Loss of tax-free DCAP benefits for employees.</li>
+                  <li>
+                    ❌ Potential IRS penalties and scrutiny if corrective measures are not implemented.
+                  </li>
+                  <br />
+                  <li>
+                    ❌ Negative impact on overall plan fairness and employee satisfaction.
+                  </li>
                 </ul>
               </div>
             )}
-            
+
+            {/* Optionally display additional breakdown details */}
+            {result["Breakdown"] && (
+              <div className="mt-4">
+                <pre className="bg-gray-100 p-3 rounded text-sm">
+                  {JSON.stringify(result["Breakdown"], null, 2)}
+                </pre>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -209,4 +238,4 @@ const DCAPEligibilityTest = () => {
   );
 };
 
-export default DCAPEligibilityTest;
+export default ADPSafeHarborSlidingTest;
