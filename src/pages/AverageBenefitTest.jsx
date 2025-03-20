@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust the path as needed
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 
 const AverageBenefitTest = () => {
   const [file, setFile] = useState(null);
@@ -47,23 +48,38 @@ const AverageBenefitTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    // Ensure the backend expects this exact test identifier
     formData.append("selected_tests", "average_benefit_test");
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/average_benefit_test`);
-      const response = await axios.post(
-        `${API_URL}/upload-csv/average_benefit_test`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
+
+      // 1. Get Firebase token
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Firebase Token:", token);
+
+      // 2. Send POST request with Bearer token
+      const response = await axios.post(`${API_URL}/upload-csv/average_benefit_test`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
       console.log("✅ Full API Response:", response.data);
       setResult(response.data?.["Test Results"]?.["average_benefit_test"] || {});
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err);
       setError(err.response?.data?.error || "❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -139,7 +155,7 @@ const AverageBenefitTest = () => {
                     : "bg-red-500 text-white"
                 }`}
               >
-                {result?.["Avereage_Benefit_Test_Result"] ?? "N/A"}
+                {result?.["Test Result"] ?? "N/A"}
               </span>
             </p>
 
@@ -150,7 +166,9 @@ const AverageBenefitTest = () => {
                   <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                   <ul className="list-disc list-inside text-black-600">
                     <li>Review contribution allocations and plan design.</li>
+                    <br />
                     <li>Adjust contribution formulas to help NHCE benefits meet required thresholds.</li>
+                    <br />
                     <li>Consider additional employer contributions if necessary.</li>
                   </ul>
                 </div>
@@ -158,7 +176,9 @@ const AverageBenefitTest = () => {
                   <h4 className="font-bold text-black-600">Consequences:</h4>
                   <ul className="list-disc list-inside text-black-600">
                     <li>❌ Benefits for HCEs may be reclassified as taxable.</li>
+                    <br />
                     <li>❌ Increased IRS scrutiny and potential penalties.</li>
+                    <br />
                     <li>❌ Additional corrective contributions might be required.</li>
                   </ul>
                 </div>
