@@ -50,10 +50,10 @@ const CafeteriaKeyEmployeeTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("selected_tests", "cafeteria_key_employee");
+    formData.append("selected_tests", "key_employee");
 
     try {
-      console.log("🚀 Uploading file to:", `${API_URL}/upload-csv/cafeteria_key_employee`);
+      console.log("🚀 Uploading file to:", `${API_URL}/upload-csv/key_employee`);
       console.log("📂 File Selected:", file.name);
 
       // 1. Get Firebase token (assuming user is logged in)
@@ -66,7 +66,7 @@ const CafeteriaKeyEmployeeTest = () => {
       }
 
       // 2. Send POST request with Bearer token
-      const response = await axios.post(`${API_URL}/upload-csv/cafeteria_key_employee`, formData, {
+      const response = await axios.post(`${API_URL}/upload-csv/key_employee`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -76,7 +76,7 @@ const CafeteriaKeyEmployeeTest = () => {
       console.log("✅ Response received:", response.data);
 
       // Retrieve the Cafeteria Key Employee test results
-      const cafeteriaResults = response.data?.["Test Results"]?.["cafeteria_key_employee"];
+      const cafeteriaResults = response.data?.["Test Results"]?.["key_employee"];
       if (!cafeteriaResults) {
         setError("❌ No Cafeteria Key Employee test results found in response.");
       } else {
