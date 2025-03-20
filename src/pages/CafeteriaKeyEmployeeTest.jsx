@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
-import { getAuth } from "firebase/auth"; // Import getAuth from Firebase
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust the path as needed
 
 const CafeteriaKeyEmployeeTest = () => {
@@ -14,7 +14,7 @@ const CafeteriaKeyEmployeeTest = () => {
 
   // Handle file selection via Drag & Drop
   const onDrop = useCallback((acceptedFiles) => {
-    if (acceptedFiles && acceptedFiles.length > 0) {
+    if (acceptedFiles?.length > 0) {
       setFile(acceptedFiles[0]);
       setResult(null);
       setError(null);
@@ -38,7 +38,7 @@ const CafeteriaKeyEmployeeTest = () => {
 
     // Validate file type
     const validFileTypes = [".csv", ".xlsx"];
-    const fileType = file.name.split(".").pop();
+    const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(`.${fileType}`)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
@@ -50,35 +50,44 @@ const CafeteriaKeyEmployeeTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("selected_tests", "cafeteria_key_employee"); // Ensures backend processes as a Cafeteria Plan Key Employee test
+    formData.append("selected_tests", "cafeteria_key_employee");
 
     try {
-      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/cafeteria_key_employee`);
-      const response = await sendPostRequest(formData); // Pass formData to sendPostRequest
+      console.log("🚀 Uploading file to:", `${API_URL}/upload-csv/cafeteria_key_employee`);
+      console.log("📂 File Selected:", file.name);
+
+      // 1. Get Firebase token (assuming user is logged in)
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+
+      // 2. Send POST request with Bearer token
+      const response = await axios.post(`${API_URL}/upload-csv/cafeteria_key_employee`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
       console.log("✅ Response received:", response.data);
-      setResult(response.data["Test Results"]["cafeteria_key_employee"]); // Adjust based on your API response structure
+
+      // Retrieve the Cafeteria Key Employee test results
+      const cafeteriaResults = response.data?.["Test Results"]?.["cafeteria_key_employee"];
+      if (!cafeteriaResults) {
+        setError("❌ No Cafeteria Key Employee test results found in response.");
+      } else {
+        setResult(cafeteriaResults);
+      }
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err);
       setError("❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  };
-
-  // 2. Send POST request with Bearer token
-  const sendPostRequest = async (formData) => {
-    const auth = getAuth(); // Ensure getAuth is imported and used here
-    const token = await auth.currentUser?.getIdToken(true); // Ensure the user is logged in
-    if (!token) {
-      throw new Error("❌ No valid Firebase token found. Are you logged in?");
-    }
-
-    const response = await axios.post(`${API_URL}/upload-csv/cafeteria_key_employee`, formData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    return response;
   };
 
   return (
@@ -87,6 +96,7 @@ const CafeteriaKeyEmployeeTest = () => {
         📂 Upload Cafeteria Key Employee Test File
       </h2>
 
+      {/* CSV Template Download Link */}
       <div className="flex justify-center mb-6">
         <CsvTemplateDownloader />
       </div>
@@ -110,7 +120,7 @@ const CafeteriaKeyEmployeeTest = () => {
         )}
       </div>
 
-      {/* Dedicated "Choose File" Button */}
+      {/* Choose File Button */}
       <button
         type="button"
         onClick={open}
@@ -143,8 +153,8 @@ const CafeteriaKeyEmployeeTest = () => {
             <p className="text-lg">
               <strong className="text-gray-700">Key Employee Benefit Percentage:</strong>{" "}
               <span className="font-semibold text-blue-600">
-                {result["cafeteria_key_employee"]?.["Key Employee Benefit Percentage"] !== undefined
-                  ? result["cafeteria_key_employee"]["Key Employee Benefit Percentage"] + "%"
+                {result["Key Employee Percentage"] !== undefined
+                  ? result["Key Employee Percentage"] + "%"
                   : "N/A"}
               </span>
             </p>
@@ -152,38 +162,34 @@ const CafeteriaKeyEmployeeTest = () => {
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
-                  result["cafeteria_key_employee"]?.["Test Result"] === "Passed"
+                  result["Test Result"] === "Passed"
                     ? "bg-green-500 text-white"
                     : "bg-red-500 text-white"
                 }`}
               >
-                {result["cafeteria_key_employee"]?.["Test Result"] ?? "N/A"}
+                {result["Test Result"] ?? "N/A"}
               </span>
             </p>
 
             {/* Display corrective actions if the test fails */}
-            {result["cafeteria_key_employee"]?.["Test Result"] === "Failed" && (
+            {result["Test Result"] === "Failed" && (
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>Reallocate Cafeteria Plan benefits to balance distributions.</li>
-                  <br />
                   <li>Adjust classifications of key employees.</li>
-                  <br />
                   <li>Review and update contribution policies.</li>
                 </ul>
               </div>
             )}
 
             {/* Display consequences if the test fails */}
-            {result["cafeteria_key_employee"]?.["Test Result"] === "Failed" && (
+            {result["Test Result"] === "Failed" && (
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-yellow-600">
                   <li>❌ Loss of Tax-Exempt Status for Key Employees</li>
-                  <br />
                   <li>❌ IRS Scrutiny and Potential Penalties</li>
-                  <br />
                   <li>❌ Risk of Plan Disqualification for Non-Compliance</li>
                 </ul>
               </div>
