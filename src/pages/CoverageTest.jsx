@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust path if needed
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 
 const CoverageTest = () => {
   const [file, setFile] = useState(null);
@@ -35,7 +36,7 @@ const CoverageTest = () => {
 
     // Validate file type
     const validFileTypes = ["csv", "xlsx"];
-    const fileType = file.name.split('.').pop().toLowerCase();
+    const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
@@ -47,26 +48,45 @@ const CoverageTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("selected_tests", "coverage_test"); // Ensure backend matches this EXACT string
+    formData.append("selected_tests", "coverage_test");
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/coverage_test`);
+
+      // 1. Get Firebase token
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Firebase Token:", token);
+
+      // 2. Send POST request with Bearer token
       const response = await axios.post(`${API_URL}/upload-csv/coverage_test`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
       });
 
-      console.log("✅ Full API Response:", response.data);
+      console.log("✅ API Response:", response.data);
       setResult(response.data?.["Test Results"]?.["coverage_test"] || {});
     } catch (err) {
-      console.error("❌ Upload error:", err.response ? err.response.data : err);
-      setError(err.response?.data?.error || "❌ Failed to upload file. Please check the format and try again.");
+      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
+      setError("❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
     <div className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200">
-      <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">📂 Upload Coverage Test File</h2>
+      <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
+        📂 Upload Coverage Test File
+      </h2>
 
       <div className="flex justify-center mb-6">
         <CsvTemplateDownloader />
@@ -85,11 +105,13 @@ const CoverageTest = () => {
         ) : isDragActive ? (
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
-          <p className="text-gray-600">Drag & drop a <strong>CSV or Excel file</strong> here.</p>
+          <p className="text-gray-600">
+            Drag & drop a <strong>CSV or Excel file</strong> here.
+          </p>
         )}
       </div>
 
-      {/* Dedicated "Choose File" Button */}
+      {/* "Choose File" Button */}
       <button
         type="button"
         onClick={open}
@@ -117,15 +139,28 @@ const CoverageTest = () => {
         <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
           <h3 className="font-bold text-xl text-gray-700">Coverage Test Results</h3>
           <div className="mt-4">
-            <p><strong>Total Employees:</strong> {result?.["Total Employees"] ?? "N/A"}</p>
-            <p><strong>NHCE Coverage (%):</strong> {result?.["NHCE Coverage (%)"] ?? "N/A"}%</p>
-            <p><strong>HCE Coverage (%):</strong> {result?.["HCE Coverage (%)"] ?? "N/A"}%</p>
-            <p><strong>Ratio Percentage:</strong> {result?.["Ratio Percentage"] ?? "N/A"}%</p>
-            <p><strong>Test Result:</strong> 
-              <span className={`px-3 py-1 rounded-md font-bold ${
-                result?.["Test Result"] === "Passed" ? "bg-green-500 text-white" : "bg-red-500 text-white"
-              }`}>
-                {result?.["Coverage_Test_Result"] ?? "N/A"}
+            <p>
+              <strong>Total Employees:</strong> {result?.["Total Employees"] ?? "N/A"}
+            </p>
+            <p>
+              <strong>NHCE Coverage (%):</strong> {result?.["NHCE Coverage (%)"] ?? "N/A"}%
+            </p>
+            <p>
+              <strong>HCE Coverage (%):</strong> {result?.["HCE Coverage (%)"] ?? "N/A"}%
+            </p>
+            <p>
+              <strong>Ratio Percentage:</strong> {result?.["Ratio Percentage"] ?? "N/A"}%
+            </p>
+            <p>
+              <strong>Test Result:</strong>{" "}
+              <span
+                className={`px-3 py-1 rounded-md font-bold ${
+                  result?.["Test Result"] === "Passed"
+                    ? "bg-green-500 text-white"
+                    : "bg-red-500 text-white"
+                }`}
+              >
+                {result?.["Test Result"] ?? "N/A"}
               </span>
             </p>
 
