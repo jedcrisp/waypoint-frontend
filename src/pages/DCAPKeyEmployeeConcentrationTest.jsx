@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust path as needed
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 
 const DCAPKeyEmployeeConcentrationTest = () => {
   const [file, setFile] = useState(null);
@@ -47,24 +48,38 @@ const DCAPKeyEmployeeConcentrationTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    // Ensure the backend matches this EXACT string for the test
     formData.append("selected_tests", "dcap_key_employee_concentration_test");
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/dcap_key_employee_concentration_test`);
-      const response = await axios.post(
-        `${API_URL}/upload-csv/dcap_key_employee_concentration_test`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
 
-      console.log("✅ Full API Response:", response.data);
+      // 1. Get Firebase token
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Firebase Token:", token);
+
+      // 2. Send POST request with Bearer token
+      const response = await axios.post(`${API_URL}/upload-csv/dcap_key_employee_concentration_test`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      console.log("✅ API Response:", response.data);
       setResult(response.data?.["Test Results"]?.["dcap_key_employee_concentration_test"] || {});
     } catch (err) {
-      console.error("❌ Upload error:", err.response ? err.response.data : err);
-      setError(err.response?.data?.error || "❌ Failed to upload file. Please check the format and try again.");
+      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
+      setError("❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -140,7 +155,7 @@ const DCAPKeyEmployeeConcentrationTest = () => {
                   result?.["Test Result"] === "Passed" ? "bg-green-500 text-white" : "bg-red-500 text-white"
                 }`}
               >
-                {result?.["DCAP_Key_Employee_Concentration_Test_Result"] ?? "N/A"}
+                {result?.["Test Result"] ?? "N/A"}
               </span>
             </p>
 
@@ -150,7 +165,9 @@ const DCAPKeyEmployeeConcentrationTest = () => {
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>Adjust benefits allocations to reduce the concentration among key employees.</li>
+                  <br />
                   <li>Consider reallocating contributions to achieve a more balanced benefit distribution.</li>
+                  <br />
                   <li>Review and update plan design and eligibility criteria to ensure IRS compliance.</li>
                 </ul>
               </div>
@@ -162,7 +179,9 @@ const DCAPKeyEmployeeConcentrationTest = () => {
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>❌ Potential reclassification of benefits as taxable income for key employees.</li>
+                  <br />
                   <li>❌ Increased corrective contributions may be required from the employer.</li>
+                  <br />
                   <li>❌ Heightened risk of IRS penalties and additional compliance audits.</li>
                 </ul>
               </div>
