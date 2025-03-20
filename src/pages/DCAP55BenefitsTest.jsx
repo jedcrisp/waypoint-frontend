@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust the path as needed
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 
 const DCAP55BenefitsTest = () => {
   const [file, setFile] = useState(null);
@@ -37,9 +38,9 @@ const DCAP55BenefitsTest = () => {
     }
 
     // Client-side validation (example: check file type and size)
-    const validFileTypes = [".csv", ".xlsx"];
-    const fileType = file.name.split('.').pop();
-    if (!validFileTypes.includes(`.${fileType}`)) {
+    const validFileTypes = ["csv", "xlsx"];
+    const fileType = file.name.split(".").pop().toLowerCase();
+    if (!validFileTypes.includes(fileType)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
     }
@@ -55,16 +56,34 @@ const DCAP55BenefitsTest = () => {
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/dcap_55_benefits`);
       console.log("📂 File Selected:", file.name);
+
+      // 1. Get Firebase token
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Firebase Token:", token);
+
+      // 2. Send POST request with Bearer token
       const response = await axios.post(`${API_URL}/upload-csv/dcap_55_benefits`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
       });
+
       console.log("✅ API Response:", response.data);
       setResult(response.data["Test Results"]["dcap_55_benefits"]);
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError("❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // Listen for Enter key press to trigger upload
@@ -77,7 +96,6 @@ const DCAP55BenefitsTest = () => {
   };
 
   return (
-    // Outer container made focusable (tabIndex="0") so it receives key events.
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
       onKeyDown={handleKeyDown}
@@ -186,7 +204,7 @@ const DCAP55BenefitsTest = () => {
 
             {/* Display consequences if the test fails */}
             {result["Test Result"] === "Failed" && (
-              <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+              <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>❌ Owners' DCAP benefits become taxable income.</li>
