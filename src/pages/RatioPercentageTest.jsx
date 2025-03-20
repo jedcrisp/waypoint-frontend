@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust path if needed
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 
 const RatioPercentageTest = () => {
   const [file, setFile] = useState(null);
@@ -35,7 +36,7 @@ const RatioPercentageTest = () => {
 
     // Validate file type
     const validFileTypes = ["csv", "xlsx"];
-    const fileType = file.name.split('.').pop().toLowerCase();
+    const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
@@ -47,21 +48,38 @@ const RatioPercentageTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("selected_tests", "ratio_percentage_test"); // Ensure backend matches this EXACT string
+    formData.append("selected_tests", "ratio_percentage_test");
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/ratio_percentage_test`);
+
+      // 1. Get Firebase token
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Firebase Token:", token);
+
+      // 2. Send POST request with Bearer token
       const response = await axios.post(`${API_URL}/upload-csv/ratio_percentage_test`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
       });
 
       console.log("✅ Full API Response:", response.data);
       setResult(response.data?.["Test Results"]?.["ratio_percentage_test"] || {});
     } catch (err) {
-      console.error("❌ Upload error:", err.response ? err.response.data : err);
+      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError(err.response?.data?.error || "❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -134,13 +152,13 @@ const RatioPercentageTest = () => {
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>Increase NHCE participation to ensure at least **70% of the HCE participation rate**.</li>
+                  <li>Increase NHCE participation to ensure at least 70% of the HCE participation rate.</li>
                   <br />
                   <li>Adjust plan eligibility criteria to include more NHCEs.</li>
                   <br />
                   <li>Modify plan structure or incentives to encourage NHCE participation.</li>
                   <br />
-                  <li>Review plan design to ensure compliance with **IRC § 410(b)**.</li>
+                  <li>Review plan design to ensure compliance with IRC § 410(b).</li>
                 </ul>
               </div>
             )}
