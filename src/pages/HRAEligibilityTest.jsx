@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
-import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; 
+import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust the path as needed
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 
 const HRAEligibilityTest = () => {
   const [file, setFile] = useState(null);
@@ -35,6 +36,15 @@ const HRAEligibilityTest = () => {
       setError("❌ Please select a file before uploading.");
       return;
     }
+
+    // Validate file type
+    const validFileTypes = ["csv", "xlsx"];
+    const fileType = file.name.split(".").pop().toLowerCase();
+    if (!validFileTypes.includes(fileType)) {
+      setError("❌ Invalid file type. Please upload a CSV or Excel file.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
@@ -46,17 +56,34 @@ const HRAEligibilityTest = () => {
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/hra_eligibility`);
       console.log("📂 File Selected:", file.name);
+
+      // 1. Get Firebase token
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Firebase Token:", token);
+
+      // 2. Send POST request with Bearer token
       const response = await axios.post(`${API_URL}/upload-csv/hra_eligibility`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
       });
+
       console.log("✅ API Response:", response.data);
-      // Set the result directly from the API response.
-      setResult(response.data.Result);
+      setResult(response.data?.["Test Results"]?.["hra_eligibility"] || {});
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError("❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // Listen for Enter key press to trigger upload
@@ -69,7 +96,6 @@ const HRAEligibilityTest = () => {
   };
 
   return (
-    // Outer container is focusable (tabIndex="0") so it receives key events.
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
       onKeyDown={handleKeyDown}
@@ -129,75 +155,54 @@ const HRAEligibilityTest = () => {
       {/* Display Results */}
       {result && (
         <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
-          <h3 className="font-bold text-xl text-gray-700 flex items-center">
-            HRA Eligibility Test Results
-          </h3>
+          <h3 className="font-bold text-xl text-gray-700">HRA Eligibility Test Results</h3>
           <div className="mt-4">
-            <p className="text-lg">
-              <strong className="text-gray-700">HCE Eligibility:</strong>{" "}
-              <span className="font-semibold text-blue-600">
-                {result["HCE Eligibility (%)"] !== undefined
-                  ? result["HCE Eligibility (%)"]
-                  : "N/A"}
-              </span>
+            <p>
+              <strong>HCE Eligibility:</strong> {result?.["HCE Eligibility (%)"] ?? "N/A"}
             </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Non-HCE Eligibility:</strong>{" "}
-              <span className="font-semibold text-green-600">
-                {result["Non-HCE Eligibility (%)"] !== undefined
-                  ? result["Non-HCE Eligibility (%)"]
-                  : "N/A"}
-              </span>
+            <p>
+              <strong>Non-HCE Eligibility:</strong> {result?.["Non-HCE Eligibility (%)"] ?? "N/A"}
             </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Ratio:</strong>{" "}
-              <span className="font-semibold text-blue-600">
-                {result["Ratio (%)"] !== undefined
-                  ? result["Ratio (%)"] + "%"
-                  : "N/A"}
-              </span>
+            <p>
+              <strong>Ratio:</strong> {result?.["Ratio (%)"] ?? "N/A"}%
             </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Test Result:</strong>{" "}
+            <p>
+              <strong>Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
-                  result["Test Result"] === "Passed"
-                    ? "bg-green-500 text-white"
-                    : "bg-red-500 text-white"
+                  result?.["Test Result"] === "Passed" ? "bg-green-500 text-white" : "bg-red-500 text-white"
                 }`}
               >
-                {result["Test Result"] ?? "N/A"}
+                {result?.["Test Result"] ?? "N/A"}
               </span>
             </p>
 
-            {/* Display corrective actions if the test fails */}
-            {result["Test Result"] === "Failed" && (
+            {/* Corrective Actions if Test Failed */}
+            {result?.["Test Result"] === "Failed" && (
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>Expand HRA Eligibility for NHCEs: Adjust plan rules to ensure more NHCEs qualify for HRA benefits.</li>
+                  <li>Expand HRA eligibility for NHCEs.</li>
                   <br />
-                  <li>Eliminate Discriminatory Requirements: Remove restrictions such as long waiting periods, minimum service requirements, or job classifications that limit NHCE participation.</li>
+                  <li>Eliminate discriminatory requirements.</li>
                   <br />
-                  <li>Encourage NHCE Enrollment: Provide better education on HRA benefits, offer incentives, and streamline the enrollment process.</li>
+                  <li>Encourage NHCE enrollment through education and incentives.</li>
                   <br />
-                  <li>Amend the Plan Document: Update eligibility rules to comply with IRS nondiscrimination guidelines and apply fair access policies.</li>
+                  <li>Amend the plan document to comply with IRS guidelines.</li>
                 </ul>
               </div>
             )}
 
-            {/* Display consequences if the test fails */}
-            {result["Test Result"] === "Failed" && (
-              <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+            {/* Consequences if Test Failed */}
+            {result?.["Test Result"] === "Failed" && (
+              <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>❌ HCEs’ HRA benefits become taxable income instead of tax-free.</li>
+                  <li>❌ HCEs’ HRA benefits may become taxable.</li>
                   <br />
-                  <li>❌ IRS penalties and possible disqualification of the HRA plan.</li>
+                  <li>❌ IRS penalties and plan disqualification risks.</li>
                   <br />
-                  <li>❌ NHCE employees could lose access to tax-free HRA benefits.</li>
-                  <br />
-                  <li>❌ Legal and financial risks for failing IRS nondiscrimination testing</li>
+                  <li>❌ NHCEs may lose access to tax-free HRA benefits.</li>
                 </ul>
               </div>
             )}
