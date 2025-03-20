@@ -1,29 +1,29 @@
-import { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust the path as needed
 
-const EligibilityTest = () => {
+const CafeteriaKeyEmployeeTest = () => {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure this is the correct URL for your backend
+  const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure this is correctly set
 
-  // Handle file selection via Drag & Drop or manual selection
+  // Handle file selection via Drag & Drop
   const onDrop = useCallback((acceptedFiles) => {
-    if (acceptedFiles && acceptedFiles.length > 0) {
+    if (acceptedFiles?.length > 0) {
       setFile(acceptedFiles[0]);
       setResult(null);
       setError(null);
     }
   }, []);
 
-  // Setup dropzone with noClick and noKeyboard to prevent default events from opening the file picker
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
-    accept: ".csv",
+    accept: ".csv, .xlsx",
     multiple: false,
     noClick: true,
     noKeyboard: true,
@@ -35,47 +35,65 @@ const EligibilityTest = () => {
       setError("❌ Please select a file before uploading.");
       return;
     }
+
+    // Validate file type
+    const validFileTypes = [".csv", ".xlsx"];
+    const fileType = file.name.split(".").pop().toLowerCase();
+    if (!validFileTypes.includes(`.${fileType}`)) {
+      setError("❌ Invalid file type. Please upload a CSV or Excel file.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("selected_tests", "eligibility"); // Add the selected_tests parameter
+    formData.append("selected_tests", "cafeteria_key_employee");
 
     try {
-      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/eligibility`);
+      console.log("🚀 Uploading file to:", `${API_URL}/upload-csv/cafeteria_key_employee`);
       console.log("📂 File Selected:", file.name);
-      const response = await axios.post(`${API_URL}/upload-csv/eligibility`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      console.log("✅ API Response:", response.data);
-      setResult(response.data["Test Results"]["eligibility"]);
-    } catch (err) {
-      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
-      setError("❌ Failed to upload file. Please check the format and try again.");
-    }
-    setLoading(false);
-  };
 
-  // Listen for Enter key press to trigger upload
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && file && !loading) {
-      e.preventDefault();
-      e.stopPropagation();
-      handleUpload();
+      // 1. Get Firebase token (assuming user is logged in)
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+
+      // 2. Send POST request with Bearer token
+      const response = await axios.post(`${API_URL}/upload-csv/cafeteria_key_employee`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      console.log("✅ Response received:", response.data);
+
+      // Retrieve the Cafeteria Key Employee test results
+      const cafeteriaResults = response.data?.["Test Results"]?.["cafeteria_key_employee"];
+      if (!cafeteriaResults) {
+        setError("❌ No Cafeteria Key Employee test results found in response.");
+      } else {
+        setResult(cafeteriaResults);
+      }
+    } catch (err) {
+      console.error("❌ Upload error:", err.response ? err.response.data : err);
+      setError("❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    // Outer container made focusable (tabIndex="0") so it receives key events.
-    <div
-      className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
-      onKeyDown={handleKeyDown}
-      tabIndex="0"
-    >
+    <div className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200">
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
-        📂 Upload Eligibility Test File
+        📂 Upload Cafeteria Key Employee Test File
       </h2>
 
       {/* CSV Template Download Link */}
@@ -97,12 +115,12 @@ const EligibilityTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV file</strong> here.
+            Drag & drop a <strong>CSV or Excel file</strong> here.
           </p>
         )}
       </div>
 
-      {/* Dedicated "Choose File" Button */}
+      {/* Choose File Button */}
       <button
         type="button"
         onClick={open}
@@ -129,26 +147,14 @@ const EligibilityTest = () => {
       {result && (
         <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
           <h3 className="font-bold text-xl text-gray-700 flex items-center">
-            Eligibility Test Results
+            ✅ Cafeteria Key Employee Test Results
           </h3>
           <div className="mt-4">
             <p className="text-lg">
-              <strong className="text-gray-700">Total Employees:</strong>{" "}
+              <strong className="text-gray-700">Key Employee Benefit Percentage:</strong>{" "}
               <span className="font-semibold text-blue-600">
-                {result["Total Employees"] ?? "N/A"}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">HCE Count:</strong>{" "}
-              <span className="font-semibold text-green-600">
-                {result["HCE Count"] ?? "N/A"}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">HCE Percentage (%):</strong>{" "}
-              <span className="font-semibold text-blue-600">
-                {result["HCE Percentage (%)"] !== undefined
-                  ? result["HCE Percentage (%)"] + "%"
+                {result["Key Employee Percentage"] !== undefined
+                  ? result["Key Employee Percentage"] + "%"
                   : "N/A"}
               </span>
             </p>
@@ -156,7 +162,9 @@ const EligibilityTest = () => {
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
-                  result["Test Result"] === "Passed" ? "bg-green-500 text-white" : "bg-red-500 text-white"
+                  result["Test Result"] === "Passed"
+                    ? "bg-green-500 text-white"
+                    : "bg-red-500 text-white"
                 }`}
               >
                 {result["Test Result"] ?? "N/A"}
@@ -168,11 +176,9 @@ const EligibilityTest = () => {
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>Refund Excess Contributions to Highly Compensated Employees (HCEs): This involves returning any contributions that exceed the allowable limit for HCEs, usually by a specified deadline (e.g., March 15) to avoid penalties.</li>
-                  <br />
-                  <li>Make Additional Contributions to Non-Highly Compensated Employees (NHCEs): To correct the imbalance, the plan can provide additional contributions (often via Qualified Nonelective Contributions or Qualified Matching Contributions) to NHCEs so that the benefits are more evenly distributed.</li>
-                  <br />
-                  <li>Recharacterize Excess Contributions: Sometimes, excess contributions made to HCEs can be recharacterized as employee contributions instead of employer contributions. This adjustment can help bring the plan back into compliance with the nondiscrimination requirements.</li>
+                  <li>Reallocate Cafeteria Plan benefits to balance distributions.</li>
+                  <li>Adjust classifications of key employees.</li>
+                  <li>Review and update contribution policies.</li>
                 </ul>
               </div>
             )}
@@ -181,16 +187,10 @@ const EligibilityTest = () => {
             {result["Test Result"] === "Failed" && (
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
-                <ul className="list-disc list-inside text-black-600">
+                <ul className="list-disc list-inside text-yellow-600">
                   <li>❌ Loss of Tax-Exempt Status for Key Employees</li>
-                  <br />
                   <li>❌ IRS Scrutiny and Potential Penalties</li>
-                  <br />
-                  <li>❌ Plan Disqualification Risks</li>
-                  <br />
-                  <li>❌ Employee Discontent & Reduced Participation</li>
-                  <br />
-                  <li>❌ Reputational and Legal Risks</li>
+                  <li>❌ Risk of Plan Disqualification for Non-Compliance</li>
                 </ul>
               </div>
             )}
@@ -201,4 +201,4 @@ const EligibilityTest = () => {
   );
 };
 
-export default EligibilityTest;
+export default CafeteriaKeyEmployeeTest;
