@@ -147,7 +147,7 @@ const CafeteriaKeyEmployeeTest = () => {
       {result && (
         <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
           <h3 className="font-bold text-xl text-gray-700 flex items-center">
-            ✅ Cafeteria Key Employee Test Results
+            Cafeteria Key Employee Test Results
           </h3>
           <div className="mt-4">
             <p className="text-lg">
@@ -177,7 +177,9 @@ const CafeteriaKeyEmployeeTest = () => {
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>Reallocate Cafeteria Plan benefits to balance distributions.</li>
+                  <br />
                   <li>Adjust classifications of key employees.</li>
+                  <br />
                   <li>Review and update contribution policies.</li>
                 </ul>
               </div>
@@ -189,7 +191,9 @@ const CafeteriaKeyEmployeeTest = () => {
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-yellow-600">
                   <li>❌ Loss of Tax-Exempt Status for Key Employees</li>
+                  <br />
                   <li>❌ IRS Scrutiny and Potential Penalties</li>
+                  <br />
                   <li>❌ Risk of Plan Disqualification for Non-Compliance</li>
                 </ul>
               </div>
