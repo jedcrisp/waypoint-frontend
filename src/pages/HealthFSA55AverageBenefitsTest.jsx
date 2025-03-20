@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust path as needed
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 
 const HealthFSA55AverageBenefitsTest = () => {
   const [file, setFile] = useState(null);
@@ -47,23 +48,42 @@ const HealthFSA55AverageBenefitsTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    // Ensure the backend matches this EXACT string
     formData.append("selected_tests", "health_fsa_55_average_benefits_test");
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/health_fsa_55_average_benefits_test`);
+
+      // 1. Get Firebase token
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Firebase Token:", token);
+
+      // 2. Send POST request with Bearer token
       const response = await axios.post(
         `${API_URL}/upload-csv/health_fsa_55_average_benefits_test`,
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
-      console.log("✅ Full API Response:", response.data);
+
+      console.log("✅ API Response:", response.data);
       setResult(response.data?.["Test Results"]?.["health_fsa_55_average_benefits_test"] || {});
     } catch (err) {
-      console.error("❌ Upload error:", err.response ? err.response.data : err);
-      setError(err.response?.data?.error || "❌ Failed to upload file. Please check the format and try again.");
+      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
+      setError("❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -158,9 +178,11 @@ const HealthFSA55AverageBenefitsTest = () => {
                   <li>
                     Review and adjust contributions to ensure that the NHCE average benefit is at least 55% of the HCE average benefit.
                   </li>
+                  <br />
                   <li>
                     Increase NHCE participation or modify the contribution formulas accordingly.
                   </li>
+                  <br />
                   <li>
                     Reevaluate plan design to improve compliance with IRS requirements.
                   </li>
@@ -174,7 +196,9 @@ const HealthFSA55AverageBenefitsTest = () => {
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>❌ Potential reclassification of Health FSA benefits as taxable for HCEs.</li>
+                  <br />
                   <li>❌ Increased IRS scrutiny and potential penalties.</li>
+                  <br />
                   <li>❌ Additional employer contributions might be required to correct the imbalance.</li>
                 </ul>
               </div>
