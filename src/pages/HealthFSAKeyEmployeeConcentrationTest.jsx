@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust path as needed
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 
 const HealthFSAKeyEmployeeConcentrationTest = () => {
   const [file, setFile] = useState(null);
@@ -47,24 +48,42 @@ const HealthFSAKeyEmployeeConcentrationTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    // Ensure the backend matches this EXACT string
     formData.append("selected_tests", "health_fsa_key_employee_concentration_test");
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/health_fsa_key_employee_concentration_test`);
+
+      // 1. Get Firebase token
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Firebase Token:", token);
+
+      // 2. Send POST request with Bearer token
       const response = await axios.post(
         `${API_URL}/upload-csv/health_fsa_key_employee_concentration_test`,
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
 
-      console.log("✅ Full API Response:", response.data);
+      console.log("✅ API Response:", response.data);
       setResult(response.data?.["Test Results"]?.["health_fsa_key_employee_concentration_test"] || {});
     } catch (err) {
-      console.error("❌ Upload error:", err.response ? err.response.data : err);
-      setError(err.response?.data?.error || "❌ Failed to upload file. Please check the format and try again.");
+      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
+      setError("❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -140,7 +159,7 @@ const HealthFSAKeyEmployeeConcentrationTest = () => {
                   result?.["Test Result"] === "Passed" ? "bg-green-500 text-white" : "bg-red-500 text-white"
                 }`}
               >
-                {result?.["Health_FSA_Key_Employee_Concentration_Test_Result"] ?? "N/A"}
+                {result?.["Test Result"] ?? "N/A"}
               </span>
             </p>
 
@@ -150,7 +169,9 @@ const HealthFSAKeyEmployeeConcentrationTest = () => {
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>Review the allocation of Health FSA benefits to ensure key employees do not exceed the concentration limit.</li>
+                  <br />
                   <li>Adjust plan eligibility criteria or contribution formulas to lower the benefit concentration among key employees.</li>
+                  <br />
                   <li>Consider rebalancing contributions to promote a more equitable benefit distribution.</li>
                 </ul>
               </div>
@@ -162,7 +183,9 @@ const HealthFSAKeyEmployeeConcentrationTest = () => {
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>❌ Potential reclassification of Health FSA benefits as taxable for key employees.</li>
+                  <br />
                   <li>❌ Increased corrective contributions or adjustments may be required from the employer.</li>
+                  <br />
                   <li>❌ Heightened risk of IRS penalties and compliance audits.</li>
                 </ul>
               </div>
