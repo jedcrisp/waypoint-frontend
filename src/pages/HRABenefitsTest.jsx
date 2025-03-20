@@ -157,11 +157,11 @@ const HRABenefitsTest = () => {
         <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
           <h3 className="font-bold text-xl text-gray-700">HRA Benefits Test Results</h3>
           <div className="mt-4">
-            <p>
-              <strong>HCE Average Benefits:</strong> {result?.["HCE Average Benefits"] ?? "N/A"}
+             <p>
+              <strong>HCE Average Benefits:</strong> ${result?.["HCE Average Benefits"] ?? "N/A"}
             </p>
             <p>
-              <strong>NHCE Average Benefits:</strong> {result?.["NHCE Average Benefits"] ?? "N/A"}
+              <strong>NHCE Average Benefits:</strong> ${result?.["NHCE Average Benefits"] ?? "N/A"}
             </p>
             <p>
               <strong>Benefit Ratio (%):</strong> {result?.["Benefit Ratio (%)"] ?? "N/A"}%
