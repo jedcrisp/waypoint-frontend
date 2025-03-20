@@ -1,45 +1,47 @@
-import { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
-import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust the path as needed
+import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust path if needed
+import { getAuth } from "firebase/auth"; // Firebase Auth
 
-const AdpTest = () => {
+function AdpTest() {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure this is set in .env.local
+  // Pull backend URL from Vite .env or default
+  const API_URL = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
 
-  // Handle file selection via Drag & Drop or manual selection
+  // Handle file selection via Drag & Drop
   const onDrop = useCallback((acceptedFiles) => {
-    if (acceptedFiles && acceptedFiles.length > 0) {
+    if (acceptedFiles?.length > 0) {
       setFile(acceptedFiles[0]);
       setResult(null);
       setError(null);
     }
   }, []);
 
-  // Setup dropzone with noClick and noKeyboard so default events don't trigger the file picker
+  // Setup react-dropzone
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
-    accept: ".csv, .xlsx", // Supports both CSV and Excel files
+    accept: ".csv, .xlsx", // Supports both CSV and Excel
     multiple: false,
     noClick: true,
     noKeyboard: true,
   });
 
-  // Handle file upload
+  // Upload file to /upload-csv/adp
   const handleUpload = async () => {
     if (!file) {
       setError("❌ Please select a file before uploading.");
       return;
     }
 
-    // Client-side validation (example: check file type and size)
+    // Basic client-side validation
     const validFileTypes = [".csv", ".xlsx"];
-    const fileType = file.name.split('.').pop();
-    if (!validFileTypes.includes(`.${fileType}`)) {
+    const fileExtension = file.name.split(".").pop().toLowerCase();
+    if (!validFileTypes.includes(`.${fileExtension}`)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
     }
@@ -48,26 +50,50 @@ const AdpTest = () => {
     setError(null);
     setResult(null);
 
+    // Prepare FormData
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("selected_tests", "adp"); // Add the selected_tests parameter
+    formData.append("selected_tests", "adp"); // Must match a key in TEST_COLUMN_REQUIREMENTS
 
     try {
-      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/adp`);
+      console.log("🚀 Uploading file to:", `${API_URL}/upload-csv/adp`);
       console.log("📂 File Selected:", file.name);
+
+      // 1. Get Firebase token (assuming user is logged in)
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+
+      // 2. Send POST request with Bearer token
       const response = await axios.post(`${API_URL}/upload-csv/adp`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
+
       console.log("✅ Response received:", response.data);
-      setResult(response.data["Test Results"]["adp"]);
+
+      // If your backend returns { "Test Results": { "adp": {...} } },
+      // we retrieve the ADP test results object:
+      const adpResults = response.data?.["Test Results"]?.["adp"];
+      if (!adpResults) {
+        setError("❌ No ADP test results found in response.");
+      } else {
+        setResult(adpResults);
+      }
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err);
       setError("❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  // Listen for Enter key press to trigger upload
+  // Allow pressing Enter to trigger upload
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && file && !loading) {
       e.preventDefault();
@@ -203,6 +229,6 @@ const AdpTest = () => {
       )}
     </div>
   );
-};
+}
 
 export default AdpTest;
