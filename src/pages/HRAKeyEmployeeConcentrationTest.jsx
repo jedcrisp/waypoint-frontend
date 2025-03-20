@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust path as needed
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 
 const HRAKeyEmployeeConcentrationTest = () => {
   const [file, setFile] = useState(null);
@@ -32,34 +33,57 @@ const HRAKeyEmployeeConcentrationTest = () => {
       setError("❌ Please select a file before uploading.");
       return;
     }
+
+    // Validate file type
     const validFileTypes = ["csv", "xlsx"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
     }
+
     setLoading(true);
     setError(null);
     setResult(null);
-    
+
     const formData = new FormData();
     formData.append("file", file);
     formData.append("selected_tests", "hra_key_employee_concentration_test");
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/hra_key_employee_concentration_test`);
+
+      // 1. Get Firebase token
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Firebase Token:", token);
+
+      // 2. Send POST request with Bearer token
       const response = await axios.post(
         `${API_URL}/upload-csv/hra_key_employee_concentration_test`,
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
-      console.log("✅ Full API Response:", response.data);
+
+      console.log("✅ API Response:", response.data);
       setResult(response.data?.["Test Results"]?.["hra_key_employee_concentration_test"] || {});
     } catch (err) {
-      console.error("❌ Upload error:", err.response ? err.response.data : err);
-      setError(err.response?.data?.error || "❌ Failed to upload file. Please check the format and try again.");
+      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
+      setError("❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -71,7 +95,8 @@ const HRAKeyEmployeeConcentrationTest = () => {
       <div className="flex justify-center mb-6">
         <CsvTemplateDownloader />
       </div>
-      
+
+      {/* Drag & Drop Area */}
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
@@ -84,10 +109,13 @@ const HRAKeyEmployeeConcentrationTest = () => {
         ) : isDragActive ? (
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
-          <p className="text-gray-600">Drag & drop a <strong>CSV or Excel file</strong> here.</p>
+          <p className="text-gray-600">
+            Drag & drop a <strong>CSV or Excel file</strong> here.
+          </p>
         )}
       </div>
-      
+
+      {/* Choose File Button */}
       <button
         type="button"
         onClick={open}
@@ -95,7 +123,8 @@ const HRAKeyEmployeeConcentrationTest = () => {
       >
         Choose File
       </button>
-      
+
+      {/* Upload Button */}
       <button
         onClick={handleUpload}
         className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
@@ -105,16 +134,24 @@ const HRAKeyEmployeeConcentrationTest = () => {
       >
         {loading ? "Uploading..." : "Upload"}
       </button>
-      
+
+      {/* Display Errors */}
       {error && <div className="mt-3 text-red-500">{error}</div>}
-      
+
+      {/* Display Results */}
       {result && (
         <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
           <h3 className="font-bold text-xl text-gray-700">HRA Key Employee Concentration Test Results</h3>
           <div className="mt-4">
-            <p><strong>Total HRA Benefits:</strong> {result?.["Total HRA Benefits"] ?? "N/A"}</p>
-            <p><strong>Key Employee Benefits:</strong> {result?.["Key Employee Benefits"] ?? "N/A"}</p>
-            <p><strong>Concentration Percentage:</strong> {result?.["Concentration Percentage"] ?? "N/A"}%</p>
+            <p>
+              <strong>Total HRA Benefits:</strong> {result?.["Total HRA Benefits"] ?? "N/A"}
+            </p>
+            <p>
+              <strong>Key Employee Benefits:</strong> {result?.["Key Employee Benefits"] ?? "N/A"}
+            </p>
+            <p>
+              <strong>Concentration Percentage:</strong> {result?.["Concentration Percentage"] ?? "N/A"}%
+            </p>
             <p>
               <strong>Test Result:</strong>{" "}
               <span
@@ -122,28 +159,36 @@ const HRAKeyEmployeeConcentrationTest = () => {
                   result?.["Test Result"] === "Passed" ? "bg-green-500 text-white" : "bg-red-500 text-white"
                 }`}
               >
-                {result?.["HRA_Key_Employee_Concentration_Test_Result"] ?? "N/A"}
+                {result?.["Test Result"] ?? "N/A"}
               </span>
             </p>
+
+            {/* Corrective Actions if Test Failed */}
             {result?.["Test Result"] === "Failed" && (
-              <>
-                <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
-                  <h4 className="font-bold text-black-600">Corrective Actions:</h4>
-                  <ul className="list-disc list-inside text-black-600">
-                    <li>Review and adjust the allocation of HRA benefits for key employees.</li>
-                    <li>Modify plan design to lower the concentration among key employees.</li>
-                    <li>Reevaluate eligibility criteria to ensure compliance.</li>
-                  </ul>
-                </div>
-                <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
-                  <h4 className="font-bold text-black-600">Consequences:</h4>
-                  <ul className="list-disc list-inside text-black-600">
-                    <li>❌ Benefits for key employees may be reclassified as taxable.</li>
-                    <li>❌ Employer may need to make corrective contributions.</li>
-                    <li>❌ Increased IRS scrutiny and potential penalties.</li>
-                  </ul>
-                </div>
-              </>
+              <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+                <h4 className="font-bold text-black-600">Corrective Actions:</h4>
+                <ul className="list-disc list-inside text-black-600">
+                  <li>Review and adjust the allocation of HRA benefits for key employees.</li>
+                  <br />
+                  <li>Modify plan design to lower the concentration among key employees.</li>
+                  <br />
+                  <li>Reevaluate eligibility criteria to ensure compliance.</li>
+                </ul>
+              </div>
+            )}
+
+            {/* Consequences if Test Failed */}
+            {result?.["Test Result"] === "Failed" && (
+              <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
+                <h4 className="font-bold text-black-600">Consequences:</h4>
+                <ul className="list-disc list-inside text-black-600">
+                  <li>❌ Benefits for key employees may be reclassified as taxable.</li>
+                  <br />
+                  <li>❌ Employer may need to make corrective contributions.</li>
+                  <br />
+                  <li>❌ Increased IRS scrutiny and potential penalties.</li>
+                </ul>
+              </div>
             )}
           </div>
         </div>
