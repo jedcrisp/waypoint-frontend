@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust the path as needed
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 
 const DCAPOwnersTest = () => {
   const [file, setFile] = useState(null);
@@ -36,10 +37,10 @@ const DCAPOwnersTest = () => {
       return;
     }
 
-    // Client-side validation (example: check file type and size)
-    const validFileTypes = [".csv", ".xlsx"];
-    const fileType = file.name.split('.').pop();
-    if (!validFileTypes.includes(`.${fileType}`)) {
+    // Validate file type (CSV or Excel)
+    const validFileTypes = ["csv", "xlsx"];
+    const fileType = file.name.split(".").pop().toLowerCase();
+    if (!validFileTypes.includes(fileType)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
     }
@@ -50,14 +51,31 @@ const DCAPOwnersTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("selected_tests", "dcap_owners"); // Add the selected_tests parameter
+    formData.append("selected_tests", "dcap_owners");
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/dcap_owners`);
       console.log("📂 File Selected:", file.name);
+
+      // 1. Get Firebase token
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Firebase Token:", token);
+
+      // 2. Send POST request with Bearer token
       const response = await axios.post(`${API_URL}/upload-csv/dcap_owners`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
       });
+
       console.log("✅ API Response:", response.data);
 
       // Check if the response structure is as expected
@@ -69,8 +87,9 @@ const DCAPOwnersTest = () => {
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError("❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // Listen for Enter key press to trigger upload
@@ -83,7 +102,6 @@ const DCAPOwnersTest = () => {
   };
 
   return (
-    // Outer container is focusable (tabIndex="0") so it receives key events.
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
       onKeyDown={handleKeyDown}
@@ -142,54 +160,44 @@ const DCAPOwnersTest = () => {
       {/* Display Results */}
       {result && (
         <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
-          <h3 className="font-bold text-xl text-gray-700 flex items-center">
-            DCAP Owners Test Results
-          </h3>
+          <h3 className="font-bold text-xl text-gray-700">DCAP Owners Test Results</h3>
           <div className="mt-4">
-            <p className="text-lg">
-              <strong className="text-gray-700">Average DCAP Benefit for Owners:</strong>{" "}
-              <span className="font-semibold text-blue-600">
-                {result["Average DCAP Benefit for Owners"] !== undefined
-                  ? result["Average DCAP Benefit for Owners"]
-                  : "N/A"}
-              </span>
+            <p>
+              <strong>Average DCAP Benefit for Owners:</strong>{" "}
+              {result["Average DCAP Benefit for Owners"] ?? "N/A"}
             </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Percentage of Benefits to Owners:</strong>{" "}
-              <span className="font-semibold text-blue-600">
-                {result["Percentage of Benefits to Owners"] !== undefined
-                  ? result["Percentage of Benefits to Owners"] + "%"
-                  : "N/A"}
-              </span>
+            <p>
+              <strong>Percentage of Benefits to Owners:</strong>{" "}
+              {result["Percentage of Benefits to Owners"] ?? "N/A"}%
             </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Test Result:</strong>{" "}
+            <p>
+              <strong>Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
-                  result["Test Result"] === "Passed"
-                    ? "bg-green-500 text-white"
-                    : "bg-red-500 text-white"
+                  result["Test Result"] === "Passed" ? "bg-green-500 text-white" : "bg-red-500 text-white"
                 }`}
               >
                 {result["Test Result"] ?? "N/A"}
               </span>
             </p>
 
-            {/* Display corrective actions if the test fails */}
+            {/* Corrective Actions if Test Failed */}
             {result["Test Result"] === "Failed" && (
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>Review and adjust the classification of owners.</li>
+                  <br />
                   <li>Consider increasing the number of non-owner employees.</li>
+                  <br />
                   <li>Implement a plan to ensure a more balanced distribution of benefits.</li>
                 </ul>
               </div>
             )}
 
-            {/* Display consequences if the test fails */}
+            {/* Consequences if Test Failed */}
             {result["Test Result"] === "Failed" && (
-              <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+              <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>❌ Loss of Tax-Exempt Status for Owners</li>
