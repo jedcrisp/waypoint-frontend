@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
+import { getAuth } from "firebase/auth"; // Import getAuth from Firebase
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust the path as needed
 
 const CafeteriaKeyEmployeeTest = () => {
@@ -37,7 +38,7 @@ const CafeteriaKeyEmployeeTest = () => {
 
     // Validate file type
     const validFileTypes = [".csv", ".xlsx"];
-    const fileType = file.name.split('.').pop();
+    const fileType = file.name.split(".").pop();
     if (!validFileTypes.includes(`.${fileType}`)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
@@ -53,9 +54,7 @@ const CafeteriaKeyEmployeeTest = () => {
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/cafeteria_key_employee`);
-      const response = await axios.post(`${API_URL}/upload-csv/cafeteria_key_employee`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const response = await sendPostRequest(formData); // Pass formData to sendPostRequest
       console.log("✅ Response received:", response.data);
       setResult(response.data["Test Results"]["cafeteria_key_employee"]); // Adjust based on your API response structure
     } catch (err) {
@@ -63,6 +62,23 @@ const CafeteriaKeyEmployeeTest = () => {
       setError("❌ Failed to upload file. Please check the format and try again.");
     }
     setLoading(false);
+  };
+
+  // 2. Send POST request with Bearer token
+  const sendPostRequest = async (formData) => {
+    const auth = getAuth(); // Ensure getAuth is imported and used here
+    const token = await auth.currentUser?.getIdToken(true); // Ensure the user is logged in
+    if (!token) {
+      throw new Error("❌ No valid Firebase token found. Are you logged in?");
+    }
+
+    const response = await axios.post(`${API_URL}/upload-csv/cafeteria_key_employee`, formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response;
   };
 
   return (
