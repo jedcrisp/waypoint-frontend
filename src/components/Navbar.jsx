@@ -31,35 +31,42 @@ export default function Navbar() {
   // Added missing test page paths: "/retirement-plan-tests", "/additional-ndt-tests", "/health-hra-tests", "/health-fsa-tests"
   const isSpecialTestPage =
     location.pathname.includes("/dcap-tests") ||
+    location.pathname.includes("/additional-ndt-tests") ||
+    location.pathname.includes("/retirement-plan-tests") ||
+    location.pathname.includes("/adp-acp-tests") ||
+    location.pathname.includes("/health-fsa-tests") ||
+    location.pathname.includes("/cafeteria-tests") ||
+    location.pathname.includes("/health-hra-tests") ||
+    location.pathname.includes("/test-adp") ||
+    location.pathname.includes("/test-acp") ||
+    location.pathname.includes("/test-coverage") ||
+    location.pathname.includes("/test-top-heavy") ||
+    location.pathname.includes("/test-adp-safe-harbor-401k") ||
+    location.pathname.includes("/test-adp-safe-harbor-sliding") ||
+    location.pathname.includes("/test-safe-harbor") ||
+    location.pathname.includes("/test-ratio-percentage") ||
     location.pathname.includes("/test-dcap-eligibility") ||
     location.pathname.includes("/test-dcap-owners") ||
     location.pathname.includes("/test-dcap-55-benefits") ||
     location.pathname.includes("/test-dcap-contributions") ||
-    location.pathname.includes("/adp-acp-tests") ||
-    location.pathname.includes("/retirement-plan-tests") ||
-    location.pathname.includes("/additional-ndt-tests") ||
-    location.pathname.includes("/cafeteria-tests") ||
-    location.pathname.includes("/test-adp") ||
-    location.pathname.includes("/test-acp") ||
+    location.pathname.includes("/test-dcap-employee-concentration") ||
     location.pathname.includes("/test-key-employee") ||
     location.pathname.includes("/test-eligibility") ||
     location.pathname.includes("/test-classification") ||
     location.pathname.includes("/test-benefit") ||
-    location.pathname.includes("/health-fsa-tests") ||
-    location.pathname.includes("/test-health-fsa-eligibility") ||
-    location.pathname.includes("/test-health-fsa-benefits") ||
-    location.pathname.includes("/health-hra-tests") ||
-    location.pathname.includes("/test-hra-eligibility") ||
-    location.pathname.includes("/test-hra-benefits") ||
     location.pathname.includes("/test-simple-cafeteria-plan-eligibility") ||
     location.pathname.includes("/test-cafeteria-contributions-benefits") ||
-    location.pathname.includes("/test-dcap-key-employee-concentration") ||
+    location.pathname.includes("/test-health-fsa-eligibility") ||
+    location.pathname.includes("/test-health-fsa-benefits") ||
     location.pathname.includes("/test-health-fsa-key-employee-concentration") ||
     location.pathname.includes("/test-health-fsa-55-average-benefits") ||
+    location.pathname.includes("/test-hra-eligibility") ||
+    location.pathname.includes("/test-hra-benefits") ||
+    location.pathname.includes("/test-hra-55-average-benefits") ||
+    location.pathname.includes("/test-hra-key-employee-concentration") ||
+    location.pathname.includes("/test-hra-25-owner-rule") ||
     location.pathname.includes("/test-adp-safe-harbor") ||
-    location.pathname.includes("/test-top-heavy") ||
-    location.pathname.includes("/test-ratio-percentage") ||
-    location.pathname.includes("/test-coverage");
+    location.pathname.includes("/test-average-benefit");
 
   const navbarBgColor = isSpecialTestPage ? "#0074d9" : "white";
   const textColor = isSpecialTestPage ? "text-white" : "text-black";
