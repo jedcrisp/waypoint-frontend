@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust path as needed
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 
 const ADPSafeHarborTest = () => {
   const [file, setFile] = useState(null);
@@ -33,9 +34,9 @@ const ADPSafeHarborTest = () => {
       return;
     }
 
-    // Validate file type (case insensitive)
+    // Validate file type
     const validFileTypes = ["csv", "xlsx"];
-    const fileType = file.name.split('.').pop().toLowerCase();
+    const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
@@ -47,27 +48,44 @@ const ADPSafeHarborTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("selected_tests", "safe_harbor"); // Ensure backend matches this EXACT string
+    formData.append("selected_tests", "safe_harbor");
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/safe_harbor`);
+
+      // 1. Get Firebase token
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Firebase Token:", token);
+
+      // 2. Send POST request with Bearer token
       const response = await axios.post(`${API_URL}/upload-csv/safe_harbor`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
       });
 
       console.log("✅ Full API Response:", response.data);
       setResult(response.data?.["Test Results"]?.["safe_harbor"] || {});
     } catch (err) {
-      console.error("❌ Upload error:", err.response ? err.response.data : err);
+      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError(err.response?.data?.error || "❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
     <div className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200">
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">📂 Upload Safe Harbor Test File</h2>
-      
+
       <div className="flex justify-center mb-6">
         <CsvTemplateDownloader />
       </div>
