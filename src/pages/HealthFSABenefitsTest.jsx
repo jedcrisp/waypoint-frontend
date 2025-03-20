@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust the path as needed
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 
 const HealthFSABenefitsTest = () => {
   const [file, setFile] = useState(null);
@@ -36,10 +37,10 @@ const HealthFSABenefitsTest = () => {
       return;
     }
 
-    // Client-side validation (example: check file type and size)
-    const validFileTypes = [".csv", ".xlsx"];
-    const fileType = file.name.split('.').pop();
-    if (!validFileTypes.includes(`.${fileType}`)) {
+    // Validate file type (CSV or Excel)
+    const validFileTypes = ["csv", "xlsx"];
+    const fileType = file.name.split(".").pop().toLowerCase();
+    if (!validFileTypes.includes(fileType)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
     }
@@ -50,22 +51,38 @@ const HealthFSABenefitsTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("selected_tests", "health_fsa_benefits"); // Add the selected_tests parameter
+    formData.append("selected_tests", "health_fsa_benefits");
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/health_fsa_benefits`);
-      const response = await axios.post(
-        `${API_URL}/upload-csv/health_fsa_benefits`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-      console.log("✅ Response received:", response.data);
-      setResult(response.data["Test Results"]["health_fsa_benefits"]);
+
+      // 1. Get Firebase token
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Firebase Token:", token);
+
+      // 2. Send POST request with Bearer token
+      const response = await axios.post(`${API_URL}/upload-csv/health_fsa_benefits`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      console.log("✅ API Response:", response.data);
+      setResult(response.data?.["Test Results"]?.["health_fsa_benefits"] || {});
     } catch (err) {
-      console.error("❌ Upload error:", err.response ? err.response.data : err);
+      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError("❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // Listen for Enter key press to trigger upload
@@ -78,7 +95,6 @@ const HealthFSABenefitsTest = () => {
   };
 
   return (
-    // Outer container made focusable (tabIndex="0") so it receives key events.
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
       onKeyDown={handleKeyDown}
@@ -88,7 +104,6 @@ const HealthFSABenefitsTest = () => {
         📂 Upload Health FSA Benefits File
       </h2>
 
-      {/* CSV Template Download Link */}
       <div className="flex justify-center mb-6">
         <CsvTemplateDownloader />
       </div>
@@ -138,75 +153,55 @@ const HealthFSABenefitsTest = () => {
       {/* Display Results */}
       {result && (
         <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
-          <h3 className="font-bold text-xl text-gray-700 flex items-center">
-            FSA Benefits Test Results
-          </h3>
+          <h3 className="font-bold text-xl text-gray-700">Health FSA Benefits Test Results</h3>
           <div className="mt-4">
-            <p className="text-lg">
-              <strong className="text-gray-700">HCI Average Benefits (USD):</strong>{" "}
-              <span className="font-semibold text-blue-600">
-                {result["HCI Average Benefits (USD)"] !== undefined && result["HCI Average Benefits (USD)"] !== "N/A"
-                ? result["HCI Average Benefits (USD)"]
-                : "Data Missing"}   
-              </span>
+            <p>
+              <strong>HCI Average Benefits (USD):</strong>{" "}
+              {result?.["HCI Average Benefits (USD)"] ?? "N/A"}
             </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Non-HCI Average Benefits (USD):</strong>{" "}
-              <span className="font-semibold text-blue-600">
-                {result["Non-HCI Average Benefits (USD)"] !== undefined && result["Non-HCI Average Benefits (USD)"] !== "N/A"
-                ? result["Non-HCI Average Benefits (USD)"]
-                : "Data Missing"}
-              </span>
+            <p>
+              <strong>Non-HCI Average Benefits (USD):</strong>{" "}
+              {result?.["Non-HCI Average Benefits (USD)"] ?? "N/A"}
             </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Benefit Ratio (%):</strong>{" "}
-              <span className="font-semibold text-blue-600">
-                {result["Benefit Ratio (%)"] !== undefined
-                  ? result["Benefit Ratio (%)"] + "%"
-                  : "N/A"}
-              </span>
+            <p>
+              <strong>Benefit Ratio (%):</strong>{" "}
+              {result?.["Benefit Ratio (%)"] ?? "N/A"}%
             </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Test Result:</strong>{" "}
+            <p>
+              <strong>Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
-                  result["Test Result"] === "Passed"
-                    ? "bg-green-500 text-white"
-                    : "bg-red-500 text-white"
+                  result?.["Test Result"] === "Passed" ? "bg-green-500 text-white" : "bg-red-500 text-white"
                 }`}
               >
-                {result["Test Result"] ?? "N/A"}
+                {result?.["Test Result"] ?? "N/A"}
               </span>
             </p>
 
-            {/* Display corrective actions if the test fails */}
-            {result["Test Result"] === "Failed" && (
+            {/* Corrective Actions if Test Failed */}
+            {result?.["Test Result"] === "Failed" && (
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>Adjust Employer Contributions: Provide equal employer contributions to all employees (flat dollar amount) and reduce HCE contributions if they exceed IRS nondiscrimination limits.</li>
+                  <li>Adjust employer contributions to ensure compliance with IRS limits.</li>
                   <br />
-                  <li>Increase NHCE Participation: Improve employee education on Health FSAs, offer matching contributions or incentives for NHCEs, and remove unnecessary eligibility restrictions (e.g., long waiting periods).</li>
+                  <li>Increase NHCE participation through education and incentives.</li>
                   <br />
-                  <li>Plan Document Amendments: Adjust the plan’s contribution structure to be more balanced and reclassify employees if incorrect classifications caused failure.</li>
-                  <br />
-                  <li>Re-run the Test: Perform the NDT again after implementing corrections to confirm compliance.</li>
+                  <li>Amend plan documents to balance contributions and benefits.</li>
                 </ul>
               </div>
             )}
 
-            {/* Display consequences if the test fails */}
-            {result["Test Result"] === "Failed" && (
-              <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+            {/* Consequences if Test Failed */}
+            {result?.["Test Result"] === "Failed" && (
+              <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>❌ HCEs' Health FSA benefits become taxable income.</li>
+                  <li>❌ HCEs' Health FSA benefits may become taxable.</li>
                   <br />
-                  <li>❌ IRS penalties and increased scrutiny on the cafeteria plan.</li>
+                  <li>❌ Increased IRS scrutiny and potential penalties.</li>
                   <br />
-                  <li>❌ Potential disqualification of the Health FSA plan.</li>
-                  <br />
-                  <li>❌ Loss of tax-advantaged FSA benefits for employees.</li>
+                  <li>❌ Risk of plan disqualification.</li>
                 </ul>
               </div>
             )}
