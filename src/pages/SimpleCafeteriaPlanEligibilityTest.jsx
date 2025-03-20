@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust path as needed
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 
 const SimpleCafeteriaPlanEligibilityTest = () => {
   const [file, setFile] = useState(null);
@@ -35,7 +36,7 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
 
     // Validate file type (CSV or Excel)
     const validFileTypes = ["csv", "xlsx"];
-    const fileType = file.name.split('.').pop().toLowerCase();
+    const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
@@ -47,22 +48,38 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    // Ensure the backend matches this EXACT string
     formData.append("selected_tests", "simple_cafeteria_plan_eligibility");
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/simple_cafeteria_plan_eligibility`);
+
+      // 1. Get Firebase token
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Firebase Token:", token);
+
+      // 2. Send POST request with Bearer token
       const response = await axios.post(`${API_URL}/upload-csv/simple_cafeteria_plan_eligibility`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
       });
 
       console.log("✅ Full API Response:", response.data);
       setResult(response.data?.["Test Results"]?.["simple_cafeteria_plan_eligibility"] || {});
     } catch (err) {
-      console.error("❌ Upload error:", err.response ? err.response.data : err);
+      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError(err.response?.data?.error || "❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -123,20 +140,16 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
           <h3 className="font-bold text-xl text-gray-700">SIMPLE Cafeteria Plan Eligibility Results</h3>
           <div className="mt-4">
             <p>
-              <strong>Eligible Employees:</strong>{" "}
-              {result?.["Eligible Employees"] ?? "N/A"}
+              <strong>Eligible Employees:</strong> {result?.["Eligible Employees"] ?? "N/A"}
             </p>
             <p>
-              <strong>Employee Count Threshold:</strong>{" "}
-              {result?.["Employee Count Threshold"] ?? "N/A"}
+              <strong>Employee Count Threshold:</strong> {result?.["Employee Count Threshold"] ?? "N/A"}
             </p>
             <p>
               <strong>Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
-                  result?.["Test Result"] === "Passed"
-                    ? "bg-green-500 text-white"
-                    : "bg-red-500 text-white"
+                  result?.["Test Result"] === "Passed" ? "bg-green-500 text-white" : "bg-red-500 text-white"
                 }`}
               >
                 {result?.["Simple_Cafeteria_Plan_Eligibility_Test_Result"] ?? "N/A"}
