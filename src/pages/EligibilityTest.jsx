@@ -189,7 +189,7 @@ const EligibilityTest = () => {
             {result["Test Result"] === "Failed" && (
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
-                <ul className="list-disc list-inside text-yellow-600">
+                <ul className="list-disc list-inside text-black-600">
                   <li>❌ Loss of Tax-Exempt Status for Key Employees</li>
                   <br />
                   <li>❌ IRS Scrutiny and Potential Penalties</li>
