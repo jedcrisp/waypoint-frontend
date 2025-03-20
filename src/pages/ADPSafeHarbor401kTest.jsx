@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust path as needed
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 
 const ADPSafeHarbor401kTest = () => {
   const [file, setFile] = useState(null);
@@ -37,7 +38,7 @@ const ADPSafeHarbor401kTest = () => {
 
     // Validate file type (case-insensitive)
     const validFileTypes = ["csv", "xlsx"];
-    const fileType = file.name.split('.').pop().toLowerCase();
+    const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
@@ -49,22 +50,39 @@ const ADPSafeHarbor401kTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    // Set the test type to adp_safe_harbor_401k
     formData.append("selected_tests", "adp_safe_harbor_401k");
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/adp_safe_harbor_401k`);
       console.log("📂 File Selected:", file.name);
+
+      // 1. Get Firebase token
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Firebase Token:", token);
+
+      // 2. Send POST request with Bearer token
       const response = await axios.post(`${API_URL}/upload-csv/adp_safe_harbor_401k`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
       });
+
       console.log("✅ Response received:", response.data);
       setResult(response.data["Test Results"]["adp_safe_harbor_401k"]);
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err);
       setError("❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // Trigger upload on Enter key press
@@ -167,48 +185,9 @@ const ADPSafeHarbor401kTest = () => {
                     : "bg-red-500 text-white"
                 }`}
               >
-                {result["ADP Safe Harbor 401 (k) Test Result"] ?? "N/A"}
+                {result["Test Result"] ?? "N/A"}
               </span>
             </p>
-
-             {/* Display corrective actions if the ADP Safe Harbor 401(k) Test fails */}
-              {result["Test Result"] === "Failed" && (
-                <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
-                  <h4 className="font-bold text-black-600">Corrective Actions:</h4>
-                  <ul className="list-disc list-inside text-black-600">
-                    <li>Review and update employer contribution policies to meet Safe Harbor thresholds.</li>
-                    <br />
-                    <li>Increase employer contributions to achieve a minimum of 3% non-elective or the enhanced match.</li>
-                    <br />
-                    <li>Adjust plan eligibility criteria to ensure broad employee participation.</li>
-                  </ul>
-                </div>
-              )}
-
-                {/* Display consequences if the ADP Safe Harbor 401(k) Test fails */}
-                {result["Test Result"] === "Failed" && (
-                  <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
-                    <h4 className="font-bold text-black-600">Consequences:</h4>
-                    <ul className="list-disc list-inside text-black-600">
-                    <li>❌ Loss of Safe Harbor exemption, requiring full ADP/ACP testing.</li>
-                    <br />
-                    <li>❌ Potential IRS penalties and increased audit risk.</li>
-                    <br />
-                    <li>❌ Additional administrative burden and corrective contributions.</li>
-                    <br />
-                    <li>❌ Negative impact on plan competitiveness and employee satisfaction.</li>
-                  </ul>
-                </div>
-              )}
-
-            {/* Optionally display additional breakdown details */}
-            {result["Breakdown"] && (
-              <div className="mt-4">
-                <pre className="bg-gray-100 p-3 rounded text-sm">
-                  {JSON.stringify(result["Breakdown"], null, 2)}
-                </pre>
-              </div>
-            )}
           </div>
         </div>
       )}
