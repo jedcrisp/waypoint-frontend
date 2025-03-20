@@ -4,7 +4,7 @@ import axios from "axios";
 import { getAuth } from "firebase/auth"; // Import Firebase Auth
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust the path as needed
 
-const CafeteriaKeyEmployeeTest = () => {
+const EligibilityTest = () => {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -36,7 +36,6 @@ const CafeteriaKeyEmployeeTest = () => {
       return;
     }
 
-    // Validate file type
     const validFileTypes = [".csv", ".xlsx"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(`.${fileType}`)) {
@@ -50,13 +49,13 @@ const CafeteriaKeyEmployeeTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("selected_tests", "cafeteria_key_employee");
+    formData.append("selected_tests", "eligibility");
 
     try {
-      console.log("🚀 Uploading file to:", `${API_URL}/upload-csv/cafeteria_key_employee`);
+      console.log("🚀 Uploading file to:", `${API_URL}/upload-csv/eligibility`);
       console.log("📂 File Selected:", file.name);
 
-      // 1. Get Firebase token (assuming user is logged in)
+      // 1. Get Firebase token
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken(true);
       if (!token) {
@@ -65,8 +64,10 @@ const CafeteriaKeyEmployeeTest = () => {
         return;
       }
 
+      console.log("Firebase Token:", token);
+
       // 2. Send POST request with Bearer token
-      const response = await axios.post(`${API_URL}/upload-csv/cafeteria_key_employee`, formData, {
+      const response = await axios.post(`${API_URL}/upload-csv/eligibility`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -75,16 +76,15 @@ const CafeteriaKeyEmployeeTest = () => {
 
       console.log("✅ Response received:", response.data);
 
-      // Retrieve the Cafeteria Key Employee test results
-      const cafeteriaResults = response.data?.["Test Results"]?.["cafeteria_key_employee"];
-      if (!cafeteriaResults) {
-        setError("❌ No Cafeteria Key Employee test results found in response.");
+      const eligibilityResults = response.data?.["Test Results"]?.["eligibility"];
+      if (!eligibilityResults) {
+        setError("❌ No Eligibility test results found in response.");
       } else {
-        setResult(cafeteriaResults);
+        setResult(eligibilityResults);
       }
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err);
-      setError("❌ Failed to upload file. Please check the format and try again.");
+      setError(err.response?.data?.detail || "❌ Failed to upload file. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -93,7 +93,7 @@ const CafeteriaKeyEmployeeTest = () => {
   return (
     <div className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200">
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
-        📂 Upload Cafeteria Key Employee Test File
+        📂 Upload Cafeteria Eligibility Test File
       </h2>
 
       {/* CSV Template Download Link */}
@@ -177,7 +177,9 @@ const CafeteriaKeyEmployeeTest = () => {
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>Reallocate Cafeteria Plan benefits to balance distributions.</li>
+                  <br />
                   <li>Adjust classifications of key employees.</li>
+                  <br />
                   <li>Review and update contribution policies.</li>
                 </ul>
               </div>
@@ -189,7 +191,9 @@ const CafeteriaKeyEmployeeTest = () => {
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-yellow-600">
                   <li>❌ Loss of Tax-Exempt Status for Key Employees</li>
+                  <br />
                   <li>❌ IRS Scrutiny and Potential Penalties</li>
+                  <br />
                   <li>❌ Risk of Plan Disqualification for Non-Compliance</li>
                 </ul>
               </div>
@@ -201,4 +205,4 @@ const CafeteriaKeyEmployeeTest = () => {
   );
 };
 
-export default CafeteriaKeyEmployeeTest;
+export default EligibilityTest;
