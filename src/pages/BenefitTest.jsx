@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust the path as needed
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 
 const BenefitTest = () => {
   const [file, setFile] = useState(null);
@@ -35,28 +36,54 @@ const BenefitTest = () => {
       setError("❌ Please select a file before uploading.");
       return;
     }
+
+    // Validate file type
+    const validFileTypes = ["csv"];
+    const fileType = file.name.split(".").pop().toLowerCase();
+    if (!validFileTypes.includes(fileType)) {
+      setError("❌ Invalid file type. Please upload a CSV file.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("selected_tests", "benefit"); // Add the selected_tests parameter
+    formData.append("selected_tests", "benefit");
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/benefit`);
       console.log("📂 File Selected:", file.name);
+
+      // 1. Get Firebase token
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Firebase Token:", token);
+
+      // 2. Send POST request with Bearer token
       const response = await axios.post(`${API_URL}/upload-csv/benefit`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
       });
+
       console.log("✅ API Response:", response.data);
-      // Directly set the result using the API response.
       setResult(response.data["Test Results"]["benefit"]);
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError("❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // Listen for Enter key press to trigger upload
@@ -69,7 +96,6 @@ const BenefitTest = () => {
   };
 
   return (
-    // Outer container made focusable (tabIndex="0") so it receives key events.
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
       onKeyDown={handleKeyDown}
@@ -169,18 +195,18 @@ const BenefitTest = () => {
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>Refund Excess Contributions to Highly Compensated Employees (HCEs): This involves returning any contributions that exceed the allowable limit for HCEs, usually by a specified deadline (e.g., March 15) to avoid penalties.</li>
+                  <li>Refund Excess Contributions to Highly Compensated Employees (HCEs).</li>
                   <br />
-                  <li>Make Additional Contributions to Non-Highly Compensated Employees (NHCEs): To correct the imbalance, the plan can provide additional contributions (often via Qualified Nonelective Contributions or Qualified Matching Contributions) to NHCEs so that the benefits are more evenly distributed.</li>
+                  <li>Make Additional Contributions to Non-Highly Compensated Employees (NHCEs).</li>
                   <br />
-                  <li>Recharacterize Excess Contributions: Sometimes, excess contributions made to HCEs can be recharacterized as employee contributions instead of employer contributions. This adjustment can help bring the plan back into compliance with the nondiscrimination requirements.</li>
+                  <li>Recharacterize Excess Contributions.</li>
                 </ul>
               </div>
             )}
 
             {/* Display consequences if the test fails */}
             {result["Test Result"] === "Failed" && (
-              <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+              <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>❌ Loss of Tax-Exempt Status for Key Employees</li>
