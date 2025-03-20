@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust path as needed
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 
 const CafeteriaContributionsBenefitsTest = () => {
   const [file, setFile] = useState(null);
@@ -47,15 +48,32 @@ const CafeteriaContributionsBenefitsTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    // Ensure the backend matches this EXACT string
     formData.append("selected_tests", "cafeteria_contributions_benefits_test");
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/cafeteria_contributions_benefits_test`);
+
+      // 1. Get Firebase token
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Firebase Token:", token);
+
+      // 2. Send POST request with Bearer token
       const response = await axios.post(
         `${API_URL}/upload-csv/cafeteria_contributions_benefits_test`,
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
 
       console.log("✅ Full API Response:", response.data);
@@ -63,8 +81,9 @@ const CafeteriaContributionsBenefitsTest = () => {
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err);
       setError(err.response?.data?.error || "❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -90,7 +109,9 @@ const CafeteriaContributionsBenefitsTest = () => {
         ) : isDragActive ? (
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
-          <p className="text-gray-600">Drag & drop a <strong>CSV or Excel file</strong> here.</p>
+          <p className="text-gray-600">
+            Drag & drop a <strong>CSV or Excel file</strong> here.
+          </p>
         )}
       </div>
 
@@ -149,7 +170,7 @@ const CafeteriaContributionsBenefitsTest = () => {
                     : "bg-red-500 text-white"
                 }`}
               >
-                {result?.["Cafeteria_Contributions_Benefits_Test_Result"] ?? "N/A"}
+                {result?.["Test Result"] ?? "N/A"}
               </span>
             </p>
 
@@ -159,7 +180,9 @@ const CafeteriaContributionsBenefitsTest = () => {
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>Review the allocation of contributions between the employer and employees.</li>
+                  <br />
                   <li>Adjust plan benefit design to promote equitable contributions.</li>
+                  <br />
                   <li>Reevaluate plan terms to align with non-discrimination requirements.</li>
                 </ul>
               </div>
@@ -171,7 +194,9 @@ const CafeteriaContributionsBenefitsTest = () => {
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>❌ Benefits may be reclassified as taxable for highly compensated employees.</li>
+                  <br />
                   <li>❌ Additional employer contributions might be required.</li>
+                  <br />
                   <li>❌ Increased risk of IRS penalties and audits.</li>
                 </ul>
               </div>
