@@ -185,8 +185,8 @@ const HRAEligibilityTest = () => {
     }
 
     const plan = planYear || "N/A";
-    const hciEligibility = formatCurrency(result["HCI Eligibility (%)"]) ?? "N/A";
-    const nonHCIEligibility = formatCurrency(result["Non-HCI Eligibility (%)"]) ?? "N/A";
+    const hciEligibility = formatPercentage(result["HCI Eligibility (%)"]) ?? "N/A";
+    const nonHCIEligibility = formatPercentage(result["Non-HCI Eligibility (%)"]) ?? "N/A";
     const eligibilityRatio = formatPercentage(result["Eligibility Ratio (%)"]) ?? "N/A";
     const testResult = result["Test Result"] ?? "N/A";
 
@@ -210,7 +210,7 @@ const HRAEligibilityTest = () => {
       head: [["Metric", "Value"]],
       body: [
         ["HCI Eligibility (%)", hciEligibility],
-        ["Non-HCI Eligibility (%)", `${nonHCIEligibility}%`],
+        ["Non-HCI Eligibility (%)", nonHCIEligibility],
         ["Eligibility Ratio (%)", eligibilityRatio],
         ["Test Result", testResult],
       ],
@@ -309,6 +309,8 @@ const HRAEligibilityTest = () => {
       ["Employee 1", "Yes", "Yes"],
       ["Employee 2", "No", "No"],
       ["Employee 3", "Yes", "No"],
+      ["Employee 4", "No", "Yes"],
+      ["Employee 5", "Yes", "Yes"]
     ]
       .map((row) => row.join(","))
       .join("\n");
@@ -318,7 +320,7 @@ const HRAEligibilityTest = () => {
 
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "HRA_Key_Emp_Con_Template.csv");
+    link.setAttribute("download", "HRA_Eligibility_Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
