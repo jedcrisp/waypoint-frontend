@@ -81,13 +81,21 @@ const TopHeavyTest = () => {
 
       console.log("✅ API Response:", response.data);
       setResult(response.data?.["Test Results"]?.["top_heavy"] || {});
-    } catch (err) {
+      } catch (err) {
+        // Safely extract error from response if available
+        const backendError = err.response?.data?.["Test Results"]?.["top_heavy"]?.error;
+
+        if (backendError) {
+          setError(backendError);
+          return;
+      }
+
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError(err.response?.data?.error || "❌ Failed to upload file. Please check the format and try again.");
     } finally {
-      setLoading(false);
+     setLoading(false);
     }
-  };
+
 
   // ----- 3. Handle Enter Key -----
   const handleKeyDown = (e) => {
@@ -101,21 +109,22 @@ const TopHeavyTest = () => {
   // ----- 4. Download CSV Template -----
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-    ["Last Name", "First Name", "Employee ID", "Plan Assets", "Key Employee", "Ownership %", "Family Member"],
-    ["Last", "First", "E001", "125000", "Yes", "10", "No"],
-    ["Last", "First", "E002", "10000", "No", "0", "No"],
-    ["Last", "First", "E003", "15000", "No", "0", "No"],
-    ["Last", "First", "E004", "30000", "Yes", "5", "No"],
-    ["Last", "First", "E005", "5000", "No", "0", "No"],
-    ["Last", "First", "E006", "20000", "No", "0", "No"],
-    ["Last", "First", "E007", "60000", "Yes", "15", "No"],
-    ["Last", "First", "E008", "8000", "No", "0", "No"],
-    ["Last", "First", "E009", "12000", "No", "0", "No"],
-    ["Last", "First", "E010", "7000", "No", "0", "Yes"]
-]
-      .map((row) => row.join(","))
+  ["Last Name", "First Name", "Employee ID", "Plan Assets", "Key Employee", "Ownership %", "Family Member", "DOB", "DOH", "Excluded from Test", "Employment Status"],
+  ["Last", "First", "E001", "125000", "Yes", "10", "No", "1980-05-12", "2015-03-01", "No", "Active"],
+  ["Last", "First", "E002", "10000", "No", "0", "No", "1995-07-20", "2020-06-15", "No", "Active"],
+  ["Last", "First", "E003", "15000", "No", "0", "No", "1988-11-03", "2018-01-10", "No", "Active"],
+  ["Last", "First", "E004", "30000", "Yes", "5", "No", "1979-02-28", "2010-09-23", "No", "Active"],
+  ["Last", "First", "E005", "5000", "No", "0", "No", "1990-12-11", "2016-04-19", "No", "Active"],
+  ["Last", "First", "E006", "20000", "No", "0", "No", "1992-03-05", "2014-08-30", "No", "Active"],
+  ["Last", "First", "E007", "60000", "Yes", "15", "No", "1985-06-17", "2008-11-11", "No", "Active"],
+  ["Last", "First", "E008", "8000", "No", "0", "No", "1991-09-30", "2017-07-22", "No", "Active"],
+  ["Last", "First", "E009", "12000", "No", "0", "No", "1983-01-26", "2012-10-05", "No", "Active"],
+  ["Last", "First", "E010", "7000", "No", "0", "Yes", "1987-04-14", "2011-12-17", "No", "Active"]
+];
+
+      csvTemplate.map((row) => row.join(","))
       .join("\n");
-    const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([csvTemplate.map(row => row.join(",")).join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
