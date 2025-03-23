@@ -445,7 +445,7 @@ const ADPSafeHarborTest = () => {
         className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
           !file || !planYear
             ? "bg-gray-400 cursor-not-allowed"
-            : "bg-green-500 hover:bg-gren-400"
+            : "bg-green-500 hover:bg-green-400"
         }`}
         disabled={!file || !planYear || loading}
       >
