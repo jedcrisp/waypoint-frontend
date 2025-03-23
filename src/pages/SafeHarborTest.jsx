@@ -106,17 +106,17 @@ const ADPSafeHarborTest = () => {
  const downloadCSVTemplate = () => {
   // Define CSV data as an array of arrays
   const csvData = [
-    ["Last Name", "First Name", "Employee ID", "Eligible for Cafeteria Plan", "Employer Contribution", "Cafeteria Plan Benefits", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test"],
-    ["Last", "First", "001", "Yes", "3", "1500", "No", "1980-04-12", "2015-06-01", "Active", "No"],
-    ["Last", "First", "002", "Yes", "3", "1800", "Yes", "1985-11-03", "2019-01-15", "Active", "No"],
-    ["Last", "First", "003", "No", "0", "0", "No", "1990-01-01", "2021-05-01", "Active", "No"],
-    ["Last", "First", "004", "Yes", "4", "2000", "Yes", "1979-09-10", "2005-07-12", "Active", "No"],
-    ["Last", "First", "005", "No", "0", "0", "No", "2000-12-01", "2022-08-20", "Terminated", "No"],
-    ["Last", "First", "006", "Yes", "3", "1700", "No", "1992-05-14", "2021-04-10", "Active", "Yes"],
-    ["Last", "First", "007", "No", "0", "0", "No", "2002-01-05", "2023-09-10", "Active", "No"],
-    ["Last", "First", "008", "Yes", "3", "1900", "Yes", "1980-03-25", "2015-11-01", "Active", "No"],
-    ["Last", "First", "009", "Yes", "4", "2100", "Yes", "1982-06-22", "2011-07-07", "Active", "No"],
-    ["Last", "First", "010", "No", "0", "0", "No", "2003-09-12", "2023-01-10", "Active", "No"]
+    ["Last Name", "First Name", "Employee ID", "Eligible for Cafeteria Plan", "Employer Contribution", "Cafeteria Plan Benefits", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date"],
+    ["Last", "First", "001", "Yes", "3", "1500", "No", "1980-04-12", "2015-06-01", "Active", "No", "2016-01-01"],
+    ["Last", "First", "002", "Yes", "3", "1800", "Yes", "1985-11-03", "2019-01-15", "Active", "No", "2022-04-04"],
+    ["Last", "First", "003", "No", "0", "0", "No", "1990-01-01", "2021-05-01", "Active", "No", "2021-05-01"],
+    ["Last", "First", "004", "Yes", "4", "2000", "Yes", "1979-09-10", "2005-07-12", "Active", "No", "2005-07-12"],
+    ["Last", "First", "005", "No", "0", "0", "No", "2000-12-01", "2022-08-20", "Terminated", "No", "2022-08-20"],
+    ["Last", "First", "006", "Yes", "3", "1700", "No", "1992-05-14", "2021-04-10", "Active", "Yes", "2021-04-10"],
+    ["Last", "First", "007", "No", "0", "0", "No", "2002-01-05", "2023-09-10", "Active", "No", "2023-09-10"],
+    ["Last", "First", "008", "Yes", "3", "1900", "Yes", "1980-03-25", "2015-11-01", "Active", "No", "2015-11-01"],
+    ["Last", "First", "009", "Yes", "4", "2100", "Yes", "1982-06-22", "2011-07-07", "Active", "No", "2011-07-07"],
+    ["Last", "First", "010", "No", "0", "0", "No", "2003-09-12", "2023-01-10", "Active", "No", "2023-01-10"], 
   ];
 
   // Convert each row to a comma-separated string and join with newlines
