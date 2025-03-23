@@ -92,9 +92,10 @@ const TopHeavyTest = () => {
 
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError(err.response?.data?.error || "❌ Failed to upload file. Please check the format and try again.");
-    } finally {
-     setLoading(false);
-    }
+      } finally {
+        setLoading(false);
+      }
+    }; // Add this closing brace to properly close the handleUpload function
 
 
   // ----- 3. Handle Enter Key -----
