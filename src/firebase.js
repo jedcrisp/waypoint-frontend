@@ -16,6 +16,7 @@ const firebaseConfig = {
 // Prevent reinitialization if Firebase is already initialized
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
+window.auth = auth;
 
 window.firebaseAuth = auth;
 
