@@ -14,31 +14,20 @@ const ADPSafeHarborTest = () => {
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
 
-  // =========================
-  // Helpers for Formatting
-  // =========================
+  // --- Formatting Helpers ---
   const formatCurrency = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) {
-      return "N/A";
-    }
-    return Number(value).toLocaleString("en-US", {
-      style: "currency",
-      currency: "USD",
-    });
+    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    return Number(value).toLocaleString("en-US", { style: "currency", currency: "USD" });
   };
 
   const formatPercentage = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) {
-      return "N/A";
-    }
+    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
     return `${Number(value).toFixed(2)}%`;
   };
 
-  // =========================
-  // 1. Drag & Drop Logic
-  // =========================
+  // --- 1. Drag & Drop Logic ---
   const onDrop = useCallback((acceptedFiles) => {
-    if (acceptedFiles && acceptedFiles.length > 0) {
+    if (acceptedFiles?.length > 0) {
       setFile(acceptedFiles[0]);
       setResult(null);
       setError(null);
@@ -53,12 +42,14 @@ const ADPSafeHarborTest = () => {
     noKeyboard: true,
   });
 
-  // =========================
-  // 2. Upload File to Backend
-  // =========================
+  // --- 2. Upload File ---
   const handleUpload = async () => {
     if (!file) {
       setError("❌ Please select a file before uploading.");
+      return;
+    }
+    if (!planYear) {
+      setError("❌ Please select a plan year.");
       return;
     }
     const validFileTypes = ["csv", "xlsx"];
@@ -76,6 +67,10 @@ const ADPSafeHarborTest = () => {
     formData.append("selected_tests", "safe_harbor");
 
     try {
+      console.log("🚀 Uploading file to:", `${API_URL}/upload-csv/safe_harbor`);
+      console.log("📂 File Selected:", file.name);
+      
+      // Get Firebase token
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken(true);
       if (!token) {
@@ -83,7 +78,9 @@ const ADPSafeHarborTest = () => {
         setLoading(false);
         return;
       }
+      console.log("Firebase Token:", token);
 
+      // POST request
       const response = await axios.post(`${API_URL}/upload-csv/safe_harbor`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -91,7 +88,13 @@ const ADPSafeHarborTest = () => {
         },
       });
 
-      setResult(response.data?.["Test Results"]?.["safe_harbor"] || {});
+      console.log("✅ Backend response:", response.data);
+      const safeHarborResults = response.data?.["Test Results"]?.["safe_harbor"];
+      if (!safeHarborResults) {
+        setError("❌ No Safe Harbor test results found in response.");
+      } else {
+        setResult(safeHarborResults);
+      }
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError("❌ Failed to upload file. Please check the format and try again.");
@@ -100,93 +103,164 @@ const ADPSafeHarborTest = () => {
     }
   };
 
-  // =========================
-  // 3. Download CSV Template
-  // =========================
- const downloadCSVTemplate = () => {
-  // Define CSV data as an array of arrays
-  const csvData = [
-    ["Last Name", "First Name", "Employee ID", "Eligible for Cafeteria Plan", "Employer Contribution", "Cafeteria Plan Benefits", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date"],
-    ["Last", "First", "001", "Yes", "3", "1500", "No", "1980-04-12", "2015-06-01", "Active", "No", "2016-01-01"],
-    ["Last", "First", "002", "Yes", "3", "1800", "Yes", "1985-11-03", "2019-01-15", "Active", "No", "2022-04-04"],
-    ["Last", "First", "003", "No", "0", "0", "No", "1990-01-01", "2021-05-01", "Active", "No", "2021-05-01"],
-    ["Last", "First", "004", "Yes", "4", "2000", "Yes", "1979-09-10", "2005-07-12", "Active", "No", "2005-07-12"],
-    ["Last", "First", "005", "No", "0", "0", "No", "2000-12-01", "2022-08-20", "Terminated", "No", "2022-08-20"],
-    ["Last", "First", "006", "Yes", "3", "1700", "No", "1992-05-14", "2021-04-10", "Active", "Yes", "2021-04-10"],
-    ["Last", "First", "007", "No", "0", "0", "No", "2002-01-05", "2023-09-10", "Active", "No", "2023-09-10"],
-    ["Last", "First", "008", "Yes", "3", "1900", "Yes", "1980-03-25", "2015-11-01", "Active", "No", "2015-11-01"],
-    ["Last", "First", "009", "Yes", "4", "2100", "Yes", "1982-06-22", "2011-07-07", "Active", "No", "2011-07-07"],
-    ["Last", "First", "010", "No", "0", "0", "No", "2003-09-12", "2023-01-10", "Active", "No", "2023-01-10"], 
-  ];
+  // --- 3. Download CSV Template ---
+  const downloadCSVTemplate = () => {
+    const csvTemplate = [
+  ["Last Name", "First Name", "Employee ID", "Eligible for Cafeteria Plan", "Employer Contribution", "Cafeteria Plan Benefits", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "Plan Entry Date"],
+  ["Last", "First", "E001", "Yes", "1500", "3000", "Yes", "1980-04-12", "2015-06-01", "Active", "No", "No", "No", "2015-07-01"],
+  ["Last", "First", "E002", "Yes", "1200", "2800", "No", "1985-11-03", "2019-01-15", "Active", "No", "No", "No", "2019-02-01"],
+  ["Last", "First", "E003", "Yes", "1000", "2600", "No", "1990-01-01", "2021-05-01", "Active", "No", "No", "Yes", "2021-05-15"],
+  ["Last", "First", "E004", "No", "0", "0", "No", "1992-07-08", "2022-01-10", "Active", "No", "Yes", "No", "2022-02-01"],
+  ["Last", "First", "E005", "Yes", "1800", "3200", "Yes", "1979-02-18", "2010-09-20", "Active", "No", "No", "No", "2010-10-01"],
+  ["Last", "First", "E006", "Yes", "1100", "2500", "No", "1988-10-23", "2016-03-14", "Active", "No", "No", "No", "2016-04-01"],
+  ["Last", "First", "E007", "No", "0", "0", "No", "2001-03-05", "2023-06-01", "Active", "No", "No", "Yes", "2023-06-15"],
+  ["Last", "First", "E008", "Yes", "1300", "2700", "Yes", "1982-05-15", "2011-12-01", "Active", "No", "No", "No", "2012-01-01"],
+  ["Last", "First", "E009", "Yes", "1400", "2900", "No", "1995-08-09", "2018-07-01", "Active", "No", "Yes", "No", "2018-07-15"],
+  ["Last", "First", "E010", "Yes", "1600", "3100", "Yes", "1983-12-30", "2009-05-15", "Active", "No", "No", "No", "2009-06-01"]
+]
 
-  // Convert each row to a comma-separated string and join with newlines
-  const csvTemplate = csvData.map((row) => row.join(",")).join("\n");
+      .map((row) => row.join(","))
+      .join("\n");
 
-  // Create a Blob with CSV content
-  const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
+    const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
 
-  // Create a temporary link to trigger download
-  const link = document.createElement("a");
-  link.href = url;
-  link.setAttribute("download", "Safe_Harbor_Template.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "Safe_Harbor_Template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
-  // =========================
-  // 4. Download Results as CSV
-  // =========================
+  // --- 4. Export Results to PDF ---
+  const exportToPDF = () => {
+    if (!result) {
+      setError("❌ No results available to export.");
+      return;
+    }
+
+    // Example metrics (customize as needed)
+    const totalEmployees = result["Total Employees"] ?? "N/A";
+    const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
+    const eligibilityPct = formatPercentage(result["Eligibility Percentage (%)"]);
+    const avgEmployerContribution = formatCurrency(result["Average Employer Contribution (%)"]);
+    const testRes = result["Test Result"] ?? "N/A";
+    const failed = testRes.toLowerCase() === "failed";
+
+    const pdf = new jsPDF("p", "mm", "a4");
+    pdf.setFont("helvetica", "normal");
+
+    // Header
+    pdf.setFontSize(18);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Safe Harbor Test Results", 105, 15, { align: "center" });
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(`Plan Year: ${planYear || "N/A"}`, 105, 25, { align: "center" });
+    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
+
+    // Results Table
+    pdf.autoTable({
+    startY: 40,
+    head: [["Metric", "Value"]],
+    body: [
+      ["Total Employees", totalEmployees],
+      ["Eligible Employees", eligibleEmployees],
+      ["Eligibility Percentage (%)", eligibilityPct],
+      ["Avg Employer Contribution", avgEmployerContribution],
+      ["Test Result", testRes],
+    ],
+    headStyles: {
+      fillColor: [41, 128, 185],
+      textColor: [255, 255, 255],
+    },
+    styles: {
+      fontSize: 12,
+      font: "helvetica",
+      lineColor: [150, 150, 150],  // Medium gray
+      lineWidth: 0.2         // Thicker grid lines
+    },
+    margin: { left: 10, right: 10 },
+  });
+
+    // If test failed, add corrective actions & consequences
+    if (failed) {
+    const correctiveActions = [
+      "• Adjust eligibility criteria to improve NHCE participation.",
+        "• Modify employer contribution structure to balance benefits.",
+        "• Amend plan documents to meet IRS Safe Harbor requirements.",
+    ]; 
+
+    const consequences = [
+        "• Potential loss of tax benefits if noncompliant.",
+        "• IRS penalties and increased audit risk.",
+        "• Additional corrective contributions required.",
+      ];
+
+      pdf.autoTable({
+      startY: pdf.lastAutoTable.finalY + 10,
+      theme: "grid",
+      head: [["Corrective Actions"]],
+      body: correctiveActions.map(action => [action]),
+      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+      styles: { fontSize: 11, font: "helvetica" },
+      margin: { left: 10, right: 10 },
+    });
+
+    pdf.autoTable({
+      startY: pdf.lastAutoTable.finalY + 10,
+      theme: "grid",
+      head: [["Consequences"]],
+      body: consequences.map(consequence => [consequence]),
+      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+      styles: { fontSize: 11, font: "helvetica" },
+      margin: { left: 10, right: 10 },
+    });
+  }
+
+    pdf.save("Safe_Harbor_Results.pdf");
+  };
+
+  // --- 5. Download Results as CSV ---
   const downloadResultsAsCSV = () => {
     if (!result) {
       setError("❌ No results to download.");
       return;
     }
 
-    // We'll keep the raw numeric data in CSV
-    const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
     const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
-    const eligibilityPercentage = result["Eligibility Percentage (%)"] ?? "N/A";
-    const averageEmployerContribution = result["Average Employer Contribution (%)"] ?? "N/A";
-    const hceBenefits = result["HCE Benefits (Avg)"] ?? "N/A";
-    const nhceBenefits = result["NHCE Benefits (Avg)"] ?? "N/A";
-    const benefitRatio = result["Benefit Ratio (%)"] ?? "N/A";
-    const testResult = result["Test Result"] ?? "N/A";
+    const eligibilityPct = result["Eligibility Percentage (%)"] !== undefined
+      ? result["Eligibility Percentage (%)"] + "%"
+      : "N/A";
+    const avgEmployerContribution = result["Average Employer Contribution (%)"] ?? "N/A";
+    const testRes = result["Test Result"] ?? "N/A";
+    const failed = testRes.toLowerCase() === "failed";
 
     const csvRows = [
       ["Metric", "Value"],
-      ["Plan Year", plan],
+      ["Plan Year", planYear],
       ["Total Employees", totalEmployees],
       ["Eligible Employees", eligibleEmployees],
-      ["Eligibility Percentage (%)", eligibilityPercentage],
-      ["Average Employer Contribution (%)", averageEmployerContribution],
-      ["HCE Benefits (Avg)", hceBenefits],
-      ["NHCE Benefits (Avg)", nhceBenefits],
-      ["Benefit Ratio (%)", benefitRatio],
-      ["Test Result", testResult],
+      ["Eligibility Percentage (%)", eligibilityPct],
+      ["Avg Employer Contribution", avgEmployerContribution],
+      ["Test Result", testRes],
     ];
 
-    if (String(testResult).toLowerCase() === "failed") {
+    if (failed) {
       const correctiveActions = [
-        "Adjust eligibility requirements to ensure NHCEs meet the 70% threshold.",
-        "Modify plan design to allow more NHCEs to participate.",
-        "Ensure compliance with the Ratio Percentage Test (70% of HCE rate).",
-        "Review employee demographics to adjust contribution structures.",
+        "Adjust eligibility criteria to improve NHCE participation.",
+        "Modify employer contribution structure to balance benefits.",
+        "Amend plan documents to meet IRS Safe Harbor requirements.",
       ];
       const consequences = [
-        "Plan may lose tax-qualified status",
-        "HCEs may have contributions refunded, reducing their tax benefits",
-        "Additional corrective employer contributions may be required",
-        "Increased IRS audit risk due to compliance failure",
+        "Potential loss of tax benefits if noncompliant.",
+        "IRS penalties and increased audit risk.",
+        "Additional corrective contributions required.",
       ];
-      csvRows.push(["", ""]);
-      csvRows.push(["Corrective Actions", ""]);
-      correctiveActions.forEach((action) => csvRows.push(["", action]));
-      csvRows.push(["", ""]);
-      csvRows.push(["Consequences", ""]);
-      consequences.forEach((item) => csvRows.push(["", item]));
+      csvRows.push([], ["Corrective Actions"], ...correctiveActions.map(a => ["", a]));
+      csvRows.push([], ["Consequences"], ...consequences.map(c => ["", c]));
     }
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
@@ -200,165 +274,7 @@ const ADPSafeHarborTest = () => {
     document.body.removeChild(link);
   };
 
-  // =========================
-  // 5. Export to PDF (with formatting)
-  // =========================
-  const exportToPDF = () => {
-    if (!result) {
-      setError("❌ No results available to export.");
-      return;
-    }
-
-    // Convert raw data to strings with formatting
-    const plan = planYear || "N/A";
-    const totalEmployees = String(result["Total Employees"] ?? "N/A");
-    const eligibleEmployees = String(result["Eligible Employees"] ?? "N/A");
-
-    const eligibilityPercentage = formatPercentage(result["Eligibility Percentage (%)"]);
-    const averageEmployerContribution = formatCurrency(result["Average Employer Contribution (%)"]);
-    const hceBenefits = formatCurrency(result["HCE Benefits (Avg)"]);
-    const nhceBenefits = formatCurrency(result["NHCE Benefits (Avg)"]);
-
-    // For ratio, we want "xxx.xx%"
-    let ratioVal = result["Benefit Ratio (%)"];
-    const benefitRatio = isNaN(ratioVal) ? "N/A" : `${Number(ratioVal).toFixed(2)}%`;
-
-    const testResult = String(result["Test Result"] ?? "N/A");
-    const failed = testResult.toLowerCase() === "failed";
-
-    const pdf = new jsPDF("p", "mm", "a4");
-    pdf.setFont("helvetica", "normal");
-
-    // Header
-    pdf.setFontSize(18);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Safe Harbor Test Results", 105, 15, { align: "center" });
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
-    const generatedTimestamp = new Date().toLocaleString();
-    pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
-
-    // Section 1: Basic Results Table
-    pdf.autoTable({
-      startY: 40,
-      theme: "grid",
-      head: [["Metric", "Value"]],
-      body: [
-        ["Total Employees", totalEmployees],
-        ["Eligible Employees", eligibleEmployees],
-        ["Eligibility Percentage (%)", eligibilityPercentage],
-        ["Average Employer Contribution", averageEmployerContribution],
-        ["HCE Benefits (Avg)", hceBenefits],
-        ["NHCE Benefits (Avg)", nhceBenefits],
-        ["Benefit Ratio (%)", benefitRatio],
-        ["Test Result", testResult],
-      ],
-      headStyles: {
-        fillColor: [41, 128, 185], // Blue
-        textColor: [255, 255, 255], // White text
-      },
-      styles: {
-        fontSize: 12,
-        font: "helvetica",
-      },
-      margin: { left: 10, right: 10 },
-    });
-
-    // Section 2: Summary Box
-    const summaryStartY = pdf.lastAutoTable.finalY + 10;
-    const boxWidth = 190;
-    const boxHeight = 0;
-
-    //pdf.setDrawColor(0, 0, 0);
-    //pdf.setLineWidth(0.0);
-    //pdf.rect(10, summaryStartY, boxWidth, boxHeight, "S");
-
-    //pdf.setFontSize(10);
-    //pdf.setFont("helvetica", "bold");
-    //if (failed) {
-      //pdf.text("", 12, summaryStartY + 8);
-    //} else {
-      //pdf.text("", 12, summaryStartY + 8);
-    //}
-
-    //pdf.setFontSize(10);
-    //pdf.setFont("helvetica", "normal");
-    //pdf.text(
-      //"",
-      //12,
-      //summaryStartY + 14,
-      //{ maxWidth: 0 }
-    //);
-
-    // Section 3: If Failed, add Corrective Actions & Consequences
-    if (failed) {
-      const correctiveBoxY = summaryStartY + boxHeight + 5;
-      pdf.setFillColor(255, 230, 230);
-      pdf.setDrawColor(255, 0, 0);
-      const correctiveBoxHeight = 35;
-      pdf.rect(10, correctiveBoxY, boxWidth, correctiveBoxHeight, "FD");
-
-      pdf.setFontSize(12);
-      pdf.setFont("helvetica", "bold");
-      pdf.setTextColor(255, 0, 0);
-      pdf.text("Corrective Actions", 15, correctiveBoxY + 8);
-
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(10);
-      pdf.setTextColor(0, 0, 0);
-      let bulletY = correctiveBoxY + 14;
-      const lineHeight = 5;
-      const correctiveActions = [
-        "Adjust eligibility requirements to ensure NHCEs meet the 70% threshold.",
-        "Modify plan design to allow more NHCEs to participate.",
-        "Ensure compliance with the Ratio Percentage Test.",
-        "Review employee demographics to adjust contribution structures.",
-      ];
-      correctiveActions.forEach((action) => {
-        pdf.text(`• ${action}`, 15, bulletY);
-        bulletY += lineHeight;
-      });
-
-      const consequencesBoxY = correctiveBoxY + correctiveBoxHeight + 5;
-      pdf.setFillColor(255, 255, 204);
-      pdf.setDrawColor(255, 204, 0);
-      const consequencesBoxHeight = 40;
-      pdf.rect(10, consequencesBoxY, boxWidth, consequencesBoxHeight, "FD");
-
-      pdf.setFontSize(12);
-      pdf.setFont("helvetica", "bold");
-      pdf.setTextColor(204, 153, 0);
-      pdf.text("Consequences", 15, consequencesBoxY + 8);
-
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(10);
-      pdf.setTextColor(0, 0, 0);
-      let bulletY2 = consequencesBoxY + 14;
-      const consequences = [
-        "Plan may lose tax-qualified status",
-        "Additional corrective employer contributions may be required.",
-        "Increased IRS audit risk due to compliance failure.",
-        "HCEs may have contributions refunded, reducing their tax benefits",
-      ];
-      consequences.forEach((item) => {
-        pdf.text(`• ${item}`, 15, bulletY2);
-        bulletY2 += lineHeight;
-      });
-    }
-
-    // Footer
-    pdf.setFont("helvetica", "italic");
-    pdf.setFontSize(10);
-    pdf.setTextColor(100, 100, 100);
-    pdf.text("Generated via the Waypoing Reporting Engine", 10, 290);
-
-    pdf.save("Safe_Harbor_Results.pdf");
-  };
-
-  // =========================
-  // 6. Handle Enter Key
-  // =========================
+  // --- 6. Handle Enter Key ---
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && file && !loading) {
       e.preventDefault();
@@ -367,9 +283,7 @@ const ADPSafeHarborTest = () => {
     }
   };
 
-  // =========================
-  // RENDER
-  // =========================
+  // --- 7. Render ---
   return (
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
@@ -383,7 +297,9 @@ const ADPSafeHarborTest = () => {
       {/* Plan Year Dropdown */}
       <div className="mb-6">
         <div className="flex items-center">
-          {planYear === "" && <span className="text-red-500 text-lg mr-2">*</span>}
+          {planYear === "" && (
+            <span className="text-red-500 text-lg mr-2">*</span>
+          )}
           <select
             id="planYear"
             value={planYear}
@@ -405,9 +321,7 @@ const ADPSafeHarborTest = () => {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive
-            ? "border-green-500 bg-blue-100"
-            : "border-gray-300 bg-gray-50"
+          isDragActive ? "border-blue-500 bg-blue-100" : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
@@ -443,9 +357,7 @@ const ADPSafeHarborTest = () => {
       <button
         onClick={handleUpload}
         className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
-          !file || !planYear
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-green-500 hover:bg-green-400"
+          !file || !planYear ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-600"
         }`}
         disabled={!file || !planYear || loading}
       >
@@ -457,48 +369,67 @@ const ADPSafeHarborTest = () => {
 
       {/* Display Results */}
       {result && (
-        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
-          <h3 className="font-bold text-xl text-gray-700">Safe Harbor Coverage Test Results</h3>
+        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-md">
+          <h3 className="font-bold text-xl text-gray-700">
+            ADP Safe Harbor Coverage Test Results
+          </h3>
           <div className="mt-4">
-            {/* Show plan year */}
             <p className="text-lg">
               <strong className="text-gray-700">Plan Year:</strong>{" "}
               <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
             </p>
-
-            {/* Show numeric data with formatting */}
-            <p className="text-lg">
+            <p className="text-lg mt-2">
               <strong className="text-gray-700">Total Employees:</strong>{" "}
-              <span className="font-semibold text-blue-600">
-               {result["Total Employees"] ?? "N/A"}
-             </span>
+              <span className="font-semibold text-black-600">
+                {result["Total Employees"] ?? "N/A"}
+              </span>
             </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Eligible Employees:</strong>{" "}
-              {result["Eligible Employees"] ?? "N/A"}
+              <span className="font-semibold text-black-600">
+                {result["Eligible Employees"] ?? "N/A"}
+              </span>
             </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Eligibility Percentage:</strong>{" "}
-              {formatPercentage(result["Eligibility Percentage (%)"])}
+              <span className="font-semibold text-black-600">
+                {result["Eligibility Percentage (%)"] !== undefined
+                  ? result["Eligibility Percentage (%)"] + "%"
+                  : "N/A"}
+              </span>
             </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Average Employer Contribution:</strong>{" "}
-              {formatCurrency(result["Average Employer Contribution (%)"])}
+              <span className="font-semibold text-black-600">
+                {result["Average Employer Contribution (%)"] !== undefined
+                  ? formatCurrency(result["Average Employer Contribution (%)"])
+                  : "N/A"}
+              </span>
             </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">HCE Benefits (Avg):</strong>{" "}
-              {formatCurrency(result["HCE Benefits (Avg)"])}
+              <span className="font-semibold text-black-600">
+                {result["HCE Benefits (Avg)"] !== undefined
+                  ? formatCurrency(result["HCE Benefits (Avg)"])
+                  : "N/A"}
+              </span>
             </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">NHCE Benefits (Avg):</strong>{" "}
-              {formatCurrency(result["NHCE Benefits (Avg)"])}
+              <span className="font-semibold text-black-600">
+                {result["NHCE Benefits (Avg)"] !== undefined
+                  ? formatCurrency(result["NHCE Benefits (Avg)"])
+                  : "N/A"}
+              </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Benefit Ratio (%):</strong>{" "}
-              {formatPercentage(result["Benefit Ratio (%)"])}
+              <strong className="text-gray-700">Benefit Ratio:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result["Benefit Ratio (%)"] !== undefined
+                  ? formatPercentage(result["Benefit Ratio (%)"])
+                  : "N/A"}
+              </span>
             </p>
-
-            {/* Test Result */}
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
@@ -529,32 +460,32 @@ const ADPSafeHarborTest = () => {
             </button>
           </div>
 
-          {/* If test fails, show corrective actions & consequences */}
+          {/* Corrective Actions & Consequences if Test Failed */}
           {result["Test Result"]?.toLowerCase() === "failed" && (
             <>
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>Adjust eligibility requirements to ensure NHCEs meet the 70% threshold.</li>
+                  <li>Review and verify employee classifications.</li>
                   <br />
-                  <li>Modify plan design to allow more NHCEs to participate.</li>
+                  <li>Recalculate benefit allocations for compliance.</li>
                   <br />
-                  <li>Ensure compliance with the Ratio Percentage Test.</li>
+                  <li>Amend plan documents to clarify classification rules.</li>
                   <br />
-                  <li>Review employee demographics to adjust contribution structures.</li>
+                  <li>Consult with legal or tax advisors for corrections.</li>
                 </ul>
               </div>
 
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>❌ Plan may lose tax-qualified status.</li>
+                  <li>❌ Loss of tax-exempt status for key employees.</li>
                   <br />
-                  <li>❌ HCEs may have contributions refunded, reducing their tax benefits.</li>
+                  <li>❌ IRS compliance violations and penalties.</li>
                   <br />
-                  <li>❌ Additional corrective employer contributions may be required.</li>
+                  <li>❌ Plan disqualification risks.</li>
                   <br />
-                  <li>❌ Increased IRS audit risk due to compliance failure.</li>
+                  <li>❌ Employee dissatisfaction and legal risks.</li>
                 </ul>
               </div>
             </>
@@ -563,6 +494,6 @@ const ADPSafeHarborTest = () => {
       )}
     </div>
   );
-};
+} // Closing brace for ADPSafeHarborTest
 
 export default ADPSafeHarborTest;
