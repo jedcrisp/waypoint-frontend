@@ -240,24 +240,16 @@ const TopHeavyTest = () => {
       ["Top Heavy Percentage (%)", formatPercentage(topHeavyPct)],
       ["Test Result", testResult],
     ],
-    styles: {
-      fontSize: 12,
-      textColor: [0, 0, 0], // Black text for table body
-      halign: "right", // Right-align numeric values
-    },
-    columnStyles: {
-      0: { halign: "left", fontStyle: "bold" }, // Left-align metric names & bold
-      1: { halign: "left" }, // Right-align numeric values
-    },
-    headStyles: {
-      fillColor: [41, 128, 185], // Dark Blue Header
-      textColor: [255, 255, 255], // White text
-      fontSize: 12,
-      fontStyle: "helvetica",
-      halign: "left", // Left-align header text
-    },
-    margin: { left: 15, right: 15 },
-  });
+      headStyles: {
+        fillColor: [41, 128, 185], // A blue header
+        textColor: [255, 255, 255], // White text
+      },
+      styles: {
+        fontSize: 12,
+        font: "helvetica",
+      },
+      margin: { left: 10, right: 10 },
+    });
 
   // Section 2: Summary Box
   const summaryStartY = pdf.lastAutoTable.finalY + 10;
