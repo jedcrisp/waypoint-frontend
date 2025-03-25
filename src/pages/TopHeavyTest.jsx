@@ -229,11 +229,11 @@ const TopHeavyTest = () => {
   pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
   // Section 1: Basic Results Table
-  pdf.autoTable({
-    startY: 40,
-    theme: "grid", // Ensures full table grid
-    head: [["Metric", "Value"]],
-    body: [
+ pdf.autoTable({
+      startY: 40,
+      theme: "grid",
+      head: [["Metric", "Value"]],
+      body: [
       ["Total Employees", totalEmployees],
       ["Total Plan Assets", formatCurrency(totalAssets)],
       ["Key Employee Assets", formatCurrency(keyEmployeeAssets)],
