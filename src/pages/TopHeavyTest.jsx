@@ -101,17 +101,17 @@ const TopHeavyTest = () => {
   // ----- 4. Download CSV Template -----
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-    ["Last Name", "First Name", "Employee ID", "Plan Assets", "Key Employee", "Ownership %", "Family Member"],
-    ["Last", "First", "E001", "125000", "Yes", "10", "No"],
-    ["Last", "First", "E002", "10000", "No", "0", "No"],
-    ["Last", "First", "E003", "15000", "No", "0", "No"],
-    ["Last", "First", "E004", "30000", "Yes", "5", "No"],
-    ["Last", "First", "E005", "5000", "No", "0", "No"],
-    ["Last", "First", "E006", "20000", "No", "0", "No"],
-    ["Last", "First", "E007", "60000", "Yes", "15", "No"],
-    ["Last", "First", "E008", "8000", "No", "0", "No"],
-    ["Last", "First", "E009", "12000", "No", "0", "No"],
-    ["Last", "First", "E010", "7000", "No", "0", "Yes"]
+  ["Last Name", "First Name", "Employee ID", "Plan Assets", "Key Employee", "Ownership %", "Family Member", "DOB", "DOH", "Excluded from Test", "Employment Status"],
+  ["Last", "First", "001", 25000, "Yes", "5", "No", "1980-01-01", "2010-01-15", "No", "Active"],
+  ["Last", "First", "002", 18000, "No", "0", "No", "1985-03-22", "2012-05-30", "No", "Active"],
+  ["Last", "First", "003", 30000, "Yes", "10", "Yes", "1975-07-12", "2005-08-01", "No", "Active"],
+  ["Last", "First", "004", 0, "No", "0", "No", "1992-10-19", "2021-04-05", "No", "Active"],
+  ["Last", "First", "005", 40000, "Yes", "20", "No", "1983-06-14", "2008-07-20", "No", "Active"],
+  ["Last", "First", "006", 0, "No", "0", "No", "1998-12-05", "2022-09-01", "Yes", "Terminated"],
+  ["Last", "First", "007", 15000, "No", "0", "No", "1990-09-09", "2018-03-15", "No", "Leave"],
+  ["Last", "First", "008", 22000, "Yes", "15", "Yes", "1978-04-25", "2003-02-10", "No", "Active"],
+  ["Last", "First", "009", 0, "No", "0", "No", "1995-11-11", "2023-01-05", "No", "Active"],
+  ["Last", "First", "010", 27000, "Yes", "8", "No", "1982-02-02", "2011-06-30", "No", "Active"],
 ]
       .map((row) => row.join(","))
       .join("\n");
@@ -252,64 +252,39 @@ const TopHeavyTest = () => {
   // Section 2: Summary Box
   const summaryStartY = pdf.lastAutoTable.finalY + 10;
 
+  // Corrective actions & consequences (only if failed)
   if (failed) {
-    // Section 3: If Failed, add Corrective Actions & Consequences
-    pdf.setFillColor(255, 230, 230); // Light red background
-    pdf.setDrawColor(255, 0, 0); // Red border
-    const correctiveBoxHeight = 35;
-    pdf.rect(10, summaryStartY, 190, correctiveBoxHeight, "FD"); // Fill & Draw
-
-    // Title
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(14);
-    pdf.setTextColor(255, 0, 0);
-    pdf.text("Corrective Actions", 15, summaryStartY + 10);
-
-    // Bullet Points
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(11);
-    pdf.setTextColor(0, 0, 0);
-    let bulletY = summaryStartY + 14;
-    const lineHeight = 5;
-
     const correctiveActions = [
       "Ensure key employees hold no more than 60% of total plan assets.",
       "Provide additional employer contributions for non-key employees.",
-      "Review and adjust contribution allocations per IRS § 416.",
-    ];
-
-    correctiveActions.forEach((action) => {
-      pdf.text(`• ${action}`, 15, bulletY);
-      bulletY += lineHeight;
-    });
-
-    // Consequences Box
-    const nextBoxY = summaryStartY + correctiveBoxHeight + 5;
-    pdf.setFillColor(255, 255, 204); // Light yellow background
-    pdf.setDrawColor(255, 204, 0); // Gold border
-    pdf.rect(10, nextBoxY, 190, 40, "FD");
-
-    // Title
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(14);
-    pdf.setTextColor(204, 153, 0); // Dark gold
-    pdf.text("Consequences", 15, nextBoxY + 10);
-
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(11);
-    pdf.setTextColor(0, 0, 0);
-    let bulletY2 = nextBoxY + 18;
+        "Review and adjust contribution allocations per IRS § 416.",
+      ];
 
     const consequences = [
-      "Mandatory employer contributions (3% of pay) for non-key employees.",
+        "Mandatory employer contributions (3% of pay) for non-key employees.",
       "Loss of plan tax advantages if not corrected.",
       "Increased IRS audit risk.",
       "Additional corrective contributions may be required.",
     ];
 
-    consequences.forEach((item) => {
-      pdf.text(`• ${item}`, 15, bulletY2);
-      bulletY2 += lineHeight;
+    pdf.autoTable({
+      startY: pdf.lastAutoTable.finalY + 10,
+      theme: "grid",
+      head: [["Corrective Actions"]],
+      body: correctiveActions.map(action => [action]),
+      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+      styles: { fontSize: 11, font: "helvetica" },
+      margin: { left: 10, right: 10 },
+    });
+
+    pdf.autoTable({
+      startY: pdf.lastAutoTable.finalY + 10,
+      theme: "grid",
+      head: [["Consequences"]],
+      body: consequences.map(consequence => [consequence]),
+      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+      styles: { fontSize: 11, font: "helvetica" },
+      margin: { left: 10, right: 10 },
     });
   }
 
@@ -398,7 +373,7 @@ const TopHeavyTest = () => {
       <button
         onClick={handleUpload}
         className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
-          !file ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-blue-600"
+          !file ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
         }`}
         disabled={!file || loading}
       >
@@ -420,24 +395,33 @@ const TopHeavyTest = () => {
               </span>
             </p>
             <p className="text-lg">
-            <strong className="text-gray-700">Total Employees:</strong>{" "}
-              <span className="font-semibold text-blue-600"></span>
-              </p>
-            <p className="text-lg">
-          <strong className="text-gray-700">Total Plan Assets:</strong>{" "}
-          ${Number(result["Total Plan Assets"]).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-        </p>
+  <strong className="text-gray-700">Total Employees:</strong>{" "}
+  <span className="font-semibold text-black-600">
+    {result?.["Total Employees"] ?? "N/A"}
+  </span>
+</p>
 
-          <p className="text-lg mt-2">
-         <strong className="text-gray-700">Key Employee Assets:</strong>{" "}
-         ${Number(result["Key Employee Assets"]).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-      </p>
-            <p className="text-lg mt-2">
-             <strong className="text-gray-700">Top Heavy Percentage:</strong>{" "}
-             {result?.["Top Heavy Percentage (%)"] !== undefined
-             ? `${result["Top Heavy Percentage (%)"]}%`
-                                              : "N/A"}
-             </p>
+            <p className="text-lg">
+  <strong className="text-gray-700">Total Plan Assets:</strong>{" "}
+  <span className="font-semibold text-black-600">
+    {formatCurrency(result?.["Total Plan Assets"])}
+  </span>
+</p>
+
+<p className="text-lg mt-2">
+  <strong className="text-gray-700">Key Employee Assets:</strong>{" "}
+  <span className="font-semibold text-black-600">
+    {formatCurrency(result?.["Key Employee Assets"])}
+  </span>
+</p>
+
+<p className="text-lg mt-2">
+  <strong className="text-gray-700">Top Heavy Percentage:</strong>{" "}
+  <span className="font-semibold text-black-600">
+    {formatPercentage(result?.["Top Heavy Percentage (%)"])}
+  </span>
+</p>
+
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
