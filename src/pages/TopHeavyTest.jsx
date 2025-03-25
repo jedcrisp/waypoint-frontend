@@ -81,22 +81,13 @@ const TopHeavyTest = () => {
 
       console.log("✅ API Response:", response.data);
       setResult(response.data?.["Test Results"]?.["top_heavy"] || {});
-      } catch (err) {
-        // Safely extract error from response if available
-        const backendError = err.response?.data?.["Test Results"]?.["top_heavy"]?.error;
-
-        if (backendError) {
-          setError(backendError);
-          return;
-      }
-
+    } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError(err.response?.data?.error || "❌ Failed to upload file. Please check the format and try again.");
-      } finally {
-        setLoading(false);
-      }
-    }; // Add this closing brace to properly close the handleUpload function
-
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ----- 3. Handle Enter Key -----
   const handleKeyDown = (e) => {
@@ -110,22 +101,21 @@ const TopHeavyTest = () => {
   // ----- 4. Download CSV Template -----
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-  ["Last Name", "First Name", "Employee ID", "Plan Assets", "Key Employee", "Ownership %", "Family Member", "DOB", "DOH", "Excluded from Test", "Employment Status"],
-  ["Last", "First", "E001", "125000", "Yes", "10", "No", "1980-05-12", "2015-03-01", "No", "Active"],
-  ["Last", "First", "E002", "10000", "No", "0", "No", "1995-07-20", "2020-06-15", "No", "Active"],
-  ["Last", "First", "E003", "15000", "No", "0", "No", "1988-11-03", "2018-01-10", "No", "Active"],
-  ["Last", "First", "E004", "30000", "Yes", "5", "No", "1979-02-28", "2010-09-23", "No", "Active"],
-  ["Last", "First", "E005", "5000", "No", "0", "No", "1990-12-11", "2016-04-19", "No", "Active"],
-  ["Last", "First", "E006", "20000", "No", "0", "No", "1992-03-05", "2014-08-30", "No", "Active"],
-  ["Last", "First", "E007", "60000", "Yes", "15", "No", "1985-06-17", "2008-11-11", "No", "Active"],
-  ["Last", "First", "E008", "8000", "No", "0", "No", "1991-09-30", "2017-07-22", "No", "Active"],
-  ["Last", "First", "E009", "12000", "No", "0", "No", "1983-01-26", "2012-10-05", "No", "Active"],
-  ["Last", "First", "E010", "7000", "No", "0", "Yes", "1987-04-14", "2011-12-17", "No", "Active"]
-];
-
-      csvTemplate.map((row) => row.join(","))
+    ["Last Name", "First Name", "Employee ID", "Plan Assets", "Key Employee", "Ownership %", "Family Member"],
+    ["Last", "First", "E001", "125000", "Yes", "10", "No"],
+    ["Last", "First", "E002", "10000", "No", "0", "No"],
+    ["Last", "First", "E003", "15000", "No", "0", "No"],
+    ["Last", "First", "E004", "30000", "Yes", "5", "No"],
+    ["Last", "First", "E005", "5000", "No", "0", "No"],
+    ["Last", "First", "E006", "20000", "No", "0", "No"],
+    ["Last", "First", "E007", "60000", "Yes", "15", "No"],
+    ["Last", "First", "E008", "8000", "No", "0", "No"],
+    ["Last", "First", "E009", "12000", "No", "0", "No"],
+    ["Last", "First", "E010", "7000", "No", "0", "Yes"]
+]
+      .map((row) => row.join(","))
       .join("\n");
-    const blob = new Blob([csvTemplate.map(row => row.join(",")).join("\n")], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -229,38 +219,86 @@ const TopHeavyTest = () => {
   pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
   // Section 1: Basic Results Table
- pdf.autoTable({
-      startY: 40,
-      theme: "grid",
-      head: [["Metric", "Value"]],
-      body: [
+  pdf.autoTable({
+    startY: 40,
+    theme: "grid", // Ensures full table grid
+    head: [["Metric", "Value"]],
+    body: [
       ["Total Employees", totalEmployees],
       ["Total Plan Assets", formatCurrency(totalAssets)],
       ["Key Employee Assets", formatCurrency(keyEmployeeAssets)],
       ["Top Heavy Percentage (%)", formatPercentage(topHeavyPct)],
       ["Test Result", testResult],
     ],
-      headStyles: {
-        fillColor: [41, 128, 185], // A blue header
-        textColor: [255, 255, 255], // White text
-      },
-      styles: {
-        fontSize: 12,
-        font: "helvetica",
-      },
-      margin: { left: 10, right: 10 },
-    });
+    styles: {
+      fontSize: 12,
+      textColor: [0, 0, 0], // Black text for table body
+      halign: "right", // Right-align numeric values
+    },
+    columnStyles: {
+      0: { halign: "left", fontStyle: "bold" }, // Left-align metric names & bold
+      1: { halign: "left" }, // Right-align numeric values
+    },
+    headStyles: {
+      fillColor: [41, 128, 185], // Dark Blue Header
+      textColor: [255, 255, 255], // White text
+      fontSize: 12,
+      fontStyle: "helvetica",
+      halign: "left", // Left-align header text
+    },
+    margin: { left: 15, right: 15 },
+  });
 
   // Section 2: Summary Box
   const summaryStartY = pdf.lastAutoTable.finalY + 10;
 
-    // Corrective actions & consequences (only if failed)
   if (failed) {
+    // Section 3: If Failed, add Corrective Actions & Consequences
+    pdf.setFillColor(255, 230, 230); // Light red background
+    pdf.setDrawColor(255, 0, 0); // Red border
+    const correctiveBoxHeight = 35;
+    pdf.rect(10, summaryStartY, 190, correctiveBoxHeight, "FD"); // Fill & Draw
+
+    // Title
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(14);
+    pdf.setTextColor(255, 0, 0);
+    pdf.text("Corrective Actions", 15, summaryStartY + 10);
+
+    // Bullet Points
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(11);
+    pdf.setTextColor(0, 0, 0);
+    let bulletY = summaryStartY + 14;
+    const lineHeight = 5;
+
     const correctiveActions = [
       "Ensure key employees hold no more than 60% of total plan assets.",
       "Provide additional employer contributions for non-key employees.",
       "Review and adjust contribution allocations per IRS § 416.",
     ];
+
+    correctiveActions.forEach((action) => {
+      pdf.text(`• ${action}`, 15, bulletY);
+      bulletY += lineHeight;
+    });
+
+    // Consequences Box
+    const nextBoxY = summaryStartY + correctiveBoxHeight + 5;
+    pdf.setFillColor(255, 255, 204); // Light yellow background
+    pdf.setDrawColor(255, 204, 0); // Gold border
+    pdf.rect(10, nextBoxY, 190, 40, "FD");
+
+    // Title
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(14);
+    pdf.setTextColor(204, 153, 0); // Dark gold
+    pdf.text("Consequences", 15, nextBoxY + 10);
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(11);
+    pdf.setTextColor(0, 0, 0);
+    let bulletY2 = nextBoxY + 18;
 
     const consequences = [
       "Mandatory employer contributions (3% of pay) for non-key employees.",
@@ -269,26 +307,11 @@ const TopHeavyTest = () => {
       "Additional corrective contributions may be required.",
     ];
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
+    consequences.forEach((item) => {
+      pdf.text(`• ${item}`, 15, bulletY2);
+      bulletY2 += lineHeight;
     });
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-    }
+  }
 
   // Footer
   pdf.setFontSize(10);
@@ -375,7 +398,7 @@ const TopHeavyTest = () => {
       <button
         onClick={handleUpload}
         className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
-          !file ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
+          !file ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-blue-600"
         }`}
         disabled={!file || loading}
       >
