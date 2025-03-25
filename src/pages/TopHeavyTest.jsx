@@ -408,7 +408,7 @@ const TopHeavyTest = () => {
       <button
         onClick={handleUpload}
         className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
-          !file ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-blue-600"
+          !file ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
         }`}
         disabled={!file || loading}
       >
