@@ -254,53 +254,13 @@ const TopHeavyTest = () => {
   // Section 2: Summary Box
   const summaryStartY = pdf.lastAutoTable.finalY + 10;
 
+    // Corrective actions & consequences (only if failed)
   if (failed) {
-    // Section 3: If Failed, add Corrective Actions & Consequences
-    pdf.setFillColor(255, 230, 230); // Light red background
-    pdf.setDrawColor(255, 0, 0); // Red border
-    const correctiveBoxHeight = 35;
-    pdf.rect(10, summaryStartY, 190, correctiveBoxHeight, "FD"); // Fill & Draw
-
-    // Title
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(14);
-    pdf.setTextColor(255, 0, 0);
-    pdf.text("Corrective Actions", 15, summaryStartY + 10);
-
-    // Bullet Points
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(11);
-    pdf.setTextColor(0, 0, 0);
-    let bulletY = summaryStartY + 14;
-    const lineHeight = 5;
-
     const correctiveActions = [
       "Ensure key employees hold no more than 60% of total plan assets.",
       "Provide additional employer contributions for non-key employees.",
       "Review and adjust contribution allocations per IRS § 416.",
     ];
-
-    correctiveActions.forEach((action) => {
-      pdf.text(`• ${action}`, 15, bulletY);
-      bulletY += lineHeight;
-    });
-
-    // Consequences Box
-    const nextBoxY = summaryStartY + correctiveBoxHeight + 5;
-    pdf.setFillColor(255, 255, 204); // Light yellow background
-    pdf.setDrawColor(255, 204, 0); // Gold border
-    pdf.rect(10, nextBoxY, 190, 40, "FD");
-
-    // Title
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(14);
-    pdf.setTextColor(204, 153, 0); // Dark gold
-    pdf.text("Consequences", 15, nextBoxY + 10);
-
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(11);
-    pdf.setTextColor(0, 0, 0);
-    let bulletY2 = nextBoxY + 18;
 
     const consequences = [
       "Mandatory employer contributions (3% of pay) for non-key employees.",
@@ -309,11 +269,26 @@ const TopHeavyTest = () => {
       "Additional corrective contributions may be required.",
     ];
 
-    consequences.forEach((item) => {
-      pdf.text(`• ${item}`, 15, bulletY2);
-      bulletY2 += lineHeight;
+    pdf.autoTable({
+      startY: pdf.lastAutoTable.finalY + 10,
+      theme: "grid",
+      head: [["Corrective Actions"]],
+      body: correctiveActions.map(action => [action]),
+      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+      styles: { fontSize: 11, font: "helvetica" },
+      margin: { left: 10, right: 10 },
     });
-  }
+
+    pdf.autoTable({
+      startY: pdf.lastAutoTable.finalY + 10,
+      theme: "grid",
+      head: [["Consequences"]],
+      body: consequences.map(consequence => [consequence]),
+      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+      styles: { fontSize: 11, font: "helvetica" },
+      margin: { left: 10, right: 10 },
+    });
+    }
 
   // Footer
   pdf.setFontSize(10);
