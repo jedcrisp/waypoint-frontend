@@ -162,7 +162,7 @@ const DCAPEligibilityTest = () => {
       ["Metric", "Value"],
       ["Total Eligible Employees", totalEligibleEmployees],
       ["Eligible Employees", eligibleEmployees],
-      ["DCAP Eligibility Percentage", dcapEligibilityPercentage],
+      ["DCAP Eligibility Percentage (%)", dcapEligibilityPercentage],
       ["Test Result", testResult],
     ];
 
@@ -238,11 +238,10 @@ const DCAPEligibilityTest = () => {
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(18);
   pdf.text("DCAP Eligibility Test Results", 105, 15, { align: "center" });
+
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(12);
   pdf.text(`Plan Year: ${planYear || "N/A"}`, 105, 25, { align: "center" });
-  const generatedTimestamp = new Date().toLocaleString();
-  pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
   // Results Table
   pdf.autoTable({
@@ -250,9 +249,9 @@ const DCAPEligibilityTest = () => {
     theme: "grid",
     head: [["Metric", "Value"]],
     body: [
-      ["Total Employees", totalEligibleEmployees],
+      ["Total Eligible Employees", totalEligibleEmployees],
       ["Eligible Employees", eligibleEmployees],
-      ["DCAP Eligibility Percentage", `${dcapEligibilityPercentage}%`],
+      ["DCAP Eligibility Percentage (%)", dcapEligibilityPercentage],
       ["Test Result", testResult],
     ],
     headStyles: {
@@ -352,11 +351,11 @@ const DCAPEligibilityTest = () => {
   // RENDER
   // =========================
   return (
-    <div
+    <div>
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
       onKeyDown={handleKeyDown}
       tabIndex="0"
-    >
+    {'>'}
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
         📂 Upload DCAP Eligibility File
       </h2>
@@ -433,15 +432,20 @@ const DCAPEligibilityTest = () => {
 
       {/* Display Errors */}
       {error && <div className="mt-3 text-red-500">{error}</div>}
- <div>
-      {result && (
-        <>
-          <p className="text-lg">
-            <strong className="text-gray-700">Plan Year:</strong>{" "}
-            <span className="font-semibold text-blue-600">
-              {planYear || "N/A"}
-            </span>
-          </p>
+
+      {/* Display Results */}
+      <div>
+            {result && (
+              <>
+                <p className="text-lg">
+                  <strong className="text-gray-700">Plan Year:</strong>{" "}
+                  <span className="font-semibold text-blue-600">
+                    {planYear || "N/A"}
+                  </span>
+                </p>
+              </>
+            )}
+      </div>
 
           <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
             <h3 className="font-bold text-xl text-gray-700 flex items-center">
@@ -537,8 +541,6 @@ const DCAPEligibilityTest = () => {
               Download CSV Results
             </button>
           </div>
-        </>
-      )}
     </div>
   );
 };
