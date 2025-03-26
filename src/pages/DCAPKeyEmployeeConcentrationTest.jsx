@@ -152,7 +152,7 @@ const formatPercentage = (value) => {
 
   const link = document.createElement("a");
   link.href = url;
-  link.setAttribute("download", "DCAP_Eligibility_Template.csv");
+  link.setAttribute("download", "DCAP_Key_Employee_Concentration_Template.csv");
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
