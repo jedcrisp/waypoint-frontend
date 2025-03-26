@@ -447,13 +447,12 @@ const DCAPEligibilityTest = () => {
           <h3 className="font-bold text-xl text-gray-700 flex items-center">
             DCAP Eligibility Test Results
           </h3>
-          <div className="mt-4">
-            <p className="text-lg">
-              <strong className="text-gray-700">Total Employees:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {result["Total Eligible Employees"] ?? "N/A"}
-              </span>
-            </p>
+          <p className="text-lg">
+  <strong className="text-gray-700">Total Employees:</strong>{" "}
+  <span className="font-semibold text-black-600">
+    {result["Total Employees"] ?? "N/A"}
+  </span>
+</p>
             <p className="text-lg mt-2">
   <strong className="text-gray-700">DCAP Eligibility Percentage:</strong>{" "}
   <span className="font-semibold text-black-600">
