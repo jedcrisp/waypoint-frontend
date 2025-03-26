@@ -119,18 +119,18 @@ const DCAPKeyEmployeeConcentrationTest = () => {
   ["Last", "First", "009", 2000, "No", "1993-09-19", "2017-08-01", "Leave", "No", "2018-01-01", "No", "No"],
   ["Last", "First", "010", 1000, "No", "2001-10-15", "2022-02-01", "Active", "No", "2023-01-01", "No", "No"],
 ]
-      map((row) => row.join(","))
-      .join("\n");
+      .map((row) => row.join(",")).join("\n");
 
-    const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "DCAP_Employee_Concentration_Template.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", "DCAP_Eligibility_Template.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
   // =========================
   // 5. Download Results as CSV
