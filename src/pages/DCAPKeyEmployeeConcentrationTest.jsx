@@ -4,7 +4,6 @@ import axios from "axios";
 import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust path as needed
 
 const DCAPKeyEmployeeConcentrationTest = () => {
   const [file, setFile] = useState(null);
@@ -14,6 +13,20 @@ const DCAPKeyEmployeeConcentrationTest = () => {
   const [error, setError] = useState(null);
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
+
+  const formatCurrency = (value) => {
+  if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+  return Number(value).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
+};
+
+const formatPercentage = (value) => {
+  if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+  return `${Number(value).toFixed(2)}%`;
+};
+
 
   // =========================
   // 1. Drag & Drop Logic
@@ -60,10 +73,10 @@ const DCAPKeyEmployeeConcentrationTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("selected_tests", "dcap_key_employee_concentration_test");
+    formData.append("selected_tests", "dcap_key_employee_concentration");
 
     try {
-      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/dcap_key_employee_concentration_test`);
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/dcap_key_employee_concentration`);
 
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken(true);
@@ -73,7 +86,7 @@ const DCAPKeyEmployeeConcentrationTest = () => {
         return;
       }
 
-      const response = await axios.post(`${API_URL}/upload-csv/dcap_key_employee_concentration_test`, formData, {
+      const response = await axios.post(`${API_URL}/upload-csv/dcap_key_employee_concentration`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -81,7 +94,7 @@ const DCAPKeyEmployeeConcentrationTest = () => {
       });
 
       console.log("✅ API Response:", response.data);
-      setResult(response.data?.["Test Results"]?.["dcap_key_employee_concentration_test"] || {});
+      setResult(response.data?.["Test Results"]?.["dcap_key_employee_concentration"] || {});
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError("❌ Failed to upload file. Please check the format and try again.");
@@ -107,19 +120,32 @@ const DCAPKeyEmployeeConcentrationTest = () => {
   // You may adjust the template as needed
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-  ["Last Name", "First Name", "Employee ID", "DCAP Benefits", "Key Employee", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
-  ["Last", "First", "001", 2500, "No", "1980-04-10", "2010-05-15", "Active", "No", "2011-01-01", "No", "No"],
-  ["Last", "First", "002", 3000, "Yes", "1975-11-22", "2005-09-30", "Active", "No", "2006-01-01", "No", "No"],
-  ["Last", "First", "003", 0, "No", "1991-06-05", "2021-03-01", "Active", "No", "2022-01-01", "No", "No"],
-  ["Last", "First", "004", 4000, "Yes", "1983-08-14", "2008-04-20", "Active", "No", "2009-01-01", "No", "No"],
-  ["Last", "First", "005", 1500, "No", "1998-02-28", "2020-10-10", "Terminated", "No", "2021-01-01", "No", "No"],
-  ["Last", "First", "006", 3500, "Yes", "1987-12-11", "2012-06-15", "Active", "No", "2013-01-01", "No", "No"],
-  ["Last", "First", "007", 0, "No", "2000-07-01", "2023-05-01", "Active", "No", "2023-07-01", "No", "Yes"],
-  ["Last", "First", "008", 3800, "Yes", "1979-03-08", "2006-02-20", "Active", "No", "2007-01-01", "No", "No"],
-  ["Last", "First", "009", 2000, "No", "1993-09-19", "2017-08-01", "Leave", "No", "2018-01-01", "No", "No"],
-  ["Last", "First", "010", 1000, "No", "2001-10-15", "2022-02-01", "Active", "No", "2023-01-01", "No", "No"],
-]
-      .map((row) => row.join(",")).join("\n");
+  [
+    "Last Name",
+    "First Name",
+    "Employee ID",
+    "DCAP Benefits",
+    "Key Employee",
+    "DOB",
+    "DOH",
+    "Employment Status",
+    "Excluded from Test",
+    "Plan Entry Date",
+    "Union Employee",
+    "Part-Time / Seasonal"
+  ],
+  ["Smith", "John", "001", "$1,000.00", "Yes", "1980-05-10", "2010-06-01", "Active", "No", "2011-01-01", "No", "No"],
+  ["Doe", "Jane", "002", "$1,500.00", "No", "1985-08-15", "2012-03-10", "Active", "No", "2013-01-01", "No", "Yes"],
+  ["Brown", "Michael", "003", "$2,000.00", "Yes", "1975-01-20", "2005-05-05", "Active", "No", "2006-01-01", "Yes", "No"],
+  ["Johnson", "Emily", "004", "$1,200.00", "No", "1990-12-01", "2020-08-20", "Active", "Yes", "2021-01-01", "No", "No"],
+  ["Davis", "Robert", "005", "$1,800.00", "Yes", "1995-07-19", "2021-04-10", "Leave", "No", "2022-01-01", "No", "Yes"],
+  ["Miller", "Sarah", "006", "$1,100.00", "No", "1982-11-03", "2009-11-01", "Active", "No", "2010-01-01", "Yes", "No"],
+  ["Wilson", "David", "007", "$1,300.00", "Yes", "2001-04-25", "2022-09-15", "Active", "No", "2023-01-01", "No", "No"],
+  ["Moore", "Laura", "008", "$1,600.00", "No", "1978-02-14", "2000-01-01", "Terminated", "No", "2001-01-01", "Yes", "Yes"],
+  ["Taylor", "James", "009", "$1,400.00", "Yes", "1999-06-30", "2019-03-05", "Active", "No", "2020-01-01", "No", "No"],
+  ["Anderson", "Olivia", "010", "$1,700.00", "No", "2003-09-12", "2023-01-10", "Active", "No", "2023-07-01", "Yes", "Yes"],
+].map((row) => row.join(",")).join("\n");
+
 
   const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
@@ -146,8 +172,8 @@ const DCAPKeyEmployeeConcentrationTest = () => {
       ["Total DCAP Benefits", result["Total DCAP Benefits"] ?? "N/A"],
       ["Key Employee Benefits", result["Key Employee Benefits"] ?? "N/A"],
       [
-        "Concentration Percentage",
-        result["Concentration Percentage"] ? `${result["Concentration Percentage"]}%` : "N/A",
+        "Key Employee Benefit Percentage",
+        result["Key Employee Benefit Percentage"] ? `${result["Key Employee Benefit Percentage"]}%` : "N/A",
       ],
       ["Test Result", result["Test Result"] ?? "N/A"],
     ];
@@ -201,30 +227,41 @@ const DCAPKeyEmployeeConcentrationTest = () => {
     const generatedTimestamp = new Date().toLocaleString();
     pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
-    pdf.autoTable({
-      startY: 40,
-      head: [["Metric", "Value"]],
-      body: [
-        ["Total DCAP Benefits", result["Total DCAP Benefits"] ?? "N/A"],
-        ["Key Employee Benefits", result["Key Employee Benefits"] ?? "N/A"],
-        [
-          "Concentration Percentage",
-          result["Concentration Percentage"]
-            ? `${result["Concentration Percentage"]}%`
-            : "N/A",
-        ],
-        ["Test Result", result["Test Result"] ?? "N/A"],
+  pdf.autoTable({
+    startY: 40,
+    theme: "grid", // Ensures full table grid
+    head: [["Metric", "Value"]],
+    body: [
+      [
+        "Total DCAP Benefits",
+        result["Total DCAP Benefits"]
+          ? formatCurrency(result["Total DCAP Benefits"])
+          : "N/A",
       ],
-      headStyles: {
-        fillColor: [41, 128, 185],
-        textColor: [255, 255, 255],
-      },
-      styles: {
-        fontSize: 12,
-        font: "helvetica",
-      },
-      margin: { left: 10, right: 10 },
-    });
+      [
+        "Key Employee Benefits",
+        result["Key Employee Benefits"]
+          ? formatCurrency(result["Key Employee Benefits"])
+          : "N/A",
+      ],
+      [
+        "Key Employee Benefit Percentage",
+        result["Key Employee Benefit Percentage"]
+          ? `${result["Key Employee Benefit Percentage"]}%`
+          : "N/A",
+      ],
+      ["Test Result", result["Test Result"] ?? "N/A"],
+    ],
+    headStyles: {
+      fillColor: [41, 128, 185],
+      textColor: [255, 255, 255],
+    },
+    styles: {
+      fontSize: 12,
+      font: "helvetica",
+    },
+    margin: { left: 10, right: 10 },
+  });
 
      // Corrective actions & consequences (only if failed)
   if (result["Test Result"]?.toLowerCase() === "failed") {
@@ -385,10 +422,10 @@ const DCAPKeyEmployeeConcentrationTest = () => {
   </span>
 </p>
 <p className="text-lg mt-2">
-  <strong className="text-gray-700">Concentration Percentage:</strong>{" "}
+  <strong className="text-gray-700">Key Employee Benefit Percentage:</strong>{" "}
   <span className="font-semibold text-gray-800">
-    {result["Concentration Percentage"]
-      ? formatPercentage(result["Concentration Percentage"])
+    {result["Key Employee Benefit Percentage"]
+      ? formatPercentage(result["Key Employee Benefit Percentage"])
       : "N/A"}
   </span>
 </p>
