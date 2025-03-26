@@ -10,9 +10,9 @@ const DCAPEligibilityTest = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [planYear, setPlanYear] = useState(""); // Plan year selection state
+  const [planYear, setPlanYear] = useState("");
 
-  const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure this is the correct URL for your backend
+  const API_URL = import.meta.env.VITE_BACKEND_URL;
 
   // ---------- Formatting Helpers ----------
   const formatCurrency = (value) => {
@@ -28,10 +28,7 @@ const DCAPEligibilityTest = () => {
     return `${Number(value).toFixed(2)}%`;
   };
 
-
-  // =========================
-  // 1. Drag & Drop Logic
-  // =========================
+  // ---------- Drag & Drop Logic ----------
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
       setFile(acceptedFiles[0]);
@@ -42,15 +39,13 @@ const DCAPEligibilityTest = () => {
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
-    accept: ".csv, .xlsx", // Supports both CSV and Excel files
+    accept: ".csv, .xlsx",
     multiple: false,
     noClick: true,
     noKeyboard: true,
   });
 
-  // =========================
-  // 2. Upload File to Backend
-  // =========================
+  // ---------- Upload File to Backend ----------
   const handleUpload = async () => {
     if (!file) {
       setError("❌ Please select a file before uploading.");
@@ -76,11 +71,11 @@ const DCAPEligibilityTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("selected_tests", "dcap_eligibility"); // Add the selected_tests parameter
+    formData.append("selected_tests", "dcap_eligibility");
 
     try {
-      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/dcap_eligibility`);
-      console.log("📂 File Selected:", file.name);
+      console.log("Uploading file to API:", `${API_URL}/upload-csv/dcap_eligibility`);
+      console.log("File Selected:", file.name);
 
       // 1. Get Firebase token
       const auth = getAuth();
@@ -91,8 +86,6 @@ const DCAPEligibilityTest = () => {
         return;
       }
 
-      console.log("Firebase Token:", token);
-
       // 2. Send POST request with Bearer token
       const response = await axios.post(`${API_URL}/upload-csv/dcap_eligibility`, formData, {
         headers: {
@@ -101,33 +94,44 @@ const DCAPEligibilityTest = () => {
         },
       });
 
-      console.log("✅ API Response:", response.data);
+      console.log("API Response:", response.data);
       setResult(response.data["Test Results"]["dcap_eligibility"]);
     } catch (err) {
-      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
+      console.error("Upload error:", err.response ? err.response.data : err.message);
       setError("❌ Failed to upload file. Please check the format and try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // =========================
-  // 3. Download CSV Template
-  // =========================
+  // ---------- Download CSV Template ----------
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-  ["Last Name", "First Name", "Employee ID", "HCE", "Eligible for DCAP", "DOB", "DOH", "Employment Status", "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "Plan Entry Date"],
-  ["Last", "First", "001", "Yes", "Yes", "1980-05-10", "2010-06-01", "Active", "No", "No", "No", "2011-01-01"],
-  ["Last", "First", "002", "No", "Yes", "1985-08-15", "2012-03-10", "Active", "No", "No", "No", "2013-01-01"],
-  ["Last", "First", "003", "Yes", "No", "1975-01-20", "2005-05-05", "Active", "No", "No", "No", "2006-01-01"],
-  ["Last", "First", "004", "No", "Yes", "1990-12-01", "2020-08-20", "Active", "No", "Yes", "No", "2021-01-01"],
-  ["Last", "First", "005", "No", "No", "1995-07-19", "2021-04-10", "Leave", "Yes", "No", "Yes", "2022-01-01"],
-  ["Last", "First", "006", "Yes", "Yes", "1982-11-03", "2009-11-01", "Active", "No", "No", "No", "2010-01-01"],
-  ["Last", "First", "007", "No", "Yes", "2001-04-25", "2022-09-15", "Active", "No", "No", "No", "2023-01-01"],
-  ["Last", "First", "008", "Yes", "No", "1978-02-14", "2000-01-01", "Terminated", "No", "No", "Yes", "2001-01-01"],
-  ["Last", "First", "009", "No", "Yes", "1999-06-30", "2019-03-05", "Active", "No", "No", "No", "2020-01-01"],
-  ["Last", "First", "010", "No", "No", "2003-09-12", "2023-01-10", "Active", "No", "No", "No", "2023-07-01"],
-]
+      [
+        "Last Name",
+        "First Name",
+        "Employee ID",
+        "HCE",
+        "Eligible for DCAP",
+        "DOB",
+        "DOH",
+        "Employment Status",
+        "Excluded from Test",
+        "Union Employee",
+        "Part-Time / Seasonal",
+        "Plan Entry Date",
+      ],
+      ["Last", "First", "001", "Yes", "Yes", "1980-05-10", "2010-06-01", "Active", "No", "No", "No", "2011-01-01"],
+      ["Last", "First", "002", "No", "Yes", "1985-08-15", "2012-03-10", "Active", "No", "No", "No", "2013-01-01"],
+      ["Last", "First", "003", "Yes", "No", "1975-01-20", "2005-05-05", "Active", "No", "No", "No", "2006-01-01"],
+      ["Last", "First", "004", "No", "Yes", "1990-12-01", "2020-08-20", "Active", "No", "Yes", "No", "2021-01-01"],
+      ["Last", "First", "005", "No", "No", "1995-07-19", "2021-04-10", "Leave", "Yes", "No", "Yes", "2022-01-01"],
+      ["Last", "First", "006", "Yes", "Yes", "1982-11-03", "2009-11-01", "Active", "No", "No", "No", "2010-01-01"],
+      ["Last", "First", "007", "No", "Yes", "2001-04-25", "2022-09-15", "Active", "No", "No", "No", "2023-01-01"],
+      ["Last", "First", "008", "Yes", "No", "1978-02-14", "2000-01-01", "Terminated", "No", "No", "Yes", "2001-01-01"],
+      ["Last", "First", "009", "No", "Yes", "1999-06-30", "2019-03-05", "Active", "No", "No", "No", "2020-01-01"],
+      ["Last", "First", "010", "No", "No", "2003-09-12", "2023-01-10", "Active", "No", "No", "No", "2023-07-01"],
+    ]
       .map((row) => row.join(","))
       .join("\n");
 
@@ -136,15 +140,13 @@ const DCAPEligibilityTest = () => {
 
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "DCAP_Eligibilty_Template.csv");
+    link.setAttribute("download", "DCAP_Eligibility_Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // =========================
-  // 4. Download Results as CSV (Including Consequences)
-  // =========================
+  // ---------- Download Results as CSV (with corrective actions & consequences if failed) ----------
   const downloadResultsAsCSV = () => {
     if (!result) {
       setError("❌ No results to download.");
@@ -154,58 +156,39 @@ const DCAPEligibilityTest = () => {
     const totalEligibleEmployees = result["Total Eligible Employees"] ?? "N/A";
     const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
     const dcapEligibilityPercentage = result["DCAP Eligibility Percentage (%)"] ?? "N/A";
-    const testResult = result["Test Result"] ?? "N/A";
+    const testRes = result["Test Result"] ?? "N/A";
 
-
-    // Basic rows for HCE/NHCE
     const csvRows = [
       ["Metric", "Value"],
       ["Total Eligible Employees", totalEligibleEmployees],
       ["Eligible Employees", eligibleEmployees],
       ["DCAP Eligibility Percentage (%)", dcapEligibilityPercentage],
-      ["Test Result", testResult],
+      ["Test Result", testRes],
     ];
 
-    // Corrective actions & consequences (only if failed)
-  if (failed) {
-    const correctiveActions = [
+    const failed = testRes.toLowerCase() === "failed";
+    if (failed) {
+      const correctiveActions = [
         "Expand Eligibility for NHCEs: Remove restrictive criteria that exclude NHCEs from participating in DCAP.",
         "Increase NHCE Participation: Improve education and awareness, offer enrollment incentives, and simplify the sign-up process.",
         "Adjust Employer Contributions: Ensure employer contributions are evenly distributed among HCEs and NHCEs.",
         "Amend the Plan Document: Modify eligibility and contribution rules to align with IRS nondiscrimination requirements.",
-    ];
-
-    const consequences = [
+      ];
+      const consequences = [
         "Potential IRS penalties or plan disqualification.",
         "Potential disqualification of the Health FSA plan.",
         "Loss of tax-free DCAP benefits for employees.",
-    ];
+      ];
+      csvRows.push(["", ""]);
+      csvRows.push(["Corrective Actions", ""]);
+      correctiveActions.forEach((action) => csvRows.push(["", action]));
+      csvRows.push(["", ""]);
+      csvRows.push(["Consequences", ""]);
+      consequences.forEach((item) => csvRows.push(["", item]));
+    }
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    })
- }
-
-    // Convert array to CSV
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
 
-    // Create and download the CSV file
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
 
@@ -217,128 +200,112 @@ const DCAPEligibilityTest = () => {
     document.body.removeChild(link);
   };
 
-    // =========================
-    // 5. Export Results to PDF (Including Consequences)
-    // =========================
-    const exportToPDF = () => {
-  if (!result) {
-    setError("❌ No results available to export.");
-    return;
-  }
+  // ---------- Export Results to PDF (Including Consequences) ----------
+  const exportToPDF = () => {
+    if (!result) {
+      setError("❌ No results available to export.");
+      return;
+    }
 
-  // Extract data from the result object
-  const totalEligibleEmployees = result["Total Eligible Employees"] ?? "N/A";
-  const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
-  const dcapEligibilityPercentage = result["DCAP Eligibility Percentage (%)"] ?? "N/A";
-  const testResult = result["Test Result"] ?? "N/A";
+    const totalEligibleEmployees = result["Total Eligible Employees"] ?? "N/A";
+    const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
+    const dcapEligibilityPercentage = result["DCAP Eligibility Percentage (%)"] ?? "N/A";
+    const testResult = result["Test Result"] ?? "N/A";
+    const failed = testResult.toLowerCase() === "failed";
 
-  const pdf = new jsPDF("p", "mm", "a4");
+    const pdf = new jsPDF("p", "mm", "a4");
 
-  // Header
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(18);
-  pdf.text("DCAP Eligibility Test Results", 105, 15, { align: "center" });
-
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(12);
-  pdf.text(`Plan Year: ${planYear || "N/A"}`, 105, 25, { align: "center" });
-
-  // Results Table
-  pdf.autoTable({
-    startY: 40,
-    theme: "grid",
-    head: [["Metric", "Value"]],
-    body: [
-      ["Total Eligible Employees", totalEligibleEmployees],
-      ["Eligible Employees", eligibleEmployees],
-      ["DCAP Eligibility Percentage (%)", dcapEligibilityPercentage],
-      ["Test Result", testResult],
-    ],
-    headStyles: {
-      fillColor: [41, 128, 185], // Blue header
-      textColor: [255, 255, 255], // White text
-    },
-    styles: {
-      fontSize: 12,
-      font: "helvetica",
-    },
-    margin: { left: 10, right: 10 },
-  });
-
-  const nextY = pdf.lastAutoTable.finalY + 10;
-  const failed = testResult.toLowerCase() === "failed";
-
-  // Corrective Actions
-  if (failed) {
-    pdf.setFillColor(255, 230, 230); // Light red
-    pdf.setDrawColor(255, 0, 0); // Red border
-    const correctiveBoxHeight = 35;
-    pdf.rect(10, nextY, 190, correctiveBoxHeight, "FD");
-
-    // Title
+    // Header
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(14);
-    pdf.setTextColor(255, 0, 0);
-    pdf.text("Corrective Actions", 15, nextY + 8);
-
-    // Bullet Points
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(11);
-    pdf.setTextColor(0, 0, 0);
-    let bulletY = nextY + 14;
-    const lineHeight = 6;
-
-    const correctiveActions = [
-    "Expand NHCE eligibility by removing restrictive criteria.",
-    "Boost NHCE participation with education and incentives.",
-    "Balance employer contributions between HCEs and NHCEs.",
-    "Update plan rules to meet IRS nondiscrimination standards.",
-];
-
-
-    correctiveActions.forEach((action) => {
-      pdf.text(`• ${action}`, 15, bulletY);
-      bulletY += lineHeight;
-    });
-
-    // Consequences Box
-    const nextBoxY = nextY + correctiveBoxHeight + 5;
-    pdf.setFillColor(255, 255, 204); // Light yellow
-    pdf.setDrawColor(255, 204, 0); // Gold border
-    const consequencesBoxHeight = 40;
-    pdf.rect(10, nextBoxY, 190, consequencesBoxHeight, "FD");
-
-    // Title
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(14);
-    pdf.setTextColor(204, 153, 0); // Dark gold
-    pdf.text("Consequences", 15, nextBoxY + 8);
+    pdf.setFontSize(18);
+    pdf.text("DCAP Eligibility Test Results", 105, 15, { align: "center" });
 
     pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(11);
-    pdf.setTextColor(0, 0, 0);
-    let bulletY2 = nextBoxY + 14;
+    pdf.setFontSize(12);
+    pdf.text(`Plan Year: ${planYear || "N/A"}`, 105, 25, { align: "center" });
 
-    const consequences = [
-      "Potential IRS penalties or plan disqualification.",
-      "Potential disqualification of the Health FSA plan.",
-      "Loss of tax-free DCAP benefits for employees.",
-    ];
-
-    consequences.forEach((item) => {
-      pdf.text(`• ${item}`, 15, bulletY2);
-      bulletY2 += lineHeight;
+    // Results Table
+    pdf.autoTable({
+      startY: 40,
+      theme: "grid",
+      head: [["Metric", "Value"]],
+      body: [
+        ["Total Eligible Employees", totalEligibleEmployees],
+        ["Eligible Employees", eligibleEmployees],
+        ["DCAP Eligibility Percentage (%)", dcapEligibilityPercentage],
+        ["Test Result", testResult],
+      ],
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: [255, 255, 255],
+      },
+      styles: {
+        fontSize: 12,
+        font: "helvetica",
+      },
+      margin: { left: 10, right: 10 },
     });
-  }
 
-  // Save the PDF
-  pdf.save("DCAP_Eligibility_Test_Results.pdf");
+    const nextY = pdf.lastAutoTable.finalY + 10;
 
-    };
-    
-   // =========================
-   // 6. Handle Enter Key
-   // =========================
+    // If the test failed, add corrective actions and consequences
+    if (failed) {
+      pdf.setFillColor(255, 230, 230); // Light red
+      pdf.setDrawColor(255, 0, 0); // Red border
+      const correctiveBoxHeight = 35;
+      pdf.rect(10, nextY, 190, correctiveBoxHeight, "FD");
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(14);
+      pdf.setTextColor(255, 0, 0);
+      pdf.text("Corrective Actions", 15, nextY + 8);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(11);
+      pdf.setTextColor(0, 0, 0);
+      let bulletY = nextY + 14;
+      const lineHeight = 6;
+      const correctiveActions = [
+        "Expand Eligibility for NHCEs: Remove restrictive criteria that exclude NHCEs from participating in DCAP.",
+        "Increase NHCE Participation: Improve education and awareness, offer enrollment incentives, and simplify the sign-up process.",
+        "Adjust Employer Contributions: Ensure employer contributions are evenly distributed among HCEs and NHCEs.",
+        "Amend the Plan Document: Modify eligibility and contribution rules to align with IRS nondiscrimination requirements.",
+      ];
+      correctiveActions.forEach((action) => {
+        pdf.text(`• ${action}`, 15, bulletY);
+        bulletY += lineHeight;
+      });
+
+      const nextBoxY = nextY + correctiveBoxHeight + 5;
+      pdf.setFillColor(255, 255, 204); // Light yellow
+      pdf.setDrawColor(255, 204, 0); // Gold border
+      const consequencesBoxHeight = 40;
+      pdf.rect(10, nextBoxY, 190, consequencesBoxHeight, "FD");
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(14);
+      pdf.setTextColor(204, 153, 0);
+      pdf.text("Consequences", 15, nextBoxY + 8);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(11);
+      pdf.setTextColor(0, 0, 0);
+      let bulletY2 = nextBoxY + 14;
+      const consequences = [
+        "Potential IRS penalties or plan disqualification.",
+        "Potential disqualification of the Health FSA plan.",
+        "Loss of tax-free DCAP benefits for employees.",
+      ];
+      consequences.forEach((item) => {
+        pdf.text(`• ${item}`, 15, bulletY2);
+        bulletY2 += lineHeight;
+      });
+    }
+
+    pdf.save("DCAP_Eligibility_Test_Results.pdf");
+  };
+
+  // ---------- Handle Enter Key ----------
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && file && !loading) {
       e.preventDefault();
@@ -347,15 +314,13 @@ const DCAPEligibilityTest = () => {
     }
   };
 
-  // =========================
-  // RENDER
-  // =========================
+  // ---------- RENDER ----------
   return (
-    <div>
+    <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
       onKeyDown={handleKeyDown}
       tabIndex="0"
-    {'>'}
+    >
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
         📂 Upload DCAP Eligibility File
       </h2>
@@ -370,7 +335,7 @@ const DCAPEligibilityTest = () => {
             id="planYear"
             value={planYear}
             onChange={(e) => setPlanYear(e.target.value)}
-            className="flex-3 px-4 py-2 border border-gray-300 rounded-md"
+            className="px-4 py-2 border border-gray-300 rounded-md"
             required
           >
             <option value="">-- Select Plan Year --</option>
@@ -434,77 +399,63 @@ const DCAPEligibilityTest = () => {
       {error && <div className="mt-3 text-red-500">{error}</div>}
 
       {/* Display Results */}
-      <div>
-            {result && (
-              <>
-                <p className="text-lg">
-                  <strong className="text-gray-700">Plan Year:</strong>{" "}
-                  <span className="font-semibold text-blue-600">
-                    {planYear || "N/A"}
-                  </span>
-                </p>
-              </>
-            )}
-      </div>
-
-          <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
-            <h3 className="font-bold text-xl text-gray-700 flex items-center">
-              DCAP Eligibility Test Results
-            </h3>
-
-            <div className="mt-4">
-              <p className="text-lg">
-                <strong className="text-gray-700">Total Employees:</strong>{" "}
-                <span className="font-semibold text-gray-800">
-                  {result?.["Total Employees"] ?? "N/A"}
-                </span>
-              </p>
-
-              <p className="text-lg mt-2">
-                <strong className="text-gray-700">
-                  DCAP Eligibility Percentage:
-                </strong>{" "}
-                <span className="font-semibold text-gray-800">
-                  {formatPercentage(result?.["DCAP Eligibility Percentage (%)"])}
-                </span>
-              </p>
-
-              <p className="text-lg mt-2">
-                <strong className="text-gray-700">Test Result:</strong>{" "}
-                <span
-                  className={`px-3 py-1 rounded-md font-bold ${
-                    result?.["Test Result"] === "Passed"
-                      ? "bg-green-500 text-white"
-                      : "bg-red-500 text-white"
-                  }`}
-                >
-                  {result?.["Test Result"] ?? "N/A"}
-                </span>
-              </p>
-            </div>
+      {result && (
+        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
+          <h3 className="font-bold text-xl text-gray-700 flex items-center">
+            DCAP Eligibility Test Results
+          </h3>
+          <div className="mt-4">
+            <p className="text-lg">
+              <strong className="text-gray-700">Plan Year:</strong>{" "}
+              <span className="font-semibold text-blue-600">
+                {planYear || "N/A"}
+              </span>
+            </p>
+            <p className="text-lg">
+              <strong className="text-gray-700">Total Employees:</strong>{" "}
+              <span className="font-semibold text-black-800">
+                {result?.["Total Eligible Employees"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">
+                DCAP Eligibility Percentage:
+              </strong>{" "}
+              <span className="font-semibold text-black-800">
+                {formatPercentage(result?.["DCAP Eligibility Percentage (%)"])}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Test Result:</strong>{" "}
+              <span
+                className={`px-3 py-1 rounded-md font-bold ${
+                  result?.["Test Result"] === "Passed"
+                    ? "bg-green-500 text-white"
+                    : "bg-red-500 text-white"
+                }`}
+              >
+                {result?.["Test Result"] ?? "N/A"}
+              </span>
+            </p>
           </div>
 
           {/* If failed, show corrective actions and consequences */}
-          {result?.["Test Result"] === "Failed" && (
+          {result?.["Test Result"]?.toLowerCase() === "failed" && (
             <>
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-gray-800">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-gray-800">
                   <li className="mt-2">
-                    Expand Eligibility for NHCEs: Remove restrictive criteria that
-                    exclude NHCEs from participating in DCAP.
+                    Expand Eligibility for NHCEs: Remove restrictive criteria that exclude NHCEs from participating in DCAP.
                   </li>
                   <li className="mt-2">
-                    Increase NHCE Participation: Improve education and awareness,
-                    offer enrollment incentives, and simplify the sign-up process.
+                    Increase NHCE Participation: Improve education and awareness, offer enrollment incentives, and simplify the sign-up process.
                   </li>
                   <li className="mt-2">
-                    Adjust Employer Contributions: Ensure employer contributions
-                    are evenly distributed among HCEs and NHCEs.
+                    Adjust Employer Contributions: Ensure employer contributions are evenly distributed among HCEs and NHCEs.
                   </li>
                   <li className="mt-2">
-                    Amend the Plan Document: Modify eligibility and contribution
-                    rules to align with IRS nondiscrimination requirements.
+                    Amend the Plan Document: Modify eligibility and contribution rules to align with IRS nondiscrimination requirements.
                   </li>
                 </ul>
               </div>
@@ -541,6 +492,8 @@ const DCAPEligibilityTest = () => {
               Download CSV Results
             </button>
           </div>
+        </div>
+      )}
     </div>
   );
 };
