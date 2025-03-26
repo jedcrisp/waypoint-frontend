@@ -438,39 +438,46 @@ const DCAPEligibilityTest = () => {
       {result && (
 
       <p className="text-lg">
-              <strong className="text-gray-700">Plan Year:</strong>{" "}
-              <span className="font-semibold text-blue-600">
-                {planYear || "N/A"}
-              </span>
-            </p>
-        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
-          <h3 className="font-bold text-xl text-gray-700 flex items-center">
-            DCAP Eligibility Test Results
-          </h3>
-          <p className="text-lg">
-  <strong className="text-gray-700">Total Employees:</strong>{" "}
-  <span className="font-semibold text-black-600">
-    {result["Total Employees"] ?? "N/A"}
+  <strong className="text-gray-700">Plan Year:</strong>{" "}
+  <span className="font-semibold text-blue-600">
+    {planYear || "N/A"}
   </span>
 </p>
-            <p className="text-lg mt-2">
-  <strong className="text-gray-700">DCAP Eligibility Percentage:</strong>{" "}
-  <span className="font-semibold text-black-600">
-    {formatPercentage(result?.["DCAP Eligibility Percentage (%)"])}
-  </span>
-</p>
-            <p className="text-lg mt-2">
-  <strong className="text-gray-700">Test Result:</strong>{" "}
-  <span
-    className={`px-3 py-1 rounded-md font-bold ${
-      result["Test Result"] === "Passed"
-        ? "bg-green-500 text-white"
-        : "bg-red-500 text-white"
-    }`}
-  >
-    {result["Test Result"] ?? "N/A"}
-  </span>
-</p>
+
+<div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
+  <h3 className="font-bold text-xl text-gray-700 flex items-center">
+    DCAP Eligibility Test Results
+  </h3>
+
+  <div className="mt-4">
+    <p className="text-lg">
+      <strong className="text-gray-700">Total Employees:</strong>{" "}
+      <span className="font-semibold text-black-600">
+        {result?.["Total Employees"] ?? "N/A"}
+      </span>
+    </p>
+
+    <p className="text-lg mt-2">
+      <strong className="text-gray-700">DCAP Eligibility Percentage:</strong>{" "}
+      <span className="font-semibold text-black-600">
+        {formatPercentage(result?.["DCAP Eligibility Percentage (%)"])}
+      </span>
+    </p>
+
+    <p className="text-lg mt-2">
+      <strong className="text-gray-700">Test Result:</strong>{" "}
+      <span
+        className={`px-3 py-1 rounded-md font-bold ${
+          result?.["Test Result"] === "Passed"
+            ? "bg-green-500 text-white"
+            : "bg-red-500 text-white"
+        }`}
+      >
+        {result?.["Test Result"] ?? "N/A"}
+      </span>
+    </p>
+  </div>
+</div>
 
             {/* If failed, show corrective actions + consequences in the UI as well */}
             {result["Test Result"] === "Failed" && (
