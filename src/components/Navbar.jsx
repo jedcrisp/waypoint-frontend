@@ -49,7 +49,7 @@ export default function Navbar() {
     location.pathname.includes("/test-dcap-owners") ||
     location.pathname.includes("/test-dcap-55-benefits") ||
     location.pathname.includes("/test-dcap-contributions") ||
-    location.pathname.includes("/test-dcap-employee-concentration") ||
+    location.pathname.includes("/test-dcap-key-employee-concentration") ||
     location.pathname.includes("/test-key-employee") ||
     location.pathname.includes("/test-eligibility") ||
     location.pathname.includes("/test-classification") ||
