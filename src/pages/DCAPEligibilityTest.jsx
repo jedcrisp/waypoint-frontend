@@ -232,7 +232,7 @@ const DCAPEligibilityTest = () => {
       body: [
         ["Total Eligible Employees", totalEligibleEmployees],
         ["Eligible Employees", eligibleEmployees],
-        ["DCAP Eligibility Percentage (%)", dcapEligibilityPercentage],
+        ["DCAP Eligibility Percentage", formatPercentage(dcapEligibilityPercentage)],
         ["Test Result", testResult],
       ],
       headStyles: {
