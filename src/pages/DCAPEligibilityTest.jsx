@@ -433,83 +433,94 @@ const DCAPEligibilityTest = () => {
 
       {/* Display Errors */}
       {error && <div className="mt-3 text-red-500">{error}</div>}
-
-      {/* Display Results */}
+ <div>
       {result && (
+        <>
+          <p className="text-lg">
+            <strong className="text-gray-700">Plan Year:</strong>{" "}
+            <span className="font-semibold text-blue-600">
+              {planYear || "N/A"}
+            </span>
+          </p>
 
-      <p className="text-lg">
-  <strong className="text-gray-700">Plan Year:</strong>{" "}
-  <span className="font-semibold text-blue-600">
-    {planYear || "N/A"}
-  </span>
-</p>
+          <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
+            <h3 className="font-bold text-xl text-gray-700 flex items-center">
+              DCAP Eligibility Test Results
+            </h3>
 
-<div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
-  <h3 className="font-bold text-xl text-gray-700 flex items-center">
-    DCAP Eligibility Test Results
-  </h3>
+            <div className="mt-4">
+              <p className="text-lg">
+                <strong className="text-gray-700">Total Employees:</strong>{" "}
+                <span className="font-semibold text-gray-800">
+                  {result?.["Total Employees"] ?? "N/A"}
+                </span>
+              </p>
 
-  <div className="mt-4">
-    <p className="text-lg">
-      <strong className="text-gray-700">Total Employees:</strong>{" "}
-      <span className="font-semibold text-black-600">
-        {result?.["Total Employees"] ?? "N/A"}
-      </span>
-    </p>
+              <p className="text-lg mt-2">
+                <strong className="text-gray-700">
+                  DCAP Eligibility Percentage:
+                </strong>{" "}
+                <span className="font-semibold text-gray-800">
+                  {formatPercentage(result?.["DCAP Eligibility Percentage (%)"])}
+                </span>
+              </p>
 
-    <p className="text-lg mt-2">
-      <strong className="text-gray-700">DCAP Eligibility Percentage:</strong>{" "}
-      <span className="font-semibold text-black-600">
-        {formatPercentage(result?.["DCAP Eligibility Percentage (%)"])}
-      </span>
-    </p>
+              <p className="text-lg mt-2">
+                <strong className="text-gray-700">Test Result:</strong>{" "}
+                <span
+                  className={`px-3 py-1 rounded-md font-bold ${
+                    result?.["Test Result"] === "Passed"
+                      ? "bg-green-500 text-white"
+                      : "bg-red-500 text-white"
+                  }`}
+                >
+                  {result?.["Test Result"] ?? "N/A"}
+                </span>
+              </p>
+            </div>
+          </div>
 
-    <p className="text-lg mt-2">
-      <strong className="text-gray-700">Test Result:</strong>{" "}
-      <span
-        className={`px-3 py-1 rounded-md font-bold ${
-          result?.["Test Result"] === "Passed"
-            ? "bg-green-500 text-white"
-            : "bg-red-500 text-white"
-        }`}
-      >
-        {result?.["Test Result"] ?? "N/A"}
-      </span>
-    </p>
-  </div>
-</div>
-
-            {/* If failed, show corrective actions + consequences in the UI as well */}
-            {result["Test Result"] === "Failed" && (
-
-              <>
+          {/* If failed, show corrective actions and consequences */}
+          {result?.["Test Result"] === "Failed" && (
+            <>
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
-                <h4 className="font-bold text-black-600">Corrective Actions:</h4>
-                <ul className="list-disc list-inside text-black-600">
-                  <li>Expand Eligibility for NHCEs: Remove restrictive criteria that exclude NHCEs from participating in DCAP.</li>
-                  <br />
-                  <li>Increase NHCE Participation: Improve education and awareness, offer enrollment incentives, and simplify the sign-up process.</li>
-                  <br />
-                  <li>Adjust Employer Contributions: Ensure employer contributions are evenly distributed among HCEs and NHCEs.</li>
-                  <br />
-                  <li>Amend the Plan Document: Modify eligibility and contribution rules to align with IRS nondiscrimination requirements.</li>
+                <h4 className="font-bold text-gray-800">Corrective Actions:</h4>
+                <ul className="list-disc list-inside text-gray-800">
+                  <li className="mt-2">
+                    Expand Eligibility for NHCEs: Remove restrictive criteria that
+                    exclude NHCEs from participating in DCAP.
+                  </li>
+                  <li className="mt-2">
+                    Increase NHCE Participation: Improve education and awareness,
+                    offer enrollment incentives, and simplify the sign-up process.
+                  </li>
+                  <li className="mt-2">
+                    Adjust Employer Contributions: Ensure employer contributions
+                    are evenly distributed among HCEs and NHCEs.
+                  </li>
+                  <li className="mt-2">
+                    Amend the Plan Document: Modify eligibility and contribution
+                    rules to align with IRS nondiscrimination requirements.
+                  </li>
                 </ul>
               </div>
 
-            {/* Display consequences if the test fails */}
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
-                <h4 className="font-bold text-black-600">Consequences:</h4>
-                <ul className="list-disc list-inside text-black-600">
-                  <li>❌ Potential IRS penalties or plan disqualification.</li>
-                  <br />
-                  <li>❌ Potential disqualification of the Health FSA plan.</li>
-                  <br />
-                  <li>❌ Loss of tax-free DCAP benefits for employees.</li>
-                 </ul>
-                </div>
-              </>
-            )}
-          </div>
+                <h4 className="font-bold text-gray-800">Consequences:</h4>
+                <ul className="list-disc list-inside text-gray-800">
+                  <li className="mt-2">
+                    ❌ Potential IRS penalties or plan disqualification.
+                  </li>
+                  <li className="mt-2">
+                    ❌ Potential disqualification of the Health FSA plan.
+                  </li>
+                  <li className="mt-2">
+                    ❌ Loss of tax-free DCAP benefits for employees.
+                  </li>
+                </ul>
+              </div>
+            </>
+          )}
 
           {/* Export & Download Buttons */}
           <div className="flex flex-col gap-2 mt-4">
@@ -526,11 +537,10 @@ const DCAPEligibilityTest = () => {
               Download CSV Results
             </button>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
 };
-            
 
 export default DCAPEligibilityTest;
