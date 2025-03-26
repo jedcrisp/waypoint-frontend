@@ -2,7 +2,6 @@ import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
-import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust the path as needed
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
@@ -14,6 +13,21 @@ const DCAPEligibilityTest = () => {
   const [planYear, setPlanYear] = useState(""); // Plan year selection state
 
   const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure this is the correct URL for your backend
+
+  // ---------- Formatting Helpers ----------
+  const formatCurrency = (value) => {
+    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    return Number(value).toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+    });
+  };
+
+  const formatPercentage = (value) => {
+    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    return `${Number(value).toFixed(2)}%`;
+  };
+
 
   // =========================
   // 1. Drag & Drop Logic
@@ -102,11 +116,18 @@ const DCAPEligibilityTest = () => {
   // =========================
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-      ["Name", "HCE", "Eligible for DCAP"],
-      ["Example Employee 1", "Yes",  "Yes"],
-      ["Example Employee 2", "No",   "No"],
-      ["Example Employee 3", "Yes",  "No"],
-    ]
+  ["Last Name", "First Name", "Employee ID", "HCE", "Eligible for DCAP", "DOB", "DOH", "Employment Status", "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "Plan Entry Date"],
+  ["Last", "First", "001", "Yes", "Yes", "1980-05-10", "2010-06-01", "Active", "No", "No", "No", "2011-01-01"],
+  ["Last", "First", "002", "No", "Yes", "1985-08-15", "2012-03-10", "Active", "No", "No", "No", "2013-01-01"],
+  ["Last", "First", "003", "Yes", "No", "1975-01-20", "2005-05-05", "Active", "No", "No", "No", "2006-01-01"],
+  ["Last", "First", "004", "No", "Yes", "1990-12-01", "2020-08-20", "Active", "No", "Yes", "No", "2021-01-01"],
+  ["Last", "First", "005", "No", "No", "1995-07-19", "2021-04-10", "Leave", "Yes", "No", "Yes", "2022-01-01"],
+  ["Last", "First", "006", "Yes", "Yes", "1982-11-03", "2009-11-01", "Active", "No", "No", "No", "2010-01-01"],
+  ["Last", "First", "007", "No", "Yes", "2001-04-25", "2022-09-15", "Active", "No", "No", "No", "2023-01-01"],
+  ["Last", "First", "008", "Yes", "No", "1978-02-14", "2000-01-01", "Terminated", "No", "No", "Yes", "2001-01-01"],
+  ["Last", "First", "009", "No", "Yes", "1999-06-30", "2019-03-05", "Active", "No", "No", "No", "2020-01-01"],
+  ["Last", "First", "010", "No", "No", "2003-09-12", "2023-01-10", "Active", "No", "No", "No", "2023-07-01"],
+]
       .map((row) => row.join(","))
       .join("\n");
 
@@ -130,7 +151,7 @@ const DCAPEligibilityTest = () => {
       return;
     }
 
-    const totalEmployees = result["Total Employees"] ?? "N/A";
+    const totalEligibleEmployees = result["Total Eligible Employees"] ?? "N/A";
     const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
     const dcapEligibilityPercentage = result["DCAP Eligibility Percentage (%)"] ?? "N/A";
     const testResult = result["Test Result"] ?? "N/A";
@@ -139,43 +160,47 @@ const DCAPEligibilityTest = () => {
     // Basic rows for HCE/NHCE
     const csvRows = [
       ["Metric", "Value"],
-      ["Total Employees", totalEmployees],
+      ["Total Eligible Employees", totalEligibleEmployees],
       ["Eligible Employees", eligibleEmployees],
       ["DCAP Eligibility Percentage (%)", dcapEligibilityPercentage],
       ["Test Result", testResult],
     ];
 
-    // If failed, add corrective actions + consequences
-    if (testResult.toLowerCase() === "failed") {
-      const correctiveActions = [
+    // Corrective actions & consequences (only if failed)
+  if (failed) {
+    const correctiveActions = [
         "Expand Eligibility for NHCEs: Remove restrictive criteria that exclude NHCEs from participating in DCAP.",
         "Increase NHCE Participation: Improve education and awareness, offer enrollment incentives, and simplify the sign-up process.",
         "Adjust Employer Contributions: Ensure employer contributions are evenly distributed among HCEs and NHCEs.",
         "Amend the Plan Document: Modify eligibility and contribution rules to align with IRS nondiscrimination requirements.",
-      ];
+    ];
 
-      const consequences = [
+    const consequences = [
         "Potential IRS penalties or plan disqualification.",
         "Potential disqualification of the Health FSA plan.",
         "Loss of tax-free DCAP benefits for employees.",
-      ];
+    ];
 
-      // Add a blank row for spacing
-      csvRows.push(["", ""]);
-      csvRows.push(["Corrective Actions", ""]);
+    pdf.autoTable({
+      startY: pdf.lastAutoTable.finalY + 10,
+      theme: "grid",
+      head: [["Corrective Actions"]],
+      body: correctiveActions.map(action => [action]),
+      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+      styles: { fontSize: 11, font: "helvetica" },
+      margin: { left: 10, right: 10 },
+    });
 
-      correctiveActions.forEach((action) => {
-        csvRows.push(["", action]);
-      });
-
-      // Another blank row
-      csvRows.push(["", ""]);
-      csvRows.push(["Consequences", ""]);
-
-      consequences.forEach((item) => {
-        csvRows.push(["", item]);
-      });
-    }
+    pdf.autoTable({
+      startY: pdf.lastAutoTable.finalY + 10,
+      theme: "grid",
+      head: [["Consequences"]],
+      body: consequences.map(consequence => [consequence]),
+      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+      styles: { fontSize: 11, font: "helvetica" },
+      margin: { left: 10, right: 10 },
+    })
+ }
 
     // Convert array to CSV
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
@@ -202,7 +227,7 @@ const DCAPEligibilityTest = () => {
   }
 
   // Extract data from the result object
-  const totalEmployees = result["Total Employees"] ?? "N/A";
+  const totalEligibleEmployees = result["Total Eligible Employees"] ?? "N/A";
   const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
   const dcapEligibilityPercentage = result["DCAP Eligibility Percentage (%)"] ?? "N/A";
   const testResult = result["Test Result"] ?? "N/A";
@@ -224,7 +249,7 @@ const DCAPEligibilityTest = () => {
     theme: "grid",
     head: [["Metric", "Value"]],
     body: [
-      ["Total Employees", totalEmployees],
+      ["Total Eligible Employees", totalEligibleEmployees],
       ["Eligible Employees", eligibleEmployees],
       ["DCAP Eligibility Percentage (%)", dcapEligibilityPercentage],
       ["Test Result", testResult],
@@ -362,14 +387,14 @@ const DCAPEligibilityTest = () => {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive ? "border-blue-500 bg-blue-100" : "border-gray-300 bg-gray-50"
+          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
         {file ? (
           <p className="text-green-600 font-semibold">{file.name}</p>
         ) : isDragActive ? (
-          <p className="text-blue-600">📂 Drop the file here...</p>
+          <p className="text-green-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
             Drag & drop a <strong>CSV or Excel file</strong> here.
@@ -398,7 +423,7 @@ const DCAPEligibilityTest = () => {
       <button
         onClick={handleUpload}
         className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
-          !file ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"
+          !file ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
         }`}
         disabled={!file || loading}
       >
@@ -417,24 +442,16 @@ const DCAPEligibilityTest = () => {
           <div className="mt-4">
             <p className="text-lg">
               <strong className="text-gray-700">Total Employees:</strong>{" "}
-              <span className="font-semibold text-blue-600">
-                {result["Total Employees"] ?? "N/A"}
+              <span className="font-semibold text-black-600">
+                {result["Total Eligible Employees"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Eligible Employees:</strong>{" "}
-              <span className="font-semibold text-green-600">
-                {result["Eligible Employees"] ?? "N/A"}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">DCAP Eligibility Percentage (%):</strong>{" "}
-              <span className="font-semibold text-blue-600">
-                {result["DCAP Eligibility Percentage (%)"] !== undefined
-                  ? result["DCAP Eligibility Percentage (%)"] + "%"
-                  : "N/A"}
-              </span>
-            </p>
+  <strong className="text-gray-700">DCAP Eligibility Percentage:</strong>{" "}
+  <span className="font-semibold text-black-600">
+    {formatPercentage(result?.["DCAP Eligibility Percentage (%)"])}
+  </span>
+</p>
             <p className="text-lg mt-2">
   <strong className="text-gray-700">Test Result:</strong>{" "}
   <span
@@ -449,7 +466,8 @@ const DCAPEligibilityTest = () => {
 </p>
 
             {/* If failed, show corrective actions + consequences in the UI as well */}
-            {result["DCAP Eligibility Test Result"] === "Failed" && (
+            {result["Test Result"] === "Failed" && (
+
               <>
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
