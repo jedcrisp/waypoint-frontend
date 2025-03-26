@@ -219,10 +219,11 @@ const DCAPEligibilityTest = () => {
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(18);
     pdf.text("DCAP Eligibility Test Results", 105, 15, { align: "center" });
-
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(12);
     pdf.text(`Plan Year: ${planYear || "N/A"}`, 105, 25, { align: "center" });
+    const generatedTimestamp = new Date().toLocaleString();
+   pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
     // Results Table
     pdf.autoTable({
@@ -230,7 +231,7 @@ const DCAPEligibilityTest = () => {
       theme: "grid",
       head: [["Metric", "Value"]],
       body: [
-        ["Total Eligible Employees", totalEligibleEmployees],
+        ["Total Employees", totalEligibleEmployees],
         ["Eligible Employees", eligibleEmployees],
         ["DCAP Eligibility Percentage", formatPercentage(dcapEligibilityPercentage)],
         ["Test Result", testResult],
