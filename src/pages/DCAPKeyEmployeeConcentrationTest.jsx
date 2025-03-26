@@ -118,7 +118,7 @@ const DCAPKeyEmployeeConcentrationTest = () => {
   ["Last", "First", "008", 3800, "Yes", "1979-03-08", "2006-02-20", "Active", "No", "2007-01-01", "No", "No"],
   ["Last", "First", "009", 2000, "No", "1993-09-19", "2017-08-01", "Leave", "No", "2018-01-01", "No", "No"],
   ["Last", "First", "010", 1000, "No", "2001-10-15", "2022-02-01", "Active", "No", "2023-01-01", "No", "No"],
-];
+]
       map((row) => row.join(","))
       .join("\n");
 
