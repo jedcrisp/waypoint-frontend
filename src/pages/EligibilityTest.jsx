@@ -170,6 +170,36 @@ const EligibilityTest = () => {
       ["Test Result", result["Test Result"] ?? "N/A"],
     ];
 
+    if (result["Test Result"]?.toLowerCase() === "failed") {
+      const correctiveActions = [
+        "Reallocate benefits to balance distributions.",
+        "Adjust classifications of key employees.",
+        "Update contribution policies.",
+      ];
+      const consequences = [
+        "Loss of tax-exempt status for key employees.",
+        "IRS penalties and fines.",
+        "Risk of plan disqualification.",
+      ];
+      csvRows.push(["", ""]);
+      csvRows.push(["Corrective Actions", ""]);
+      correctiveActions.forEach((action) => csvRows.push(["", action]));
+      csvRows.push(["", ""]);
+      csvRows.push(["Consequences", ""]);
+      consequences.forEach((item) => csvRows.push(["", item]));
+    }
+
+    const csvContent = csvRows.map((row) => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "Cafeteria_Eligibility_Results.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // =========================
   // 6. Export to PDF
   // =========================
