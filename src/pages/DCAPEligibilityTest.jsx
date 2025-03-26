@@ -162,7 +162,7 @@ const DCAPEligibilityTest = () => {
       ["Metric", "Value"],
       ["Total Eligible Employees", totalEligibleEmployees],
       ["Eligible Employees", eligibleEmployees],
-      ["DCAP Eligibility Percentage (%)", dcapEligibilityPercentage],
+      ["DCAP Eligibility Percentage", dcapEligibilityPercentage],
       ["Test Result", testResult],
     ];
 
@@ -249,9 +249,9 @@ const DCAPEligibilityTest = () => {
     theme: "grid",
     head: [["Metric", "Value"]],
     body: [
-      ["Total Eligible Employees", totalEligibleEmployees],
+      ["Total Employees", totalEligibleEmployees],
       ["Eligible Employees", eligibleEmployees],
-      ["DCAP Eligibility Percentage (%)", dcapEligibilityPercentage],
+      ["DCAP Eligibility Percentage", `${dcapEligibilityPercentage}%`],
       ["Test Result", testResult],
     ],
     headStyles: {
