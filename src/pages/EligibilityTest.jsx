@@ -229,7 +229,7 @@ const EligibilityTest = () => {
     theme: "grid",
     head: [["Metric", "Value"]],
     body: [
-      ["Total Eligible Employees", result["Total Eligible Employees"] ?? "N/A"],
+      ["Total Employees", result["Total Eligible Employees"] ?? "N/A"],
       ["HCE Count", result["HCE Count"] ?? "N/A"],
       ["HCE Percentage (%)", result["HCE Percentage (%)"] !== undefined ? result["HCE Percentage (%)"] + "%": "N/A"],
       ["Test Result", result["Test Result"] ?? "N/A"],
@@ -389,19 +389,19 @@ const EligibilityTest = () => {
             </p>
             <p className="text-lg mt-2">
                <strong className="text-gray-700">Total Employees:</strong>{" "}
-                <span className="font-semibold text-blue-600">
+                <span className="font-semibold text-black-600">
                 {result?.["Total Eligible Employees"] ?? "N/A"}
               </span>
               </p>
             <p className="text-lg mt-2">
                <strong className="text-gray-700">HCE Count:</strong>{" "}
-                <span className="font-semibold text-blue-600">
+                <span className="font-semibold text-black-600">
                 {result?.["HCE Count"] ?? "N/A"}
               </span>
               </p>
            <p className="text-lg">
             <strong className="text-gray-700">HCE Percentage:</strong>{" "}
-               <span className="font-semibold text-blue-600">
+               <span className="font-semibold text-black-600">
                 {formatPercentage(result?.["HCE Percentage (%)"])}
               </span>
               </p>
