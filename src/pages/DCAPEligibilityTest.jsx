@@ -249,59 +249,42 @@ const DCAPEligibilityTest = () => {
 
     const nextY = pdf.lastAutoTable.finalY + 10;
 
-    // If the test failed, add corrective actions and consequences
-    if (failed) {
-      pdf.setFillColor(255, 230, 230); // Light red
-      pdf.setDrawColor(255, 0, 0); // Red border
-      const correctiveBoxHeight = 35;
-      pdf.rect(10, nextY, 190, correctiveBoxHeight, "FD");
-
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(14);
-      pdf.setTextColor(255, 0, 0);
-      pdf.text("Corrective Actions", 15, nextY + 8);
-
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(11);
-      pdf.setTextColor(0, 0, 0);
-      let bulletY = nextY + 14;
-      const lineHeight = 6;
-      const correctiveActions = [
-        "Expand Eligibility for NHCEs: Remove restrictive criteria that exclude NHCEs from participating in DCAP.",
+     // Corrective actions & consequences (only if failed)
+  if (failed) {
+    const correctiveActions = [
+       "Expand Eligibility for NHCEs: Remove restrictive criteria that exclude NHCEs from participating in DCAP.",
         "Increase NHCE Participation: Improve education and awareness, offer enrollment incentives, and simplify the sign-up process.",
         "Adjust Employer Contributions: Ensure employer contributions are evenly distributed among HCEs and NHCEs.",
         "Amend the Plan Document: Modify eligibility and contribution rules to align with IRS nondiscrimination requirements.",
       ];
-      correctiveActions.forEach((action) => {
-        pdf.text(`• ${action}`, 15, bulletY);
-        bulletY += lineHeight;
-      });
 
-      const nextBoxY = nextY + correctiveBoxHeight + 5;
-      pdf.setFillColor(255, 255, 204); // Light yellow
-      pdf.setDrawColor(255, 204, 0); // Gold border
-      const consequencesBoxHeight = 40;
-      pdf.rect(10, nextBoxY, 190, consequencesBoxHeight, "FD");
-
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(14);
-      pdf.setTextColor(204, 153, 0);
-      pdf.text("Consequences", 15, nextBoxY + 8);
-
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(11);
-      pdf.setTextColor(0, 0, 0);
-      let bulletY2 = nextBoxY + 14;
-      const consequences = [
+    const consequences = [
         "Potential IRS penalties or plan disqualification.",
         "Potential disqualification of the Health FSA plan.",
-        "Loss of tax-free DCAP benefits for employees.",
-      ];
-      consequences.forEach((item) => {
-        pdf.text(`• ${item}`, 15, bulletY2);
-        bulletY2 += lineHeight;
-      });
-    }
+        "Loss of tax-free DCAP benefits for employees."
+    ];
+
+    pdf.autoTable({
+      startY: pdf.lastAutoTable.finalY + 10,
+      theme: "grid",
+      head: [["Corrective Actions"]],
+      body: correctiveActions.map(action => [action]),
+      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+      styles: { fontSize: 11, font: "helvetica" },
+      margin: { left: 10, right: 10 },
+    });
+
+    pdf.autoTable({
+      startY: pdf.lastAutoTable.finalY + 10,
+      theme: "grid",
+      head: [["Consequences"]],
+      body: consequences.map(consequence => [consequence]),
+      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+      styles: { fontSize: 11, font: "helvetica" },
+      margin: { left: 10, right: 10 },
+    });
+  }
+
 
     pdf.save("DCAP_Eligibility_Test_Results.pdf");
   };
