@@ -229,7 +229,7 @@ const EligibilityTest = () => {
     theme: "grid",
     head: [["Metric", "Value"]],
     body: [
-      ["Total Employees", result["Total Eligible Employees"] ?? "N/A"],
+      ["Total Eligible Employees", result["Total Eligible Employees"] ?? "N/A"],
       ["HCE Count", result["HCE Count"] ?? "N/A"],
       ["HCE Percentage", result["HCE Percentage (%)"] !== undefined ? result["HCE Percentage (%)"] + "%": "N/A"],
       ["Test Result", result["Test Result"] ?? "N/A"],
