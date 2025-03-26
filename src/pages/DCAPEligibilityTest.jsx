@@ -238,10 +238,11 @@ const DCAPEligibilityTest = () => {
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(18);
   pdf.text("DCAP Eligibility Test Results", 105, 15, { align: "center" });
-
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(12);
   pdf.text(`Plan Year: ${planYear || "N/A"}`, 105, 25, { align: "center" });
+  const generatedTimestamp = new Date().toLocaleString();
+  pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
   // Results Table
   pdf.autoTable({
@@ -435,6 +436,13 @@ const DCAPEligibilityTest = () => {
 
       {/* Display Results */}
       {result && (
+
+      <p className="text-lg">
+              <strong className="text-gray-700">Plan Year:</strong>{" "}
+              <span className="font-semibold text-blue-600">
+                {planYear || "N/A"}
+              </span>
+            </p>
         <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
           <h3 className="font-bold text-xl text-gray-700 flex items-center">
             DCAP Eligibility Test Results
