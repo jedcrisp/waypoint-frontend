@@ -154,6 +154,10 @@ const ClassificationTest = () => {
       setError("❌ No results available to export.");
       return;
     }
+
+    const testResult = result["Test Result"] ?? "N/A"; // ✅ Define this first
+    const failed = testResult.toLowerCase() === "failed"; // ✅ Now it's safe to use
+
     const pdf = new jsPDF("p", "mm", "a4");
     pdf.setFont("helvetica", "normal");
 
