@@ -511,6 +511,7 @@ const CafeteriaContributionsBenefitsTest = () => {
   )}
 
           {/* Export & Download Buttons */}
+          {result && (
           <div className="flex flex-col gap-2 mt-4">
             <button
               onClick={exportToPDF}
@@ -525,6 +526,8 @@ const CafeteriaContributionsBenefitsTest = () => {
               Download CSV Results
             </button>
           </div>
+
+          )}
 
           {/* Corrective Actions & Consequences if Test Failed */}
           {result?.["Test Result"]?.toLowerCase() === "failed" && (
