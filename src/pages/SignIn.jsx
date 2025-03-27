@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { 
   signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged 
 } from "firebase/auth";
-import { auth } from "../firebase"; // Ensure firebase.js is in your src folder
-import waypointlogo from '../assets/waypointlogo.png'; // Adjust the path as needed
+import { auth } from "../firebase";
+import waypointlogo from '../assets/waypointlogo.png';
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
@@ -14,7 +13,6 @@ const SignIn = () => {
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
 
-  // Listen for authentication state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -22,7 +20,8 @@ const SignIn = () => {
     return () => unsubscribe();
   }, []);
 
-  const handleSignIn = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setError("");
     try {
       await signInWithEmailAndPassword(auth, email, password);
@@ -43,40 +42,39 @@ const SignIn = () => {
   return (
     <div style={{
       minHeight: "100vh",
-      backgroundColor: "#0074d9", // Green background similar to the screenshot
+      backgroundColor: "#0074d9",
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
     }}>
       <div style={{
         width: "400px",
-        backgroundColor: "#fff", // White background for the form
+        backgroundColor: "#fff",
         borderRadius: "8px",
         boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
         padding: "2rem",
         textAlign: "center",
       }}>
 
-        {/* Logo */}
-<img 
-  src={waypointlogo} 
-  alt="Waypoint Logo" 
-  style={{ 
-    width: "300px", 
-    margin: "0 auto 1rem", 
-    display: "block" 
-  }} 
-/>
-<h1
-  style={{
-    fontSize: "1.5rem",
-    fontWeight: "bold",
-    color: "#333",
-    margin: "0 0 1rem", // Remove top margin and keep bottom margin
-  }}
->
-  Log In To Continue
-</h1>
+        <img 
+          src={waypointlogo} 
+          alt="Waypoint Logo" 
+          style={{ 
+            width: "300px", 
+            margin: "0 auto 1rem", 
+            display: "block" 
+          }} 
+        />
+        <h1
+          style={{
+            fontSize: "1.5rem",
+            fontWeight: "bold",
+            color: "#333",
+            margin: "0 0 1rem",
+          }}
+        >
+          Log In To Continue
+        </h1>
 
         {user ? (
           <>
@@ -88,7 +86,7 @@ const SignIn = () => {
                 padding: "0.75rem",
                 fontSize: "1rem",
                 borderRadius: "4px",
-                backgroundColor: "#f44336", // Red for sign-out
+                backgroundColor: "#f44336",
                 color: "#fff",
                 border: "none",
                 cursor: "pointer",
@@ -98,8 +96,7 @@ const SignIn = () => {
             </button>
           </>
         ) : (
-          <>
-            {/* Email Input */}
+          <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: "1rem" }}>
               <input
                 type="email"
@@ -117,7 +114,6 @@ const SignIn = () => {
               />
             </div>
 
-            {/* Password Input */}
             <div style={{ marginBottom: "1rem" }}>
               <input
                 type="password"
@@ -135,15 +131,14 @@ const SignIn = () => {
               />
             </div>
 
-            {/* Sign In Button */}
             <button
-              onClick={handleSignIn}
+              type="submit"
               style={{
                 width: "100%",
                 padding: "0.75rem",
                 fontSize: "1rem",
                 borderRadius: "4px",
-                backgroundColor: "#0074d9", // Blue button
+                backgroundColor: "#0074d9",
                 color: "#fff",
                 border: "none",
                 cursor: "pointer",
@@ -152,9 +147,8 @@ const SignIn = () => {
               Access Account
             </button>
 
-            {/* Error Message */}
             {error && <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>}
-          </>
+          </form>
         )}
       </div>
     </div>
