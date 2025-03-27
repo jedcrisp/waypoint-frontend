@@ -53,18 +53,19 @@ const CafeteriaContributionsBenefitsTest = () => {
   // =========================
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-  ["Last Name", "First Name", "Employee ID", "Employer Contribution", "Employee Contribution", "Cafeteria Plan Benefits", "Total Benefits", "NHCE Average Benefit", "HCE Average Benefit", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Part-Time / Seasonal", "Union Employee"],
-  ["Last", "First", "E001", 1200, 500, 1700, 1700, 1600, 1800, "Yes", "1980-04-12", "2015-06-01", "Active", "No", "2016-01-01", "No", "No"],
-  ["Last", "First", "E002", 1300, 600, 1900, 1900, 1800, 2000, "No", "1985-11-03", "2019-01-15", "Active", "No", "2022-04-04", "No", "No"],
-  ["Last", "First", "E003", 1000, 400, 1400, 1400, 1300, 1500, "Yes", "1990-01-01", "2021-05-01", "Active", "No", "2023-03-01", "No", "No"],
-  ["Last", "First", "E004", 1500, 800, 2300, 2300, 2200, 2400, "No", "1992-07-15", "2018-06-01", "Active", "No", "2018-06-01", "No", "No"],
-  ["Last", "First", "E005", 1100, 500, 1600, 1600, 1500, 1700, "No", "1988-03-10", "2016-09-20", "Terminated", "Yes", "2016-09-20", "Yes", "No"],
-  ["Last", "First", "E006", 1250, 600, 1850, 1850, 1700, 2000, "Yes", "1993-01-25", "2020-03-18", "Active", "No", "2020-03-18", "No", "Yes"],
-  ["Last", "First", "E007", 1050, 550, 1600, 1600, 1500, 1700, "No", "1995-10-08", "2022-02-11", "Active", "No", "2022-02-11", "No", "No"],
-  ["Last", "First", "E008", 1400, 700, 2100, 2100, 2000, 2200, "Yes", "1983-12-30", "2010-12-01", "Active", "No", "2010-12-01", "No", "No"],
-  ["Last", "First", "E009", 900, 400, 1300, 1300, 1200, 1400, "No", "1999-06-18", "2023-04-01", "Leave", "No", "2023-04-01", "Yes", "No"],
-  ["Last", "First", "E010", 1150, 650, 1800, 1800, 1700, 1900, "Yes", "1987-08-09", "2017-07-12", "Active", "No", "2017-07-12", "No", "Yes"]
+  ["Last Name", "First Name", "Employee ID", "Employer Contribution", "Employee Contribution", "Employer Contributions (Avg)", "Employee Contributions (Avg)", "Cafeteria Plan Benefits", "Total Benefits", "NHCE Average Benefit", "HCE Average Benefit", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Part-Time / Seasonal", "Union Employee"],
+  ["Last", "First", "001", 1500, 1000, 1450, 950, 500, 3000, 1400, 1600, "No", "1985-03-12", "2010-06-01", "Active", "No", "2011-01-01", "No", "No"],
+  ["Last", "First", "002", 2000, 1200, 1450, 950, 600, 3800, 1400, 1600, "Yes", "1978-07-22", "2005-03-15", "Active", "No", "2006-01-01", "No", "No"],
+  ["Last", "First", "003", 0, 0, 1450, 950, 0, 0, 1400, 1600, "No", "1990-11-05", "2022-01-01", "Active", "No", "2022-01-01", "No", "No"],
+  ["Last", "First", "004", 1800, 900, 1450, 950, 400, 3100, 1400, 1600, "No", "1983-06-30", "2014-04-20", "Active", "No", "2015-01-01", "No", "No"],
+  ["Last", "First", "005", 1000, 500, 1450, 950, 200, 1700, 1400, 1600, "No", "1995-10-10", "2020-08-10", "Terminated", "Yes", "2021-01-01", "No", "No"],
+  ["Last", "First", "006", 2200, 1300, 1450, 950, 700, 4200, 1400, 1600, "Yes", "1982-02-14", "2009-11-11", "Active", "No", "2010-01-01", "No", "No"],
+  ["Last", "First", "007", 0, 0, 1450, 950, 0, 0, 1400, 1600, "No", "2000-05-05", "2023-05-01", "Active", "No", "2023-07-01", "Yes", "No"],
+  ["Last", "First", "008", 1900, 1100, 1450, 950, 550, 3550, 1400, 1600, "Yes", "1979-09-18", "2006-02-20", "Active", "No", "2007-01-01", "No", "No"],
+  ["Last", "First", "009", 1600, 800, 1450, 950, 450, 2850, 1400, 1600, "No", "1993-12-25", "2017-08-01", "Leave", "No", "2018-01-01", "No", "No"],
+  ["Last", "First", "010", 1200, 700, 1450, 950, 300, 2200, 1400, 1600, "No", "2001-01-12", "2022-02-01", "Active", "No", "2023-01-01", "No", "No"]
 ]
+
 
 
       .map((row) => row.join(","))
@@ -171,13 +172,15 @@ const CafeteriaContributionsBenefitsTest = () => {
     pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
     // Collect data
-    const totalEmployees = result["Total Eligible Employees"] ?? "N/A";
+    const totalEligibleEmployees = result["Total Eligible Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
     const employerAvg = formatCurrency(result["Employer Contributions (Avg)"]);
     const employeeAvg = formatCurrency(result["Employee Contributions (Avg)"]);
     const totalContrib = formatCurrency(result["Total Contributions"]);
     const benefitsProvided = formatCurrency(result["Benefits Provided"]);
     const hceAverageBenefit = formatCurrency(result["HCE Average Benefit"]);
     const nhceAverageBenefit = formatCurrency(result["NHCE Average Benefit"]);
+    const totalBenefits = formatCurrency(result["Total Benefits"]);
     const testResult = result["Test Result"] ?? "N/A";
     const failed = testResult.toLowerCase() === "failed";
 
@@ -186,13 +189,15 @@ const CafeteriaContributionsBenefitsTest = () => {
       startY: 40,
       head: [["Metric", "Value"]],
       body: [
-        ["Total Employees", totalEmployees],
+        ["Total Eligible Employees", totalEligibleEmployees],
         ["Employer Contributions (Avg)", employerAvg],
         ["Employee Contributions (Avg)", employeeAvg],
         ["HCE Average Benefit", hceAverageBenefit],
         ["NHCE Average Benefit", nhceAverageBenefit],
         ["Total Contributions", totalContrib],
+        ["Total Benefits", totalBenefits],
         ["Benefits Provided", benefitsProvided],
+        ["Total Participants", result["Total Participants"] ?? "N/A"],
         ["Test Result", testResult],
       ],
     headStyles: {
@@ -261,19 +266,29 @@ const CafeteriaContributionsBenefitsTest = () => {
       return;
     }
 
+    const totalEligibleEmployees = result["Total Eligible Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
     const employerAvg = result["Employer Contributions (Avg)"] ?? "N/A";
     const employeeAvg = result["Employee Contributions (Avg)"] ?? "N/A";
     const totalContrib = result["Total Contributions"] ?? "N/A";
     const benefitsProvided = result["Benefits Provided"] ?? "N/A";
+    const totalBenefits = result["Total Benefits"] ?? "N/A";
+    const hceAverageBenefit = result["HCE Average Benefit"] ?? "N/A";
+    const nhceAverageBenefit = result["NHCE Average Benefit"] ?? "N/A";
     const testResult = result["Test Result"] ?? "N/A";
     const failed = testResult.toLowerCase() === "failed";
 
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", planYear],
+      ["Total Eligible Employees", totalEligibleEmployees],
+      ["Total Participants", totalParticipants],
       ["Employer Contributions (Avg)", employerAvg],
       ["Employee Contributions (Avg)", employeeAvg],
       ["Total Contributions", totalContrib],
+      ["Total Benefits", totalBenefits],
+      ["HCE Average Benefit", hceAverageBenefit],
+      ["NHCE Average Benefit", nhceAverageBenefit],
       ["Benefits Provided", benefitsProvided],
       ["Test Result", testResult],
     ];
@@ -401,74 +416,96 @@ const CafeteriaContributionsBenefitsTest = () => {
       {/* Display Errors */}
       {error && <div className="mt-3 text-red-500">{error}</div>}
 
-      {/* Display Results */}
       {result && (
-        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
-          <h3 className="font-bold text-xl text-gray-700">
-            Cafeteria Contributions & Benefits Test Results
-          </h3>
-          <div className="mt-4">
-  <p className="text-lg">
-    <strong className="text-gray-700">Plan Year:</strong>{" "}
-    <span className="font-semibold text-blue-600">
-      {planYear || "N/A"}
-    </span>
-  </p>
-  <p className="text-lg mt-2">
-          <strong className="text-gray-700">Total Employees:</strong>{" "}
-            <span className="font-semibold text-black-600">
-            {result?.["Total Eligible Employees"] ?? "N/A"}
-          </span>
-          </p>
-  <p className="text-lg mt-2">
-    <strong className="text-gray-700">Employer Contributions (Avg):</strong>{" "}
-    <span className="font-semibold text-black-600">
-      {formatCurrency(result?.["Employer Contributions (Avg)"]) || "N/A"}
-    </span>
-  </p>
-  <p className="text-lg mt-2">
-    <strong className="text-gray-700">Employee Contributions (Avg):</strong>{" "}
-    <span className="font-semibold text-black-600">
-      {formatCurrency(result?.["Employee Contributions (Avg)"]) || "N/A"}
-    </span>
-  </p>
-  <p className="text-lg mt-2">
-    <strong className="text-gray-700">HCE Average Benefit:</strong>{" "}
-    <span className="font-semibold text-black-600">
-      {formatCurrency(result?.["Employee Contributions (Avg)"]) || "N/A"}
-    </span>
-  </p>
-  <p className="text-lg mt-2">
-    <strong className="text-gray-700">NHCE Average Benefit:</strong>{" "}
-    <span className="font-semibold text-black-600">
-      {formatCurrency(result?.["Employee Contributions (Avg)"]) || "N/A"}
-    </span>
-  </p>
-  <p className="text-lg mt-2">
-    <strong className="text-gray-700">Total Contributions:</strong>{" "}
-    <span className="font-semibold text-black-600">
-      {formatCurrency(result?.["Total Contributions"]) || "N/A"}
-    </span>
-  </p>
-  <p className="text-lg mt-2">
-    <strong className="text-gray-700">Benefits Provided:</strong>{" "}
-    <span className="font-semibold text-black-600">
-      {formatCurrency(result?.["Benefits Provided"]) || "N/A"}
-    </span>
-  </p>
-  <p className="text-lg mt-2">
-    <strong className="text-gray-700">Test Result:</strong>{" "}
-    <span
-      className={`px-3 py-1 rounded-md font-bold ${
-        result?.["Test Result"] === "Passed"
-          ? "bg-green-500 text-white"
-          : "bg-red-500 text-white"
-      }`}
-    >
-      {result?.["Test Result"] ?? "N/A"}
-    </span>
-  </p>
-</div>
+  <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
+    <h3 className="font-bold text-xl text-gray-700">
+      Cafeteria Contributions & Benefits Test Results
+    </h3>
+
+    <div className="mt-4">
+      <p className="text-lg">
+        <strong className="text-gray-700">Plan Year:</strong>{" "}
+        <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
+      </p>
+
+      <p className="text-lg mt-2">
+        <strong className="text-gray-700">Total Eligible Employees:</strong>{" "}
+        <span className="font-semibold text-black-600">
+          {result?.["Total Eligible Employees"] ?? "N/A"}
+        </span>
+      </p>
+
+      <p className="text-lg mt-2">
+        <strong className="text-gray-700">Total Participants:</strong>{" "}
+        <span className="font-semibold text-black-600">
+          {result?.["Total Participants"] ?? "N/A"}
+        </span>
+      </p>
+
+      <p className="text-lg mt-2">
+        <strong className="text-gray-700">Employer Contributions (Avg):</strong>{" "}
+        <span className="font-semibold text-black-600">
+          {formatCurrency(result?.["Employer Contributions (Avg)"]) || "N/A"}
+        </span>
+      </p>
+
+      <p className="text-lg mt-2">
+        <strong className="text-gray-700">Employee Contributions (Avg):</strong>{" "}
+        <span className="font-semibold text-black-600">
+          {formatCurrency(result?.["Employee Contributions (Avg)"]) || "N/A"}
+        </span>
+      </p>
+
+      <p className="text-lg mt-2">
+        <strong className="text-gray-700">Total Contributions:</strong>{" "}
+        <span className="font-semibold text-black-600">
+          {formatCurrency(result?.["Total Contributions"]) || "N/A"}
+        </span>
+      </p>
+
+      <p className="text-lg mt-2">
+        <strong className="text-gray-700">Total Benefits:</strong>{" "}
+        <span className="font-semibold text-black-600">
+          {formatCurrency(result?.["Total Benefits"]) || "N/A"}
+        </span>
+      </p>
+
+      <p className="text-lg mt-2">
+        <strong className="text-gray-700">HCE Average Benefit:</strong>{" "}
+        <span className="font-semibold text-black-600">
+          {formatCurrency(result?.["HCE Average Benefit"]) || "N/A"}
+        </span>
+      </p>
+
+      <p className="text-lg mt-2">
+        <strong className="text-gray-700">NHCE Average Benefit:</strong>{" "}
+        <span className="font-semibold text-black-600">
+          {formatCurrency(result?.["NHCE Average Benefit"]) || "N/A"}
+        </span>
+      </p>
+
+      <p className="text-lg mt-2">
+        <strong className="text-gray-700">Benefits Provided:</strong>{" "}
+        <span className="font-semibold text-black-600">
+          {formatCurrency(result?.["Benefits Provided"]) || "N/A"}
+        </span>
+      </p>
+
+      <p className="text-lg mt-2">
+        <strong className="text-gray-700">Test Result:</strong>{" "}
+        <span
+          className={`px-3 py-1 rounded-md font-bold ${
+            result?.["Test Result"] === "Passed"
+              ? "bg-green-500 text-white"
+              : "bg-red-500 text-white"
+          }`}
+        >
+          {result?.["Test Result"] ?? "N/A"}
+        </span>
+      </p>
+    </div>
+  </div>
+)}
 
 
           {/* Export & Download Buttons */}
