@@ -69,10 +69,10 @@ const HealthFSA55AverageBenefitsTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("selected_tests", "health_fsa_55_average_benefits_test");
+    formData.append("selected_tests", "health_fsa_55_average_benefits");
 
     try {
-      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/health_fsa_55_average_benefits_test`);
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/health_fsa_55_average_benefits`);
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken(true);
       if (!token) {
@@ -83,7 +83,7 @@ const HealthFSA55AverageBenefitsTest = () => {
       console.log("Firebase Token:", token);
 
       const response = await axios.post(
-        `${API_URL}/upload-csv/health_fsa_55_average_benefits_test`,
+        `${API_URL}/upload-csv/health_fsa_55_average_benefits`,
         formData,
         {
           headers: {
@@ -93,7 +93,7 @@ const HealthFSA55AverageBenefitsTest = () => {
         }
       );
       console.log("✅ API Response:", response.data);
-      setResult(response.data?.["Test Results"]?.["health_fsa_55_average_benefits_test"] || {});
+      setResult(response.data?.["Test Results"]?.["health_fsa_55_average_benefits"] || {});
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError("❌ Failed to upload file. Please check the format and try again.");
@@ -114,12 +114,31 @@ const HealthFSA55AverageBenefitsTest = () => {
   // CSV Template Download
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-      ["Employee ID", "Total Health FSA Benefits (Avg)", "NHCE Average Benefit", "HCE Average Benefit", "Average Benefits Ratio (%)"],
-      ["E001", "5000", "3000", "6000", "50"],
-      ["E002", "7000", "3500", "8000", "55"],
-    ]
-      .map((row) => row.join(","))
-      .join("\n");
+  [
+    "Last Name",
+    "First Name",
+    "Employee ID",
+    "Health FSA Benefits",
+    "HCE",
+    "DOB",
+    "DOH",
+    "Employment Status",
+    "Excluded from Test",
+    "Plan Entry Date",
+    "Union Employee",
+    "Part-Time / Seasonal"
+  ],
+  ["Last", "First", "001", "$1000.00", "Yes", "1980-05-10", "2010-06-01", "Active", "No", "2011-01-01", "No", "No"],
+  ["Last", "First", "002", "$1500.00", "No", "1985-08-15", "2012-03-10", "Active", "No", "2013-01-01", "No", "Yes"],
+  ["Last", "First", "003", "$2000.00", "Yes", "1975-01-20", "2005-05-05", "Active", "No", "2006-01-01", "Yes", "No"],
+  ["Last", "First", "004", "$1200.00", "No", "1990-12-01", "2020-08-20", "Active", "Yes", "2021-01-01", "No", "No"],
+  ["Last", "First", "005", "$1800.00", "Yes", "1995-07-19", "2021-04-10", "Leave", "No", "2022-01-01", "No", "Yes"],
+  ["Last", "First", "006", "$1100.00", "No", "1982-11-03", "2009-11-01", "Active", "No", "2010-01-01", "Yes", "No"],
+  ["Last", "First", "007", "$1300.00", "Yes", "2001-04-25", "2022-09-15", "Active", "No", "2023-01-01", "No", "No"],
+  ["Last", "First", "008", "$1600.00", "No", "1978-02-14", "2000-01-01", "Terminated", "No", "2001-01-01", "Yes", "Yes"],
+  ["Last", "First", "009", "$1400.00", "Yes", "1999-06-30", "2019-03-05", "Active", "No", "2020-01-01", "No", "No"],
+  ["Last", "First", "010", "$1700.00", "No", "2003-09-12", "2023-01-10", "Active", "No", "2023-07-01", "Yes", "Yes"]
+].map(row => row.join(",")).join("\n");
 
     const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -185,26 +204,40 @@ const HealthFSA55AverageBenefitsTest = () => {
     pdf.setFontSize(18);
     pdf.setFont("helvetica", "bold");
     pdf.text("Health FSA 55% Average Benefits Test Results", 105, 15, { align: "center" });
-
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "normal");
     pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
     pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
-    pdf.autoTable({
-      startY: 40,
-      head: [["Metric", "Value"]],
-      body: [
-        ["Total Health FSA Benefits (Avg)", result["Total Health FSA Benefits (Avg)"] ?? "N/A"],
-        ["NHCE Average Benefit", result["NHCE Average Benefit"] ?? "N/A"],
-        ["HCE Average Benefit", result["HCE Average Benefit"] ?? "N/A"],
-        ["Average Benefits Ratio (%)", result["Average Benefits Ratio (%)"] ?? "N/A"],
-        ["Test Result", result["Test Result"] ?? "N/A"],
-      ],
-      headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
-      styles: { fontSize: 12, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
+  pdf.autoTable({
+    startY: 40,
+    theme: "grid", // Ensures full table grid
+    head: [["Metric", "Value"]],
+    body: [
+      ["Total Health FSA Benefits (Avg)", result["Total Health FSA Benefits (Avg)"] ?? "N/A"],
+      ["NHCE Average Benefit", result["NHCE Average Benefit"] ?? "N/A"],
+      ["HCE Average Benefit", result["HCE Average Benefit"] ?? "N/A"],
+      ["Average Benefits Ratio", result["Average Benefits Ratio (%)"] ?? "N/A"],
+      ["Test Result", result["Test Result"] ?? "N/A"],
+    ],
+    styles: {
+      fontSize: 12,
+      textColor: [0, 0, 0], // Black text for table body
+      halign: "right", // Right-align numeric values
+    },
+    columnStyles: {
+      0: { halign: "left", fontStyle: "bold" }, // Left-align metric names & bold
+      1: { halign: "left" }, // Right-align numeric values
+    },
+    headStyles: {
+      fillColor: [41, 128, 185], // Dark Blue Header
+      textColor: [255, 255, 255], // White text
+      fontSize: 12,
+      fontStyle: "helvetica",
+      halign: "left", // Left-align header text
+    },
+    margin: { left: 10, right: 10 },
+  });
 
     if (result["Test Result"]?.toLowerCase() === "failed") {
       const y = pdf.lastAutoTable.finalY + 10;
@@ -278,7 +311,7 @@ const HealthFSA55AverageBenefitsTest = () => {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive ? "border-blue-500 bg-blue-100" : "border-gray-300 bg-gray-50"
+          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
@@ -314,7 +347,7 @@ const HealthFSA55AverageBenefitsTest = () => {
       <button
         onClick={handleUpload}
         className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
-          !file ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"
+          !file ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
         }`}
         disabled={!file || loading}
       >
@@ -326,54 +359,62 @@ const HealthFSA55AverageBenefitsTest = () => {
 
       {/* Display Results */}
       {result && (
-        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
-          <h3 className="font-bold text-xl text-gray-700">
-            Health FSA 55% Average Benefits Test Results
-          </h3>
-          <div className="mt-4">
-            <p className="text-lg">
-              <strong className="text-gray-700">Plan Year:</strong>{" "}
-              <span className="font-semibold text-blue-600">
-                {planYear || "N/A"}
-              </span>
-            </p>
-            <p className="text-lg">
-              <strong className="text-gray-700">Total Health FSA Benefits (Avg):</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {result?.["Total Health FSA Benefits (Avg)"] ?? "N/A"}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">NHCE Average Benefit:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {result?.["NHCE Average Benefit"] ?? "N/A"}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">HCE Average Benefit:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {result?.["HCE Average Benefit"] ?? "N/A"}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Average Benefits Ratio (%):</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {result?.["Average Benefits Ratio (%)"] ?? "N/A"}%
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Test Result:</strong>{" "}
-              <span
-                className={`px-3 py-1 rounded-md font-bold ${
-                  result?.["Test Result"] === "Passed"
-                    ? "bg-green-500 text-white"
-                    : "bg-red-500 text-white"
-                }`}
-              >
-                {result?.["Test Result"] ?? "N/A"}
-              </span>
-            </p>
-          </div>
+      <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
+  <h3 className="font-bold text-xl text-gray-700">
+    Health FSA 55% Average Benefits Test Results
+  </h3>
+  <div className="mt-4">
+    <p className="text-lg">
+      <strong className="text-gray-700">Plan Year:</strong>{" "}
+      <span className="font-semibold text-blue-600">
+        {planYear || "N/A"}
+      </span>
+    </p>
+
+    {/* If your server returns "NHCE Average Benefit" (singular) */}
+    <p className="text-lg mt-2">
+      <strong className="text-gray-700">NHCE Average Benefit:</strong>{" "}
+      <span className="font-semibold text-gray-800">
+        {result?.["NHCE Average Benefit"] !== undefined
+          ? formatCurrency(result["NHCE Average Benefit"])
+          : "N/A"}
+      </span>
+    </p>
+
+    {/* If your server returns "HCE Average Benefit" (singular) */}
+    <p className="text-lg mt-2">
+      <strong className="text-gray-700">HCE Average Benefit:</strong>{" "}
+      <span className="font-semibold text-gray-800">
+        {result?.["HCE Average Benefit"] !== undefined
+          ? formatCurrency(result["HCE Average Benefit"])
+          : "N/A"}
+      </span>
+    </p>
+
+    {/* If your server returns "Average Benefit Ratio (%)" */}
+    <p className="text-lg mt-2">
+      <strong className="text-gray-700">Average Benefit Ratio (%):</strong>{" "}
+      <span className="font-semibold text-gray-800">
+        {result?.["Average Benefit Ratio (%)"] !== undefined
+          ? formatPercentage(result["Average Benefit Ratio (%)"])
+          : "N/A"}
+      </span>
+    </p>
+
+    <p className="text-lg mt-2">
+      <strong className="text-gray-700">Test Result:</strong>{" "}
+      <span
+        className={`px-3 py-1 rounded-md font-bold ${
+          result?.["Test Result"] === "Passed"
+            ? "bg-green-500 text-white"
+            : "bg-red-500 text-white"
+        }`}
+      >
+        {result?.["Test Result"] ?? "N/A"}
+      </span>
+    </p>
+  </div>
+
 
           <div className="flex flex-col gap-2 mt-4">
             <button
@@ -398,9 +439,11 @@ const HealthFSA55AverageBenefitsTest = () => {
                   <li>
                     Review and adjust contributions to ensure that the NHCE average benefit is at least 55% of the HCE average benefit.
                   </li>
+                  <br />
                   <li>
                     Increase NHCE participation or modify the contribution formulas accordingly.
                   </li>
+                  <br />
                   <li>
                     Reevaluate plan design to improve compliance with IRS requirements.
                   </li>
@@ -411,7 +454,9 @@ const HealthFSA55AverageBenefitsTest = () => {
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>❌ Potential reclassification of Health FSA benefits as taxable for HCEs.</li>
+                  <br />
                   <li>❌ Increased IRS scrutiny and potential penalties.</li>
+                  <br />
                   <li>❌ Additional employer contributions might be required to correct the imbalance.</li>
                 </ul>
               </div>
