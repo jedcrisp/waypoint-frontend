@@ -338,227 +338,222 @@ const CafeteriaContributionsBenefitsTest = () => {
   };
 
   // --- 7. Render ---
-  return (
-    <div
-      className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
-      onKeyDown={handleKeyDown}
-      tabIndex="0"
-    >
-      <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
-        📂 Upload Cafeteria Contributions & Benefits File
-      </h2>
+return (
+  <div
+    className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
+    onKeyDown={handleKeyDown}
+    tabIndex="0"
+  >
+    <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
+      📂 Upload Cafeteria Contributions & Benefits File
+    </h2>
 
-      {/* Plan Year Dropdown */}
-      <div className="mb-6">
-        <div className="flex items-center">
-          {planYear === "" && <span className="text-red-500 text-lg mr-2">*</span>}
-          <select
-            id="planYear"
-            value={planYear}
-            onChange={(e) => setPlanYear(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md"
-            required
-          >
-            <option value="">-- Select Plan Year --</option>
-            {Array.from({ length: 41 }, (_, i) => 2010 + i).map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
+    {/* Plan Year Dropdown */}
+    <div className="mb-6">
+      <div className="flex items-center">
+        {planYear === "" && <span className="text-red-500 text-lg mr-2">*</span>}
+        <select
+          id="planYear"
+          value={planYear}
+          onChange={(e) => setPlanYear(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-md"
+          required
+        >
+          <option value="">-- Select Plan Year --</option>
+          {Array.from({ length: 41 }, (_, i) => 2010 + i).map((year) => (
+            <option key={year} value={year}>
+              {year}
+            </option>
+          ))}
+        </select>
       </div>
+    </div>
 
-      {/* Drag & Drop Area */}
-      <div
-        {...getRootProps()}
-        className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
-        }`}
-      >
-        <input {...getInputProps()} />
-        {file ? (
-          <p className="text-green-600 font-semibold">{file.name}</p>
-        ) : isDragActive ? (
-          <p className="text-green-600">📂 Drop the file here...</p>
-        ) : (
-          <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+    {/* Drag & Drop Area */}
+    <div
+      {...getRootProps()}
+      className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
+        isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
+      }`}
+    >
+      <input {...getInputProps()} />
+      {file ? (
+        <p className="text-green-600 font-semibold">{file.name}</p>
+      ) : isDragActive ? (
+        <p className="text-green-600">📂 Drop the file here...</p>
+      ) : (
+        <p className="text-gray-600">
+          Drag & drop a <strong>CSV or Excel file</strong> here.
+        </p>
+      )}
+    </div>
+
+    {/* Download CSV Template Button */}
+    <button
+      onClick={downloadCSVTemplate}
+      className="mt-4 w-full px-4 py-2 text-white bg-gray-500 hover:bg-gray-600 rounded-md"
+    >
+      Download CSV Template
+    </button>
+
+    {/* Choose File Button */}
+    <button
+      type="button"
+      onClick={open}
+      className="mt-4 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+    >
+      Choose File
+    </button>
+
+    {/* Upload Button */}
+    <button
+      onClick={handleUpload}
+      className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
+        !file || !planYear ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-600"
+      }`}
+      disabled={!file || !planYear || loading}
+    >
+      {loading ? "Uploading..." : "Upload"}
+    </button>
+
+    {/* Display Errors */}
+    {error && <div className="mt-3 text-red-500">{error}</div>}
+
+    {/* Display Results */}
+    {result && (
+      <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-md">
+        <h3 className="font-bold text-xl text-gray-700">
+          Cafeteria Contributions & Benefits Test Results
+        </h3>
+
+        <div className="mt-4">
+          <p className="text-lg">
+            <strong className="text-gray-700">Plan Year:</strong>{" "}
+            <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
           </p>
+
+          <p className="text-lg mt-2">
+            <strong className="text-gray-700">Total Employees:</strong>{" "}
+            <span className="font-semibold text-black-600">
+              {result?.["Total Employees"] ?? "N/A"}
+            </span>
+          </p>
+
+          <p className="text-lg mt-2">
+            <strong className="text-gray-700">Total Participants:</strong>{" "}
+            <span className="font-semibold text-black-600">
+              {result?.["Total Participants"] ?? "N/A"}
+            </span>
+          </p>
+
+          <p className="text-lg mt-2">
+            <strong className="text-gray-700">Employer Contributions (Avg):</strong>{" "}
+            <span className="font-semibold text-black-600">
+              {formatCurrency(result?.["Employer Contributions (Avg)"]) || "N/A"}
+            </span>
+          </p>
+
+          <p className="text-lg mt-2">
+            <strong className="text-gray-700">Employee Contributions (Avg):</strong>{" "}
+            <span className="font-semibold text-black-600">
+              {formatCurrency(result?.["Employee Contributions (Avg)"]) || "N/A"}
+            </span>
+          </p>
+
+          <p className="text-lg mt-2">
+            <strong className="text-gray-700">HCE Average Benefit:</strong>{" "}
+            <span className="font-semibold text-black-600">
+              {formatCurrency(result?.["HCE Average Benefit"]) || "N/A"}
+            </span>
+          </p>
+
+          <p className="text-lg mt-2">
+            <strong className="text-gray-700">NHCE Average Benefit:</strong>{" "}
+            <span className="font-semibold text-black-600">
+              {formatCurrency(result?.["NHCE Average Benefit"]) || "N/A"}
+            </span>
+          </p>
+
+          <p className="text-lg mt-2">
+            <strong className="text-gray-700">HCE/NHCE Ratio:</strong>{" "}
+            <span className="font-semibold text-black-600">
+              {result?.["HCE/NHCE Ratio"] ?? "N/A"}
+            </span>
+          </p>
+
+          <p className="text-lg mt-2">
+            <strong className="text-gray-700">Total Contributions:</strong>{" "}
+            <span className="font-semibold text-black-600">
+              {formatCurrency(result?.["Total Contributions"]) || "N/A"}
+            </span>
+          </p>
+
+          <p className="text-lg mt-2">
+            <strong className="text-gray-700">Total Benefits:</strong>{" "}
+            <span className="font-semibold text-black-600">
+              {formatCurrency(result?.["Total Benefits"]) || "N/A"}
+            </span>
+          </p>
+
+          <p className="text-lg mt-2">
+            <strong className="text-gray-700">Test Result:</strong>{" "}
+            <span
+              className={`px-3 py-1 rounded-md font-bold ${
+                result?.["Test Result"] === "Passed"
+                  ? "bg-green-500 text-white"
+                  : "bg-red-500 text-white"
+              }`}
+            >
+              {result?.["Test Result"] ?? "N/A"}
+            </span>
+          </p>
+        </div>
+
+        {/* Export & Download Buttons */}
+        <div className="flex flex-col gap-2 mt-4">
+          <button
+            onClick={exportToPDF}
+            className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+          >
+            Export PDF Results
+          </button>
+          <button
+            onClick={downloadResultsAsCSV}
+            className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
+          >
+            Download CSV Results
+          </button>
+        </div>
+
+        {/* Corrective Actions & Consequences if Test Failed */}
+        {result?.["Test Result"]?.toLowerCase() === "failed" && (
+          <>
+            <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+              <h4 className="font-bold text-black-600">Corrective Actions:</h4>
+              <ul className="list-disc list-inside text-black-600">
+                <li>Review the allocation of contributions between the employer and employees.</li>
+                <br />
+                <li>Adjust plan benefit design to promote equitable contributions.</li>
+                <br />
+                <li>Reevaluate plan terms to align with non-discrimination requirements.</li>
+              </ul>
+            </div>
+
+            <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
+              <h4 className="font-bold text-black-600">Consequences:</h4>
+              <ul className="list-disc list-inside text-black-600">
+                <li>❌ Benefits may be reclassified as taxable for highly compensated employees.</li>
+                <br />
+                <li>❌ Additional employer contributions might be required.</li>
+                <br />
+                <li>❌ Increased risk of IRS penalties and audits.</li>
+              </ul>
+            </div>
+          </>
         )}
       </div>
-
-      {/* Download CSV Template Button */}
-      <button
-        onClick={downloadCSVTemplate}
-        className="mt-4 w-full px-4 py-2 text-white bg-gray-500 hover:bg-gray-600 rounded-md"
-      >
-        Download CSV Template
-      </button>
-
-      {/* Choose File Button */}
-      <button
-        type="button"
-        onClick={open}
-        className="mt-4 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
-      >
-        Choose File
-      </button>
-
-      {/* Upload Button */}
-      <button
-        onClick={handleUpload}
-        className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
-          !file || !planYear ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-600"
-        }`}
-        disabled={!file || !planYear || loading}
-      >
-        {loading ? "Uploading..." : "Upload"}
-      </button>
-
-      {/* Display Errors */}
-      {error && <div className="mt-3 text-red-500">{error}</div>}
-
-      {/* Display Results */}
-     {result && (
-  <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-md">
-    <h3 className="font-bold text-xl text-gray-700">
-      Cafeteria Contributions & Benefits Test Results
-    </h3>
-
-    <div className="mt-4">
-      <p className="text-lg">
-        <strong className="text-gray-700">Plan Year:</strong>{" "}
-        <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
-      </p>
-
-      <p className="text-lg mt-2">
-        <strong className="text-gray-700">Total Employees:</strong>{" "}
-        <span className="font-semibold text-black-600">
-          {result?.["Total Employees"] ?? "N/A"}
-        </span>
-      </p>
-
-      <p className="text-lg mt-2">
-        <strong className="text-gray-700">Total Participants:</strong>{" "}
-        <span className="font-semibold text-black-600">
-          {result?.["Total Participants"] ?? "N/A"}
-        </span>
-      </p>
-
-      <p className="text-lg mt-2">
-        <strong className="text-gray-700">Employer Contributions (Avg):</strong>{" "}
-        <span className="font-semibold text-black-600">
-          {formatCurrency(result?.["Employer Contributions (Avg)"]) || "N/A"}
-        </span>
-      </p>
-
-      <p className="text-lg mt-2">
-        <strong className="text-gray-700">Employee Contributions (Avg):</strong>{" "}
-        <span className="font-semibold text-black-600">
-          {formatCurrency(result?.["Employee Contributions (Avg)"]) || "N/A"}
-        </span>
-      </p>
-
-      <p className="text-lg mt-2">
-        <strong className="text-gray-700">HCE Average Benefit:</strong>{" "}
-        <span className="font-semibold text-black-600">
-          {formatCurrency(result?.["HCE Average Benefit"]) || "N/A"}
-        </span>
-      </p>
-
-      <p className="text-lg mt-2">
-        <strong className="text-gray-700">NHCE Average Benefit:</strong>{" "}
-        <span className="font-semibold text-black-600">
-          {formatCurrency(result?.["NHCE Average Benefit"]) || "N/A"}
-        </span>
-      </p>
-
-      <p className="text-lg mt-2">
-        <strong className="text-gray-700">HCE/NHCE Ratio:</strong>{" "}
-        <span className="font-semibold text-black-600">
-          {result?.["HCE/NHCE Ratio"] ?? "N/A"}
-        </span>
-      </p>
-
-      <p className="text-lg mt-2">
-        <strong className="text-gray-700">Total Contributions:</strong>{" "}
-        <span className="font-semibold text-black-600">
-          {formatCurrency(result?.["Total Contributions"]) || "N/A"}
-        </span>
-      </p>
-
-      <p className="text-lg mt-2">
-        <strong className="text-gray-700">Total Benefits:</strong>{" "}
-        <span className="font-semibold text-black-600">
-          {formatCurrency(result?.["Total Benefits"]) || "N/A"}
-        </span>
-      </p>
-
-      <p className="text-lg mt-2">
-        <strong className="text-gray-700">Test Result:</strong>{" "}
-        <span
-          className={`px-3 py-1 rounded-md font-bold ${
-            result?.["Test Result"] === "Passed"
-              ? "bg-green-500 text-white"
-              : "bg-red-500 text-white"
-          }`}
-        >
-          {result?.["Test Result"] ?? "N/A"}
-        </span>
-      </p>
-    </div>
+    )}
   </div>
-  )}
-
-          {/* Export & Download Buttons */}
-          {result && (
-          <div className="flex flex-col gap-2 mt-4">
-            <button
-              onClick={exportToPDF}
-              className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
-            >
-              Export PDF Results
-            </button>
-            <button
-              onClick={downloadResultsAsCSV}
-              className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
-            >
-              Download CSV Results
-            </button>
-          </div>
-
-          )}
-
-          {/* Corrective Actions & Consequences if Test Failed */}
-          {result?.["Test Result"]?.toLowerCase() === "failed" && (
-            <>
-              <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
-                <h4 className="font-bold text-black-600">Corrective Actions:</h4>
-                <ul className="list-disc list-inside text-black-600">
-                  <li>Review the allocation of contributions between the employer and employees.</li>
-                  <br />
-                  <li>Adjust plan benefit design to promote equitable contributions.</li>
-                  <br />
-                  <li>Reevaluate plan terms to align with non-discrimination requirements.</li>
-                </ul>
-              </div>
-
-              <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
-                <h4 className="font-bold text-black-600">Consequences:</h4>
-                <ul className="list-disc list-inside text-black-600">
-                  <li>❌ Benefits may be reclassified as taxable for highly compensated employees.</li>
-                  <br />
-                  <li>❌ Additional employer contributions might be required.</li>
-                  <br />
-                  <li>❌ Increased risk of IRS penalties and audits.</li>
-                </ul>
-              </div>
-            </>
-          )}
-        </div>
-      )
-    </div>
-  );
-}
+);
 
 export default CafeteriaContributionsBenefitsTest;
