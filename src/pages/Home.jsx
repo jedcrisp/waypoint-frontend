@@ -21,32 +21,32 @@ const Home = () => {
 
   const sections = [
     {
-      title: "Cafeteria Plan",
+      title: "Cafeteria Plan Testing",
       route: "/cafeteria-tests",
       icon: <Globe className="w-12 h-12 text-blue-600 mb-4" />,
     },
     {
-      title: "Dependent Care Assistance Program (DCAP)",
+      title: "Dependent Care Assistance Program (DCAP) Testing",
       route: "/dcap-tests",
       icon: <Feather className="w-12 h-12 text-blue-600 mb-4" />,
     },
     {
-      title: "Health Flexible Spending Account (FSA)",
+      title: "Health Flexible Spending Account (FSA) Testing",
       route: "/health-fsa-tests",
       icon: <Heart className="w-12 h-12 text-blue-600 mb-4" />,
     },
     {
-      title: "Health Reimbursement Arrangement (HRA)",
+      title: "Health Reimbursement Arrangement (HRA) Testing",
       route: "/health-hra-tests",
       icon: <Wallet className="w-12 h-12 text-blue-600 mb-4" />,
     },
     {
-      title: "401(k) & Retirement Plan",
+      title: "401(k) & Retirement Plan Testing",
       route: "/retirement-plan-tests",
       icon: <DollarSign className="w-12 h-12 text-blue-600 mb-4" />,
     },
     {
-      title: "Additional IRS NDTs",
+      title: "Additional IRS Testing",
       route: "/additional-ndt-tests",
       icon: <Gavel className="w-12 h-12 text-blue-600 mb-4" />,
     },
