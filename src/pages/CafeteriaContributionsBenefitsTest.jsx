@@ -334,11 +334,11 @@ const CafeteriaContributionsBenefitsTest = () => {
   // RENDER
   // =========================
   return (
-    <div
+    <div>
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
       onKeyDown={handleKeyDown}
       tabIndex="0"
-    >
+    {'>'}
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
         📂 Upload Cafeteria Contributions & Benefits File
       </h2>
@@ -361,7 +361,6 @@ const CafeteriaContributionsBenefitsTest = () => {
               </option>
             ))}
           </select>
-        </div>
       </div>
 
       {/* Drag & Drop Area */}
@@ -380,7 +379,8 @@ const CafeteriaContributionsBenefitsTest = () => {
           <p className="text-gray-600">
             Drag & drop a <strong>CSV or Excel file</strong> here.
           </p>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Download CSV Template Button */}
@@ -560,8 +560,7 @@ const CafeteriaContributionsBenefitsTest = () => {
             </>
           )}
         </div>
-      )}
-    </div>
+
   );
 };
 
