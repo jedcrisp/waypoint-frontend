@@ -108,11 +108,11 @@ const CafeteriaContributionsBenefitsTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("selected_tests", "average_benefit"); // Adjust if needed
+    formData.append("selected_tests", "cafeteria_contributions_benefits"); // Adjust if needed
     formData.append("plan_year", planYear); // Include plan year
 
     try {
-      console.log("🚀 Uploading file to:", `${API_URL}/upload-csv/cafeteria_contributions_benefits_test`);
+      console.log("🚀 Uploading file to:", `${API_URL}/upload-csv/cafeteria_contributions_benefits`);
 
       // 1. Get Firebase token
       const auth = getAuth();
@@ -125,7 +125,7 @@ const CafeteriaContributionsBenefitsTest = () => {
 
       // 2. Send POST request
       const response = await axios.post(
-        `${API_URL}/upload-csv/cafeteria_contributions_benefits_test`,
+        `${API_URL}/upload-csv/cafeteria_contributions_benefits`,
         formData,
         {
           headers: {
@@ -136,7 +136,7 @@ const CafeteriaContributionsBenefitsTest = () => {
       );
 
       console.log("✅ API Response:", response.data);
-      setResult(response.data?.["Test Results"]?.["cafeteria_contributions_benefits_test"] || {});
+      setResult(response.data?.["Test Results"]?.["cafeteria_contributions_benefits"] || {});
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError(
