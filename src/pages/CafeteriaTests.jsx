@@ -49,6 +49,9 @@ export default function CafeteriaTests() {
       <h1 className="text-5xl font-light text-[#0074d9] mb-8">
         Cafeteria Plan Tests
       </h1>
+      <p className="text-lg text-gray-700 text-center max-w-2xl mb-8">
+        Assess Cafeteria Plan compliance with a comprehensive set of tests to ensure nondiscriminatory benefit offerings and alignment with IRS Section 125 regulations.
+      </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl">
         {tests.map((test) => (
           <div
