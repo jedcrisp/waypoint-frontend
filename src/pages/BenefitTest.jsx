@@ -458,7 +458,9 @@ const BenefitTest = () => {
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>Refund Excess Contributions to Highly Compensated Employees (HCEs).</li>
+                  <br />
                   <li>Make Additional Contributions to Non-HCEs.</li>
+                  <br />
                   <li>Recharacterize Excess Contributions.</li>
                 </ul>
               </div>
@@ -467,9 +469,13 @@ const BenefitTest = () => {
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>❌ Loss of Tax-Exempt Status for Key Employees</li>
+                  <br />
                   <li>❌ IRS Scrutiny and Potential Penalties</li>
+                  <br />
                   <li>❌ Plan Disqualification Risks</li>
+                  <br />
                   <li>❌ Employee Discontent & Reduced Participation</li>
+                  <br />
                   <li>❌ Reputational and Legal Risks</li>
                 </ul>
               </div>
