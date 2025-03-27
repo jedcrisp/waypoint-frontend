@@ -5,18 +5,27 @@ import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
+// Formatting helpers
+const formatCurrency = (value) => {
+  if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+  return Number(value).toLocaleString("en-US", { style: "currency", currency: "USD" });
+};
+
+const formatPercentage = (value) => {
+  if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+  return `${Number(value).toFixed(2)}%`;
+};
+
 const SimpleCafeteriaPlanEligibilityTest = () => {
   const [file, setFile] = useState(null);
-   const [loading, setLoading] = useState(false);
-   const [result, setResult] = useState(null);
-   const [error, setError] = useState(null);
-   const [planYear, setPlanYear] = useState(""); // Plan year selection state
+  const [planYear, setPlanYear] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
 
-   // =========================
-   // 1. Drag & Drop Logic
-   // =========================
+  // --- 1. Drag & Drop Logic ---
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
       setFile(acceptedFiles[0]);
@@ -33,28 +42,22 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
     noKeyboard: true,
   });
 
-  // =========================
-  // 2. Upload File to Backend
-  // =========================
+  // --- 2. Upload File to Backend ---
   const handleUpload = async () => {
     if (!file) {
       setError("❌ Please select a file before uploading.");
       return;
     }
-
-    // Validate file type (CSV or Excel)
+    if (!planYear) {
+      setError("❌ Please select a plan year.");
+      return;
+    }
     const validFileTypes = ["csv", "xlsx"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
     }
-
-    if (!planYear) {
-      setError("❌ Please select a plan year.");
-      return;
-    }
-
     setLoading(true);
     setError(null);
     setResult(null);
@@ -65,8 +68,6 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/simple_cafeteria_plan_eligibility`);
-
-      // 1. Get Firebase token
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken(true);
       if (!token) {
@@ -74,49 +75,42 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
         setLoading(false);
         return;
       }
-
-      console.log("Firebase Token:", token);
-
-      // 2. Send POST request with Bearer token
-      const response = await axios.post(`${API_URL}/upload-csv/simple_cafeteria_plan_eligibility`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      console.log("✅ Full API Response:", response.data);
+      const response = await axios.post(
+        `${API_URL}/upload-csv/simple_cafeteria_plan_eligibility`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
       setResult(response.data?.["Test Results"]?.["simple_cafeteria_plan_eligibility"] || {});
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
-      setError(err.response?.data?.error || "❌ Failed to upload file. Please check the format and try again.");
-      } finally {
-        setLoading(false);
-      }
-    }; // Add this closing brace to properly end the handleUpload function
+      setError("❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // =========================
-// 4. Download CSV Template
-// =========================
-const downloadCSVTemplate = () => {
-  // Define the CSV data as an array of arrays
-  const csvData = [
-    ["Last Name", "First Name", "Employee ID", "Eligible for Cafeteria Plan", "Hours Worked", "Earnings", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test"],
-    ["Last", "First", "001", "Yes", "2050", "72000", "No", "1990-04-12", "2020-06-01", "Active", "No"],
-    ["Last", "First", "002", "Yes", "1950", "68000", "Yes", "1985-11-03", "2019-01-15", "Active", "No"],
-    ["Last", "First", "003", "No", "1800", "45000", "No", "1998-07-22", "2023-03-01", "Active", "No"],
-    ["Last", "First", "004", "Yes", "2000", "88000", "Yes", "1979-09-10", "2005-07-12", "Active", "No"],
-    ["Last", "First", "005", "No", "1600", "36000", "No", "2000-12-01", "2022-08-20", "Terminated", "No"],
-    ["Last", "First", "006", "Yes", "2100", "95000", "No", "1992-05-14", "2021-04-10", "Active", "Yes"],
-    ["Last", "First", "007", "No", "1200", "24000", "No", "2002-01-05", "2023-09-10", "Active", "No"],
-    ["Last", "First", "008", "Yes", "2080", "72000", "Yes", "1980-03-25", "2015-11-01", "Active", "No"],
-    ["Last", "First", "009", "Yes", "2200", "86000", "No", "1995-06-30", "2020-02-01", "Active", "No"],
-    ["Last", "First", "010", "No", "1000", "18000", "No", "2003-09-12", "2023-01-10", "Leave", "No"]
-  ];
+  // --- 3. Download CSV Template ---
+  const downloadCSVTemplate = () => {
+    const csvData = [
+  ["Last Name", "First Name", "Employee ID", "Eligible for Cafeteria Plan", "Hours Worked", "Earnings", "HCE", "DOB", "DOH", "Employment Status", "Union Employee", "Excluded from Test", "Plan Entry Date", "Part-Time / Seasonal"],
+  ["Last", "First", "001", "Yes", "2050", "72000", "No", "1990-04-12", "2020-06-01", "Active", "No", "No", "2016-01-01", "No"],
+  ["Last", "First", "002", "Yes", "1950", "68000", "Yes", "1985-11-03", "2019-01-15", "Active", "No", "No", "2022-04-04", "No"],
+  ["Last", "First", "003", "No", "1800", "45000", "No", "1998-07-22", "2023-03-01", "Active", "No", "No", "2023-03-01", "No"],
+  ["Last", "First", "004", "Yes", "2100", "80000", "Yes", "1980-02-18", "2018-05-10", "Active", "No", "No", "2018-06-01", "No"],
+  ["Last", "First", "005", "Yes", "2080", "75000", "No", "1991-09-30", "2017-09-01", "Active", "No", "No", "2017-10-01", "No"],
+  ["Last", "First", "006", "No", "1700", "42000", "No", "1995-06-14", "2022-02-15", "Active", "No", "No", "2022-03-01", "No"],
+  ["Last", "First", "007", "Yes", "2000", "69000", "No", "1983-12-12", "2010-04-20", "Active", "Yes", "No", "2010-05-01", "Yes"],
+  ["Last", "First", "008", "Yes", "2150", "88000", "Yes", "1979-05-09", "2005-03-10", "Active", "No", "No", "2005-04-01", "No"],
+  ["Last", "First", "009", "No", "1600", "39000", "No", "1999-01-01", "2023-06-01", "Active", "No", "No", "2023-06-01", "No"],
+  ["Last", "First", "010", "Yes", "1980", "70000", "Yes", "1987-08-23", "2012-08-15", "Active", "No", "No", "2012-09-01", "No"],
+];
 
-      const csvTemplate = csvData
-          .map((row) => row.join(","))
-          .join("\n");
+    const csvTemplate = csvData.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -125,195 +119,135 @@ const downloadCSVTemplate = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
-  const totalEmployees = result["Total Employees"] ?? "N/A";
-  const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
-  const eligibilityPercentage = result["Eligibility Percentage (%)"] ?? "N/A";
-  const hoursRequirementMet = result["Hours Requirement Met"] ?? "N/A";
-  const employeeCountThreshold = result["Employee Count Threshold"] ?? "N/A";
-  const testResult = result["Test Result"] ?? "N/A";
-
-  // Basic rows for the CSV
-  const csvRows = [
-    ["Metric", "Value"],
-    ["Total Employees", totalEmployees],
-    ["Eligible Employees", eligibleEmployees],
-    ["Eligibility Percentage (%)", eligibilityPercentage],
-    ["Hours Requirement Met", hoursRequirementMet],
-    ["Employee Count Threshold", employeeCountThreshold],
-    ["Test Result", testResult],
-  ];
-
-  // If the test failed, add corrective actions and consequences
-  if (testResult.toLowerCase() === "failed") {
-    const correctiveActions = [
-      "Review employee eligibility criteria to ensure minimum participation is met.",
-      "Adjust plan design to include a broader employee base.",
-      "Ensure compliance with SIMPLE Cafeteria Plan requirements as outlined in IRC § 125(j).",
-    ];
-    const consequences = [
-      "Loss of Safe Harbor status for the plan.",
-      "Potential reclassification of benefits as taxable.",
-      "Increased compliance and administrative burdens.",
-    ];
-
-    csvRows.push(["", ""]);
-    csvRows.push(["Corrective Actions", ""]);
-    correctiveActions.forEach((action) => csvRows.push(["", action]));
-
-    csvRows.push(["", ""]);
-    csvRows.push(["Consequences", ""]);
-    consequences.forEach((item) => csvRows.push(["", item]));
-  }
-
-  // Convert array to CSV
-  const csvContent = csvRows.map((row) => row.join(",")).join("\n");
-
-  // Create and download the CSV file
-  const resultBlob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const resultUrl = URL.createObjectURL(resultBlob);
-
-  const resultLink = document.createElement("a");
-  resultLink.href = resultUrl;
-  resultLink.setAttribute("download", "Simple_Cafeteria_Plan_Eligibility_Results.csv"); // Ensure correct file name
-  document.body.appendChild(resultLink);
-  resultLink.click();
-  document.body.removeChild(resultLink);
   };
 
+  // --- 4. Export Results to PDF ---
+  const exportToPDF = () => {
+    if (!result) {
+      setError("❌ No results available to export.");
+      return;
+    }
 
-  // =========================
-    // 5. Export Results to PDF (Including Consequences)
-    // =========================
-    const exportToPDF = () => {
-  if (!result) {
-    setError("❌ No results available to export.");
-    return;
-  }
+    const totalEmployees = result["Total Employees"] ?? "N/A";
+    const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
+    const eligibilityPct = result["Eligibility Percentage (%)"] !== undefined ? formatPercentage(result["Eligibility Percentage (%)"]) : "N/A";
+    const hoursReq = result["Hours Requirement Met"] ?? "N/A";
+    const employeeThreshold = result["Employee Count Threshold"] ?? "N/A";
+    const testRes = result["Test Result"] ?? "N/A";
+    const failed = testRes.toLowerCase() === "failed";
 
-  // Extract data from the result object
-  const totalEmployees = result["Total Employees"] ?? "N/A";
-  const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
-  const eligibilityPercentage = result["Eligibility Percentage (%)"] ?? "N/A";
-  const hoursRequirementMet = result["Hours Requirement Met"] ?? "N/A";
-  const employeeCountThreshold = result["Employee Count Threshold"] ?? "N/A";
-  const testResult = result["Test Result"] ?? "N/A";
-  const generatedTimestamp = new Date().toLocaleString();
-  pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
-
-  const pdf = new jsPDF("p", "mm", "a4");
-  
-    // Header
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(18);
-    pdf.text("Simple Cafeteria Plan Eligibility Test Results", 105, 15, { align: "center" });
-  
+    const pdf = new jsPDF("p", "mm", "a4");
     pdf.setFont("helvetica", "normal");
+
+    // Header
+    pdf.setFontSize(18);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Simple Cafeteria Plan Eligibility Test Results", 105, 15, { align: "center" });
     pdf.setFontSize(12);
+    pdf.setFont("helvetica", "normal");
     pdf.text(`Plan Year: ${planYear || "N/A"}`, 105, 25, { align: "center" });
-  
+    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
+
     // Results Table
     pdf.autoTable({
-    startY: 40,
-    theme: "grid",
-    head: [["Metric", "Value"]],
-    body: [
-      ["Total Employees", totalEmployees],
-      ["Eligible Employees", eligibleEmployees],
-      ["Eligibility Percentage (%)", eligibilityPercentage],
-      ["Hours Requirement Met", hoursRequirementMet],
-      ["Employee Count Threshold", employeeCountThreshold],
-      ["Test Result", testResult],
-    ],
-    headStyles: {
-      fillColor: [41, 128, 185], // Blue header
-      textColor: [255, 255, 255], // White text
-    },
-    styles: {
-      fontSize: 12,
-      font: "helvetica",
-    },
-    margin: { left: 10, right: 10 },
-  });
-
-  const nextY = pdf.lastAutoTable.finalY + 10;
-  const failed = testResult.toLowerCase() === "failed";
-
-  // Corrective Actions
-  if (failed) {
-    pdf.setFillColor(255, 230, 230); // Light red
-    pdf.setDrawColor(255, 0, 0); // Red border
-    const correctiveBoxHeight = 35;
-    pdf.rect(10, nextY, 190, correctiveBoxHeight, "FD");
-
-    // Title
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(14);
-    pdf.setTextColor(255, 0, 0);
-    pdf.text("Corrective Actions", 15, nextY + 8);
-
-    // Bullet Points
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(11);
-    pdf.setTextColor(0, 0, 0);
-    let bulletY = nextY + 14;
-    const lineHeight = 6;
-
-    const correctiveActions = [
-      "Review employee eligibility criteria to ensure minimum participation is met.",
-      "Adjust plan design to include a broader employee base.",
-      "Ensure compliance with SIMPLE Cafeteria Plan requirements as outlined in IRC § 125(j).",
-    ];
-
-    correctiveActions.forEach((action) => {
-      pdf.text(`• ${action}`, 15, bulletY);
-      bulletY += lineHeight;
+      startY: 40,
+      head: [["Metric", "Value"]],
+      body: [
+        ["Total Employees", totalEmployees],
+        ["Eligible Employees", eligibleEmployees],
+        ["Eligibility Percentage (%)", eligibilityPct],
+        ["Hours Requirement Met", hoursReq],
+        ["Employee Count Threshold", employeeThreshold],
+        ["Test Result", testRes],
+      ],
+      headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+      styles: { fontSize: 12, font: "helvetica" },
+      margin: { left: 10, right: 10 },
     });
 
-    // Consequences Box
-    const nextBoxY = nextY + correctiveBoxHeight + 5;
-    pdf.setFillColor(255, 255, 204); // Light yellow
-    pdf.setDrawColor(255, 204, 0); // Gold border
-    const consequencesBoxHeight = 40;
-    pdf.rect(10, nextBoxY, 190, consequencesBoxHeight, "FD");
-
-    // Title
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(14);
-    pdf.setTextColor(204, 153, 0); // Dark gold
-    pdf.text("Consequences", 15, nextBoxY + 8);
-
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(11);
-    pdf.setTextColor(0, 0, 0);
-    let bulletY2 = nextBoxY + 14;
+    // Corrective actions & consequences (only if failed)
+  if (failed) {
+    const correctiveActions = [
+        "• Review employee eligibility criteria.",
+        "• Adjust plan design to improve participation.",
+        "• Ensure compliance with SIMPLE Plan requirements.",
+      ];
 
     const consequences = [
-      "Loss of Safe Harbor status for the plan.",
-      "Potential reclassification of benefits as taxable.",
-      "Increased compliance and administrative burdens.",
+        "• Plan may lose tax-qualified status.",
+        "• IRS penalties and increased audit risk.",
+        "• Additional corrective contributions required.",
+      ];
+
+    pdf.autoTable({
+      startY: pdf.lastAutoTable.finalY + 10,
+      theme: "grid",
+      head: [["Corrective Actions"]],
+      body: correctiveActions.map(action => [action]),
+      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+      styles: { fontSize: 11, font: "helvetica" },
+      margin: { left: 10, right: 10 },
+    });
+
+      pdf.save("Simple_Cafeteria_Plan_Eligibility_Test_Results.pdf");
+    }
+  };
+
+  // --- 5. Download Results as CSV ---
+  const downloadResultsAsCSV = () => {
+    if (!result) {
+      setError("❌ No results available to download.");
+      return;
+    }
+
+    const totalEmployees = result["Total Employees"] ?? "N/A";
+    const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
+    const eligibilityPct = result["Eligibility Percentage (%)"] !== undefined
+      ? formatPercentage(result["Eligibility Percentage (%)"])
+      : "N/A";
+    const hoursReq = result["Hours Requirement Met"] ?? "N/A";
+    const employeeThreshold = result["Employee Count Threshold"] ?? "N/A";
+    const testRes = result["Test Result"] ?? "N/A";
+    const failed = testRes.toLowerCase() === "failed";
+
+    const csvRows = [
+      ["Metric", "Value"],
+      ["Plan Year", planYear],
+      ["Total Employees", totalEmployees],
+      ["Eligible Employees", eligibleEmployees],
+      ["Eligibility Percentage (%)", eligibilityPct],
+      ["Hours Requirement Met", hoursReq],
+      ["Employee Count Threshold", employeeThreshold],
+      ["Test Result", testRes],
     ];
 
-    consequences.forEach((item) => {
-      pdf.text(`• ${item}`, 15, bulletY2);
-      bulletY2 += lineHeight;
-    });
-  }
+    if (failed) {
+      const correctiveActions = [
+        "Review employee eligibility criteria.",
+        "Adjust plan design to improve participation.",
+        "Ensure compliance with SIMPLE Plan requirements.",
+      ];
+      const consequences = [
+        "Plan may lose tax-qualified status.",
+        "IRS penalties and increased audit risk.",
+        "Additional corrective contributions required.",
+      ];
+      csvRows.push([], ["Corrective Actions"], ...correctiveActions.map(a => ["", a]));
+      csvRows.push([], ["Consequences"], ...consequences.map(c => ["", c]));
+    }
 
-   // Footer
-  pdf.setFontSize(10);
-  pdf.setFont("helvetica", "italic");
-  pdf.setTextColor(100, 100, 100);
-  pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
+    const csvContent = csvRows.map(row => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "Simple_Cafeteria_Plan_Eligibility_Results.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
-  // Save the PDF
-  pdf.save("Simple_Cafeteria_Plan_Eligibility_Test_Results.pdf");
-
-    };
-
-    // =========================
-   // 6. Handle Enter Key
-   // =========================
+  // --- 6. Handle Enter Key ---
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && file && !loading) {
       e.preventDefault();
@@ -322,200 +256,201 @@ const downloadCSVTemplate = () => {
     }
   };
 
-  const downloadResultsAsCSV = () => {
-  if (!result) {
-    setError("❌ No results available to download.");
-    return;
-  }
-
-  const csvRows = [
-    ["Metric", "Value"],
-    ["Total Employees", result["Total Employees"] ?? "N/A"],
-    ["Eligible Employees", result["Eligible Employees"] ?? "N/A"],
-    ["Eligibility Percentage (%)", result["Eligibility Percentage (%)"] ?? "N/A"],
-    ["Hours Requirement Met", result["Hours Requirement Met"] ?? "N/A"],
-    ["Earnings Requirement Met", result["Earnings Requirement Met"] ?? "N/A"],
-    ["Test Result", result["Test Result"] ?? "N/A"],
-    ["Test Criterion", "At least 70% eligibility with Hours Worked ≥ 1000 and Earnings ≥ 5000"],
-  ];
-
-  if (result["Test Result"] === "Failed") {
-    const correctiveActions = [
-      "Review employee eligibility criteria to ensure minimum participation is met.",
-      "Adjust plan design to include a broader employee base.",
-      "Ensure compliance with SIMPLE Cafeteria Plan requirements as outlined in IRC § 125(j).",
-    ];
-    const consequences = [
-      "Loss of Safe Harbor status for the plan.",
-      "Potential reclassification of benefits as taxable.",
-      "Increased compliance and administrative burdens.",
-    ];
-
-    csvRows.push(["", ""]);
-    csvRows.push(["Corrective Actions", ""]);
-    correctiveActions.forEach((action) => csvRows.push(["", action]));
-
-    csvRows.push(["", ""]);
-    csvRows.push(["Consequences", ""]);
-    consequences.forEach((item) => csvRows.push(["", item]));
-  }
-
-  const csvContent = csvRows.map((row) => row.join(",")).join("\n");
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-
-  const link = document.createElement("a");
-  link.href = url;
-  link.setAttribute("download", "Simple_Cafeteria_Plan_Eligibility_Results.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
-  
-
-  // =========================
-  // RENDER
-  // =========================
+  // --- 7. Render ---
   return (
-  <div
-    className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
-    onKeyDown={handleKeyDown}
-    tabIndex="0"
-  >
-    <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
-      📂 Upload SIMPLE Cafeteria Plan Eligibility File
-    </h2>
-
-    {/* Plan Year Dropdown */}
-    <div className="mb-6">
-      <div className="flex items-center">
-        {planYear === "" && (
-          <span className="text-red-500 text-lg mr-2">*</span>
-        )}
-        <select
-          id="planYear"
-          value={planYear}
-          onChange={(e) => setPlanYear(e.target.value)}
-          className="flex-3 px-4 py-2 border border-gray-300 rounded-md w-full"
-          required
-        >
-          <option value="">-- Select Plan Year --</option>
-          {Array.from({ length: 41 }, (_, i) => 2010 + i).map((year) => (
-            <option key={year} value={year}>
-              {year}
-            </option>
-          ))}
-        </select>
-      </div>
-    </div>
-
-    {/* Drag & Drop Area */}
     <div
-      {...getRootProps()}
-      className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-        isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
-      }`}
+      className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
+      onKeyDown={handleKeyDown}
+      tabIndex="0"
     >
-      <input {...getInputProps()} />
-      {file ? (
-        <p className="text-green-600 font-semibold">{file.name}</p>
-      ) : isDragActive ? (
-        <p className="text-blue-600">📂 Drop the file here...</p>
-      ) : (
-        <p className="text-gray-600">
-          Drag & drop a <strong>CSV or Excel file</strong> here.
-        </p>
-      )}
-    </div>
+      <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
+        📂 Upload SIMPLE Cafeteria Plan Eligibility File
+      </h2>
 
-    {/* Buttons */}
-    <div className="flex flex-col gap-2 mt-4">
+      {/* Plan Year Dropdown */}
+      <div className="mb-6">
+        <div className="flex items-center">
+          {planYear === "" && (
+            <span className="text-red-500 text-lg mr-2">*</span>
+          )}
+          <select
+            id="planYear"
+            value={planYear}
+            onChange={(e) => setPlanYear(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-md"
+            required
+          >
+            <option value="">-- Select Plan Year --</option>
+            {Array.from({ length: 41 }, (_, i) => 2010 + i).map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Drag & Drop Area */}
+      <div
+        {...getRootProps()}
+        className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
+          isDragActive ? "border-blue-500 bg-blue-100" : "border-gray-300 bg-gray-50"
+        }`}
+      >
+        <input {...getInputProps()} />
+        {file ? (
+          <p className="text-green-600 font-semibold">{file.name}</p>
+        ) : isDragActive ? (
+          <p className="text-blue-600">📂 Drop the file here...</p>
+        ) : (
+          <p className="text-gray-600">
+            Drag & drop a <strong>CSV or Excel file</strong> here.
+          </p>
+        )}
+      </div>
+
+      {/* Download CSV Template Button */}
       <button
         onClick={downloadCSVTemplate}
-        className="w-full px-4 py-2 text-white bg-gray-500 hover:bg-gray-600 rounded-md"
+        className="mt-4 w-full px-4 py-2 text-white bg-gray-500 hover:bg-gray-600 rounded-md"
       >
         Download CSV Template
       </button>
+
+      {/* Choose File Button */}
       <button
         type="button"
         onClick={open}
-        className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+        className="mt-4 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
       >
         Choose File
       </button>
+
+      {/* Upload Button */}
       <button
         onClick={handleUpload}
-        className={`w-full px-4 py-2 text-white rounded-md ${
-          !file ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
+        className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
+          !file || !planYear
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-green-500 hover:bg-green-600"
         }`}
-        disabled={!file || loading}
+        disabled={!file || !planYear || loading}
       >
         {loading ? "Uploading..." : "Upload"}
       </button>
-    </div>
 
-    {/* Display Errors */}
-    {error && <div className="mt-3 text-red-500">{error}</div>}
+      {/* Display Errors */}
+      {error && <div className="mt-3 text-red-500">{error}</div>}
 
-    {/* Display Results */}
-    {result && (
-      <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
-        <h3 className="font-bold text-xl text-gray-700">SIMPLE Cafeteria Plan Eligibility Results</h3>
-        <div className="mt-4">
-          <p>
-            <strong>Eligible Employees:</strong> {result?.["Eligible Employees"] ?? "N/A"}
-          </p>
-          <p>
-            <strong>Employee Count Threshold:</strong> {result?.["Employee Count Threshold"] ?? "N/A"}
-          </p>
-          <p>
-            <strong>Hours Requirement Met:</strong> {result?.["Hours Requirement Met"] ?? "N/A"}
-          </p>
-          <p>
-            <strong>Eligibility Percentage (%):</strong> {result?.["Eligibility Percentage (%)"] ?? "N/A"}
-          </p>
-          <p>
-            <strong>Total Employees:</strong> {result?.["Total Employees"] ?? "N/A"}
-          </p>
-          <p>
-            <strong>Test Criterion:</strong> At least 70% eligibility with Hours Worked ≥ 1000 and Earnings ≥ 5000
-          </p>
-          <p>
-            <strong>Test Result:</strong>{" "}
-            <span
-              className={`px-3 py-1 rounded-md font-bold ${
-                result["Test Result"] === "Passed"
-                  ? "bg-green-500 text-white"
-                  : "bg-red-500 text-white"
-              }`}
+      {/* Display Results */}
+      {result && (
+        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-md">
+          <h3 className="font-bold text-xl text-gray-700">Simple Cafeteria Plan Eligibility Results</h3>
+          <div className="mt-4">
+            <p className="text-lg">
+              <strong className="text-gray-700">Plan Year:</strong>{" "}
+              <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Eligible Employees:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Eligible Employees"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Employee Count Threshold:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Employee Count Threshold"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Hours Requirement Met:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Hours Requirement Met"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Eligibility Percentage:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Eligibility Percentage (%)"] !== undefined
+                  ? result["Eligibility Percentage (%)"] + "%"
+                  : "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Total Employees:</strong>{" "}
+              <span className="font-semibold text-blue-600">
+                {result?.["Total Employees"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Test Criterion:</strong>{" "}
+              At least 70% eligibility with Hours Worked ≥ 1000 and Earnings ≥ 5000
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Test Result:</strong>{" "}
+              <span
+                className={`px-3 py-1 rounded-md font-bold ${
+                  result?.["Test Result"] === "Passed"
+                    ? "bg-green-500 text-white"
+                    : "bg-red-500 text-white"
+                }`}
+              >
+                {result?.["Test Result"] ?? "N/A"}
+              </span>
+            </p>
+          </div>
+
+          {/* Export & Download Buttons */}
+          <div className="flex flex-col gap-2 mt-4">
+            <button
+              onClick={exportToPDF}
+              className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
             >
-              {result["Test Result"] ?? "N/A"}
-            </span>
-          </p>
-        </div>
+              Export PDF Report
+            </button>
+            <button
+              onClick={downloadResultsAsCSV}
+              className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
+            >
+              Download CSV Report
+            </button>
+          </div>
 
-        {/* Export & Download Buttons */}
-        <div className="flex flex-col gap-2 mt-4">
-          <button
-            onClick={exportToPDF}
-            className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
-            disabled={!result} // Disable if no result
-          >
-            Export PDF Report
-          </button>
-          <button
-            onClick={downloadResultsAsCSV}
-            className={`w-full px-4 py-2 text-white rounded-md ${
-              result ? "bg-gray-600 hover:bg-gray-700" : "bg-gray-400 cursor-not-allowed"
-            }`}
-            disabled={!result} // Disable if no result
-          >
-            Download CSV Report
-          </button>
+          {/* Corrective Actions & Consequences if Test Failed */}
+          {result["Test Result"]?.toLowerCase() === "failed" && (
+            <>
+              <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+                <h4 className="font-bold text-black-600">Corrective Actions:</h4>
+                <ul className="list-disc list-inside text-black-600">
+                  <li>Review employee eligibility criteria.</li>
+                  <br />
+                  <li>Recalculate benefit allocations for compliance.</li>
+                  <br />
+                  <li>Amend plan documents to clarify classification rules.</li>
+                  <br />
+                  <li>Consult with legal or tax advisors for corrections.</li>
+                </ul>
+              </div>
+
+              <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
+                <h4 className="font-bold text-black-600">Consequences:</h4>
+                <ul className="list-disc list-inside text-black-600">
+                  <li>❌ Loss of tax-exempt status for key employees.</li>
+                  <br />
+                  <li>❌ IRS compliance violations and penalties.</li>
+                  <br />
+                  <li>❌ Plan disqualification risks.</li>
+                  <br />
+                  <li>❌ Employee dissatisfaction and legal risks.</li>
+                </ul>
+              </div>
+            </>
+          )}
         </div>
-      </div>
-    )}
-  </div>
+      )}
+    </div>
   );
 };
+
 export default SimpleCafeteriaPlanEligibilityTest;
