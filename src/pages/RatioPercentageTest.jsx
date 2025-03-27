@@ -155,11 +155,18 @@ const RatioPercentageTest = () => {
   // =========================
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-      ["Name", "Eligible for Plan", "HCE"],
-      ["Employee 1", "Yes", "Yes"],
-      ["Employee 2", "No", "No"],
-      ["Employee 3", "Yes", "No"],
-    ]
+    ["Last Name", "First Name", "Employee ID", "Eligible for Plan", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
+    ["Last", "First", "001", "Yes", "No", "1980-01-01", "2010-06-15", "Active", "No", "2020-01-01", "No", "No"],
+    ["Last", "First", "002", "Yes", "Yes", "1975-05-20", "2008-03-10", "Active", "No", "2018-01-01", "No", "No"],
+    ["Last", "First", "003", "No", "No", "1990-12-12", "2022-01-01", "Active", "No", "2022-01-01", "No", "No"],
+    ["Last", "First", "004", "Yes", "No", "1985-07-07", "2015-09-09", "Active", "No", "2015-09-09", "No", "No"],
+    ["Last", "First", "005", "No", "Yes", "1978-03-03", "2007-05-05", "Terminated", "Yes", "2018-05-05", "No", "No"],
+    ["Last", "First", "006", "Yes", "Yes", "1988-10-10", "2018-11-11", "Active", "No", "2018-11-11", "No", "No"],
+    ["Last", "First", "007", "Yes", "No", "1995-04-04", "2020-07-07", "Active", "No", "2020-07-07", "No", "No"],
+    ["Last", "First", "008", "No", "No", "1992-08-08", "2019-12-12", "Active", "No", "2019-12-12", "No", "No"],
+    ["Last", "First", "009", "Yes", "Yes", "1982-09-09", "2012-02-02", "Active", "No", "2012-02-02", "No", "No"],
+    ["Last", "First", "010", "No", "No", "2000-11-11", "2023-03-03", "Active", "No", "2023-03-03", "No", "No"],
+]
       .map((row) => row.join(","))
       .join("\n");
 
@@ -256,6 +263,8 @@ const RatioPercentageTest = () => {
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "normal");
     pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
+    const generatedTimestamp = new Date().toLocaleString();
+    pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
     // Section 1: Basic Results Table
     pdf.autoTable({
@@ -302,67 +311,49 @@ const RatioPercentageTest = () => {
       //{ maxWidth: 186 }
     //);
 
-    // Section 3: If Failed, add Corrective Actions & Consequences Boxes
-    if (failed) {
-      const correctiveBoxY = summaryStartY + boxHeight + 5;
-      pdf.setFillColor(255, 230, 230);
-      pdf.setDrawColor(255, 0, 0);
-      const correctiveBoxHeight = 35;
-      pdf.rect(10, correctiveBoxY, boxWidth, correctiveBoxHeight, "FD");
 
-      pdf.setFontSize(12);
-      pdf.setFont("helvetica", "bold");
-      pdf.setTextColor(255, 0, 0);
-      pdf.text("Corrective Actions", 15, correctiveBoxY + 8);
-
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(10);
-      pdf.setTextColor(0, 0, 0);
-      let bulletY = correctiveBoxY + 14;
-      const lineHeight = 5;
-      const correctiveActions = [
+  // Corrective actions & consequences (only if failed)
+  if (failed) {
+    const correctiveActions = [
         "Increase NHCE participation to ensure at least 70% of the HCE participation rate.",
         "Adjust plan eligibility criteria to include more NHCEs.",
         "Modify plan structure or incentives to encourage NHCE participation.",
         "Review plan design to ensure compliance with IRC § 410(b).",
       ];
-      correctiveActions.forEach((action) => {
-        pdf.text(`• ${action}`, 15, bulletY);
-        bulletY += lineHeight;
-      });
 
-      const consequencesBoxY = correctiveBoxY + correctiveBoxHeight + 5;
-      pdf.setFillColor(255, 255, 204);
-      pdf.setDrawColor(255, 204, 0);
-      const consequencesBoxHeight = 40;
-      pdf.rect(10, consequencesBoxY, boxWidth, consequencesBoxHeight, "FD");
-
-      pdf.setFontSize(12);
-      pdf.setFont("helvetica", "bold");
-      pdf.setTextColor(204, 153, 0);
-      pdf.text("Consequences", 15, consequencesBoxY + 8);
-
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(10);
-      pdf.setTextColor(0, 0, 0);
-      let bulletY2 = consequencesBoxY + 14;
-      const consequences = [
+    const consequences = [
         "Plan may fail the Eligibility Test, impacting its tax-qualified status.",
         "HCE contributions may be limited or refunded.",
         "IRS penalties and potential disqualification risks.",
         "Additional employer contributions may be required for NHCEs.",
-      ];
-      consequences.forEach((item) => {
-        pdf.text(`• ${item}`, 15, bulletY2);
-        bulletY2 += lineHeight;
-      });
+    ];
+
+    pdf.autoTable({
+      startY: pdf.lastAutoTable.finalY + 10,
+      theme: "grid",
+      head: [["Corrective Actions"]],
+      body: correctiveActions.map(action => [action]),
+      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+      styles: { fontSize: 11, font: "helvetica" },
+      margin: { left: 10, right: 10 },
+    });
+
+    pdf.autoTable({
+      startY: pdf.lastAutoTable.finalY + 10,
+      theme: "grid",
+      head: [["Consequences"]],
+      body: consequences.map(consequence => [consequence]),
+      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+      styles: { fontSize: 11, font: "helvetica" },
+      margin: { left: 10, right: 10 },
+    });
     }
 
     // Footer
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "italic");
     pdf.setTextColor(100, 100, 100);
-    pdf.text("Generated by Ratio Percentage Test Tool", 10, 290);
+    pdf.text("Generated by the Waypoint Reporting Engine", 10, 290);
 
     console.log("Reached end of PDF function");
     pdf.save("Ratio_Percentage_Test_Results.pdf");
@@ -406,7 +397,7 @@ const RatioPercentageTest = () => {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive ? "border-blue-500 bg-blue-100" : "border-gray-300 bg-gray-50"
+          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
@@ -442,7 +433,7 @@ const RatioPercentageTest = () => {
       <button
         onClick={handleUpload}
         className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
-          !file ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"
+          !file ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
         }`}
         disabled={!file || loading}
       >
@@ -465,23 +456,13 @@ const RatioPercentageTest = () => {
               <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
             </p>
             <p className="text-lg">
-  <strong className="text-gray-700">Total Employees:</strong>{" "}
-  <span className="font-semibold text-black-600">
-    {result?.["Total Employees"] ?? "N/A"}
-  </span>
+  <strong className="text-gray-700">HCE Eligibility:</strong>{" "}
+  {formatPercentage(result["HCE Eligibility (%)"])}
 </p>
-            <p className="text-lg">
-              <strong className="text-gray-700">HCE Eligibility:</strong>{" "}
-               {result["HCE Eligibility (%)"] ?? "N/A"}%
-                </p>
-                <p className="text-lg mt-2">
-                <strong className="text-gray-700">NHCE Eligibility:</strong>{" "}
-                {result["NHCE Eligibility (%)"] ?? "N/A"}%
-                  </p>
-                <p className="text-lg mt-2">
-                <strong className="text-gray-700">Test Criterion:</strong>{" "}
-                {result["Test Criterion"] ?? "N/A"}
-                </p>
+<p className="text-lg mt-2">
+  <strong className="text-gray-700">NHCE Eligibility:</strong>{" "}
+  {formatPercentage(result["NHCE Eligibility (%)"])}
+</p>
 
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Test Result:</strong>{" "}
