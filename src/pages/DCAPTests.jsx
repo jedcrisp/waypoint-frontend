@@ -66,13 +66,20 @@ export default function DCAPTests() {
         </div>
 
         {/* DCAP Contributions */}
-        <div className="bg-gray-100 rounded-lg shadow p-8 flex flex-col h-full justify-between items-center text-center">
-          <div>
+          <div className="bg-gray-100 rounded-lg shadow p-8 flex flex-col h-full justify-between items-center text-center">
+            <div>
             <h2 className="text-xl font-semibold text-gray-900">DCAP Contributions</h2>
+    
+            <p className="text-gray-700 text-sm mt-4">
+              Evaluate DCAP compliance through specialized tests that ensure fair benefit distribution and conformity with IRS Section 129 requirements.
+            </p>
+    
             <p className="text-gray-700 text-sm mt-4">
               Ensures that benefits or employer contributions under the DCAP are not disproportionately larger for HCEs or Key Employees.
             </p>
+            </div>
           </div>
+
           <div className="mt-auto">
             <ArrowRight 
               className="w-10 h-10 text-gray-700 cursor-pointer transition-transform transform hover:translate-x-1"
