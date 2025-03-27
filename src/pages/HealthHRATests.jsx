@@ -60,7 +60,7 @@ export default function HealthHRATests() {
               onClick={() => navigate(test.route)}
               className="mt-4 px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-md flex items-center justify-center"
             >
-              <ArrowRight className="w-6 h-6 text-gray-700" />
+              <ArrowRight className="w-10 h-10 text-gray-700" />
             </button>
           </div>
         ))}
