@@ -152,7 +152,7 @@ const BenefitTest = () => {
     }
 
     const plan = planYear || "N/A";
-    const totalEmployees = result["Total Employees"] ?? "N/A";
+    const totalEligibleEmployees = result["Total Eligible Employees"] ?? "N/A";
     const hceCount = result["HCE Count"] ?? "N/A";
     const hcePct = formatPercentage(result["HCE Percentage (%)"]);
     const testResult = result["Test Result"] || "N/A";
@@ -176,7 +176,7 @@ const BenefitTest = () => {
       startY: 40,
       head: [["Metric", "Value"]],
       body: [
-        ["Total Employees", totalEmployees],
+        ["Total Eligible Employees", totalEligibleEmployees],
         ["HCE Count", hceCount],
         ["HCE Percentage", hcePct],
         ["Test Result", testResult],
@@ -249,7 +249,7 @@ const BenefitTest = () => {
       return;
     }
 
-    const totalEmployees = result["Total Employees"] ?? "N/A";
+    const totalEligibleEmployees = result["Total ELigible Employees"] ?? "N/A";
     const hceCount = result["HCE Count"] ?? "N/A";
     const hcePct = result["HCE Percentage (%)"] !== undefined
       ? result["HCE Percentage (%)"] + "%"
@@ -260,7 +260,7 @@ const BenefitTest = () => {
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", planYear],
-      ["Total Employees", totalEmployees],
+      ["Total Eligible Employees", totalEligibleEmployees],
       ["HCE Count", hceCount],
       ["HCE Percentage (%)", hcePct],
       ["Test Result", testRes],
@@ -458,9 +458,7 @@ const BenefitTest = () => {
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>Refund Excess Contributions to Highly Compensated Employees (HCEs).</li>
-                  <br />
                   <li>Make Additional Contributions to Non-HCEs.</li>
-                  <br />
                   <li>Recharacterize Excess Contributions.</li>
                 </ul>
               </div>
@@ -469,13 +467,9 @@ const BenefitTest = () => {
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>❌ Loss of Tax-Exempt Status for Key Employees</li>
-                  <br />
                   <li>❌ IRS Scrutiny and Potential Penalties</li>
-                  <br />
                   <li>❌ Plan Disqualification Risks</li>
-                  <br />
                   <li>❌ Employee Discontent & Reduced Participation</li>
-                  <br />
                   <li>❌ Reputational and Legal Risks</li>
                 </ul>
               </div>
