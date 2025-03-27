@@ -44,7 +44,7 @@ export default function HealthHRATests() {
         Health Reimbursement Arrangement (HRA) Tests
       </h1>
       <p className="text-lg text-gray-700 text-center max-w-2xl mb-8">
-        Explore the various HRA compliance tests to ensure equitable benefit distribution and adherence to IRS regulations.
+        Evaluate Health Reimbursement Arrangement (HRA) compliance through targeted tests that ensure equitable benefit distribution and adherence to IRS HRA regulations.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-7xl">
         {tests.map((test) => (
