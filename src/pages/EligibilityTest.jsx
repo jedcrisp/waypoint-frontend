@@ -4,6 +4,8 @@ import axios from "axios";
 import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import CafeEligibilityChart from "../Components/CafeEligibilityChart";
+import html2canvas from "html2canvas";
 
 const EligibilityTest = () => {
   const [file, setFile] = useState(null);
@@ -161,33 +163,12 @@ const EligibilityTest = () => {
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", planYear],
-      [
-        "Key Employee Benefit Percentage",
-        result["Key Employee Percentage"] !== undefined
-          ? result["Key Employee Percentage"] + "%"
-          : "N/A",
-      ],
+      ["Total Employees", result["Total Employees"] ?? "N/A"],
+      ["Total Participants", result["Total Participants"] ?? "N/A"],
+      ["HCE Count", result["HCE Count"] ?? "N/A"],
+      ["HCE Percentage", result["HCE Percentage (%)"] !== undefined ? result["HCE Percentage (%)"] + "%" : "N/A"],
       ["Test Result", result["Test Result"] ?? "N/A"],
     ];
-
-    if (result["Test Result"]?.toLowerCase() === "failed") {
-      const correctiveActions = [
-        "Reallocate benefits to balance distributions.",
-        "Adjust classifications of key employees.",
-        "Update contribution policies.",
-      ];
-      const consequences = [
-        "Loss of tax-exempt status for key employees.",
-        "IRS penalties and fines.",
-        "Risk of plan disqualification.",
-      ];
-      csvRows.push(["", ""]);
-      csvRows.push(["Corrective Actions", ""]);
-      correctiveActions.forEach((action) => csvRows.push(["", action]));
-      csvRows.push(["", ""]);
-      csvRows.push(["Consequences", ""]);
-      consequences.forEach((item) => csvRows.push(["", item]));
-    }
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -203,7 +184,7 @@ const EligibilityTest = () => {
   // =========================
   // 6. Export to PDF
   // =========================
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
@@ -223,13 +204,30 @@ const EligibilityTest = () => {
     const generatedTimestamp = new Date().toLocaleString();
     pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
+    const totalEmployees = result["Total Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
+    const hceCount = result["HCE Count"] ?? "N/A";
+    const hcePercentage = result["HCE Percentage (%)"] !== undefined ? `${result["HCE Percentage (%)"]}%` : "N/A";
+    const testResult = result["Test Result"] ?? "N/A";
+
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(60, 60, 60); // Gray text
+    pdf.text(
+      "Test Criterion: HCE average benefits must not exceed 125% of NHCE average benefits",
+      105,
+      38,
+      { align: "center", maxWidth: 180 }
+    );
+
     // Table
      pdf.autoTable({
-    startY: 40,
+    startY: 44,
     theme: "grid",
     head: [["Metric", "Value"]],
     body: [
-      ["Total Eligible Employees", result["Total Eligible Employees"] ?? "N/A"],
+      ["Total Employees", result["Total Employees"] ?? "N/A"],
+      ["Total Participants", result["Total Participants"] ?? "N/A"],
       ["HCE Count", result["HCE Count"] ?? "N/A"],
       ["HCE Percentage", result["HCE Percentage (%)"] !== undefined ? result["HCE Percentage (%)"] + "%": "N/A"],
       ["Test Result", result["Test Result"] ?? "N/A"],
@@ -279,6 +277,24 @@ const EligibilityTest = () => {
       margin: { left: 10, right: 10 },
     });
   }
+
+  // ---------------------------
+    // Add Graphs after Corrective Actions
+    // ---------------------------
+    // Assumes there's an element with the id "graphContainer" in the DOM containing your graphs.
+    const graphElement = document.getElementById("graphContainer");
+    if (graphElement) {
+      try {
+        const canvas = await html2canvas(graphElement, { scale: 2 });
+        const graphImgData = canvas.toDataURL("image/png");
+        pdf.addPage();
+        pdf.setFontSize(14);
+        pdf.addImage(graphImgData, "PNG", 10, 30, 190, 100);
+      } catch (err) {
+        console.error("❌ Graph export failed:", err);
+      }
+    }
+
     // Footer
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "italic");
@@ -390,7 +406,13 @@ const EligibilityTest = () => {
             <p className="text-lg mt-2">
                <strong className="text-gray-700">Total Employees:</strong>{" "}
                 <span className="font-semibold text-black-600">
-                {result?.["Total Eligible Employees"] ?? "N/A"}
+                {result?.["Total Employees"] ?? "N/A"}
+              </span>
+              </p>
+              <p className="text-lg mt-2">
+               <strong className="text-gray-700">Total Participants:</strong>{" "}
+                <span className="font-semibold text-black-600">
+                {result?.["Total Participants"] ?? "N/A"}
               </span>
               </p>
             <p className="text-lg mt-2">
@@ -435,6 +457,11 @@ const EligibilityTest = () => {
             </button>
           </div>
 
+          {/* Graph Container (moved off-screen for PDF capture) */}
+    <div id="graphContainer" style={{ position: "absolute", left: "-9999px", top: 0 }}>
+      <CafeEligibilityChart result={result} />
+    </div>
+
           {/* If test fails, show corrective actions & consequences in the UI */}
           {result["Test Result"]?.toLowerCase() === "failed" && (
             <>
@@ -452,11 +479,11 @@ const EligibilityTest = () => {
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>❌ Loss of tax-exempt status for key employees.</li>
+                  <li>Loss of tax-exempt status for key employees.</li>
                   <br />
-                  <li>❌ IRS penalties and fines.</li>
+                  <li>IRS penalties and fines.</li>
                   <br />
-                  <li>❌ Risk of plan disqualification.</li>
+                  <li>Risk of plan disqualification.</li>
                 </ul>
               </div>
             </>
