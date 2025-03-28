@@ -181,7 +181,7 @@ const CafeteriaContributionsBenefitsTest = () => {
     const totalBenefits = formatCurrency(result["Total Benefits"]);
     const testResult = result["Test Result"] ?? "N/A";
     const failed = testResult.toLowerCase() === "failed";
-    const hceNhceRatio = result["HCE NHCE Ratio"] ?? "N/A"; // Optional, if needed
+    const hceNhceRatio = result["HCE/NHCE Ratio"] ?? "N/A"; // Optional, if needed
     const totalContributions = formatCurrency(result["Total Contributions"]);
 
     pdf.setFontSize(12);
@@ -207,7 +207,7 @@ const CafeteriaContributionsBenefitsTest = () => {
         ["Employee Contributions (Avg)", employeeAvg],
         ["HCE Average Benefit", hceAverageBenefit],
         ["NHCE Average Benefit", nhceAverageBenefit],
-        ["HCE NHCE Ratio", hceNhceRatio],
+        ["HCE/NHCE Ratio", hceNhceRatio],
         ["Test Result", testResult],
       ],
     headStyles: {
@@ -270,63 +270,51 @@ const CafeteriaContributionsBenefitsTest = () => {
   // =========================
   // 5. Download Results as CSV
   // =========================
-  const downloadResultsAsCSV = () => {
-    if (!result) {
-      setError("❌ No results to download.");
-      return;
-    }
+ const downloadResultsAsCSV = () => {
+  if (!result) {
+    setError("❌ No results to download.");
+    return;
+  }
 
-    // Collect data
-    const totalEmployees = result["Total Employees"] ?? "N/A";
-    const totalParticipants = result["Total Participants"] ?? "N/A";
-    const employerAvg = formatCurrency(result["Employer Contributions (Avg)"]);
-    const employeeAvg = formatCurrency(result["Employee Contributions (Avg)"]);
-    const hceAverageBenefit = formatCurrency(result["HCE Average Benefit"]);
-    const nhceAverageBenefit = formatCurrency(result["NHCE Average Benefit"]);
-    const totalBenefits = formatCurrency(result["Total Benefits"]);
-    const testResult = result["Test Result"] ?? "N/A";
-    const failed = testResult.toLowerCase() === "failed";
-    const hceNhceRatio = result["HCE NHCE Ratio"] ?? "N/A"; // Optional, if needed
-    const totalContributions = formatCurrency(result["Total Contributions"]);
+  // Collect data
+  const totalEmployees = result["Total Employees"] ?? "N/A";
+  const totalParticipants = result["Total Participants"] ?? "N/A";
+  const employerAvg = formatCurrency(result["Employer Contributions (Avg)"]);
+  const employeeAvg = formatCurrency(result["Employee Contributions (Avg)"]);
+  const hceAverageBenefit = formatCurrency(result["HCE Average Benefit"]);
+  const nhceAverageBenefit = formatCurrency(result["NHCE Average Benefit"]);
+  const totalBenefits = formatCurrency(result["Total Benefits"]);
+  const totalContributions = formatCurrency(result["Total Contributions"]);
+  const testResult = result["Test Result"] ?? "N/A";
+  const hceNhceRatio = result["HCE/NHCE Ratio"] ?? "N/A";
 
-    const csvRows = [
-        ["Total Employees", totalEmployees],
-        ["Total Participants", totalParticipants],
-        ["Total Contributions", totalContrib],
-        ["Total Benefits", totalBenefits],
-        ["Employer Contributions (Avg)", employerAvg],
-        ["Employee Contributions (Avg)", employeeAvg],
-        ["HCE Average Benefit", hceAverageBenefit],
-        ["NHCE Average Benefit", nhceAverageBenefit],
-        ["HCE NHCE Ratio", hceNhceRatio],
-        ["Test Result", testResult],
-    ];
+  // Wrap each value in quotes to prevent extra columns in CSV
+  const csvRows = [
+    ["Metric", "Value"],
+    ["Total Employees", `"${totalEmployees}"`],
+    ["Total Participants", `"${totalParticipants}"`],
+    ["Total Contributions", `"${totalContributions}"`],
+    ["Total Benefits", `"${totalBenefits}"`],
+    ["Employer Contributions (Avg)", `"${employerAvg}"`],
+    ["Employee Contributions (Avg)", `"${employeeAvg}"`],
+    ["HCE Average Benefit", `"${hceAverageBenefit}"`],
+    ["NHCE Average Benefit", `"${nhceAverageBenefit}"`],
+    ["HCE/NHCE Ratio", `"${hceNhceRatio}"`],
+    ["Test Result", `"${testResult}"`],
+  ];
 
-    if (failed) {
-      const correctiveActions = [
-        "Review the allocation of contributions between employer and employees.",
-        "Adjust plan benefit design to promote equitable contributions.",
-        "Reevaluate plan terms to align with non-discrimination requirements.",
-      ];
-      const consequences = [
-        "Benefits may be reclassified as taxable for HCEs.",
-        "Additional employer contributions might be required.",
-        "Increased risk of IRS penalties and audits.",
-      ];
-      csvRows.push([], ["Corrective Actions"], ...correctiveActions.map(a => ["", a]));
-      csvRows.push([], ["Consequences"], ...consequences.map(c => ["", c]));
-    }
+  const csvContent = csvRows.map(row => row.join(",")).join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
 
-    const csvContent = csvRows.map(row => row.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "Cafeteria_Contributions_Benefits_Results.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", "Cafeteria_Contributions_Benefits_Results.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 
   // =========================
   // 6. Handle Enter Key
