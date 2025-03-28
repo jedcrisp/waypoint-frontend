@@ -55,16 +55,16 @@ const BenefitTest = () => {
     // Example CSV template for this "Benefit" test
     const csvTemplate = [
   ["Last Name", "First Name", "Employee ID", "Cafeteria Plan Benefits", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Part-Time / Seasonal", "Union Employee"],
-  ["Doe", "John", "E001", "1500", "Yes", "1980-04-12", "2015-06-01", "Active", "No", "2016-01-01", "No", "No"],
-  ["Smith", "Jane", "E002", "1200", "No", "1985-11-03", "2019-01-15", "Active", "No", "2020-02-10", "No", "No"],
-  ["Brown", "Bob", "E003", "1800", "Yes", "1975-07-22", "2010-03-01", "Active", "No", "2011-01-01", "No", "Yes"],
-  ["Taylor", "Alice", "E004", "1600", "No", "1990-09-10", "2018-06-11", "Active", "No", "2019-01-01", "Yes", "No"],
-  ["Johnson", "Mike", "E005", "1400", "Yes", "1978-03-17", "2009-04-10", "Active", "No", "2010-01-01", "No", "No"],
-  ["Lee", "Grace", "E006", "0", "No", "1995-01-01", "2023-02-01", "Leave", "Yes", "2023-02-01", "Yes", "No"],
-  ["Nguyen", "Tom", "E007", "1300", "No", "1992-06-25", "2021-09-15", "Active", "No", "2021-10-01", "No", "No"],
-  ["Martinez", "Sophia", "E008", "1700", "Yes", "1988-05-30", "2016-08-20", "Active", "No", "2017-01-01", "No", "Yes"],
-  ["Khan", "Ali", "E009", "0", "No", "2000-12-11", "2023-06-01", "Terminated", "No", "2023-06-01", "Yes", "No"],
-  ["Patel", "Neha", "E010", "1550", "No", "1991-11-05", "2020-05-10", "Active", "No", "2020-06-01", "No", "No"]
+  ["Last", "First", "E001", "1500", "Yes", "1980-04-12", "2015-06-01", "Active", "No", "2016-01-01", "No", "No"],
+  ["Last", "First", "E002", "1200", "No", "1985-11-03", "2019-01-15", "Active", "No", "2020-02-10", "No", "No"],
+  ["Last", "First", "E003", "1800", "Yes", "1975-07-22", "2010-03-01", "Active", "No", "2011-01-01", "No", "Yes"],
+  ["Last", "First", "E004", "1600", "No", "1990-09-10", "2018-06-11", "Active", "No", "2019-01-01", "Yes", "No"],
+  ["Last", "First", "E005", "1400", "Yes", "1978-03-17", "2009-04-10", "Active", "No", "2010-01-01", "No", "No"],
+  ["Last", "First", "E006", "0", "No", "1995-01-01", "2023-02-01", "Leave", "Yes", "2023-02-01", "Yes", "No"],
+  ["Last", "First", "E007", "1300", "No", "1992-06-25", "2021-09-15", "Active", "No", "2021-10-01", "No", "No"],
+  ["Last", "First", "E008", "1700", "Yes", "1988-05-30", "2016-08-20", "Active", "No", "2017-01-01", "No", "Yes"],
+  ["Last", "First", "E009", "0", "No", "2000-12-11", "2023-06-01", "Terminated", "No", "2023-06-01", "Yes", "No"],
+  ["Last", "First", "E010", "1550", "No", "1991-11-05", "2020-05-10", "Active", "No", "2020-06-01", "No", "No"]
 ]
 
       .map((row) => row.join(","))
@@ -157,6 +157,16 @@ const BenefitTest = () => {
     const hcePct = formatPercentage(result["HCE Percentage (%)"]);
     const testResult = result["Test Result"] || "N/A";
     const failed = testResult.toLowerCase() === "failed";
+
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(60, 60, 60); // Gray text
+    pdf.text(
+      "Test Criterion: ≤ 25% of eligible participants may be HCEs",
+      105,
+      38,
+      { align: "center", maxWidth: 180 }
+    );
 
 
     const pdf = new jsPDF("p", "mm", "a4");
@@ -266,23 +276,6 @@ const BenefitTest = () => {
       ["Test Result", testRes],
     ];
 
-    if (failed) {
-      const correctiveActions = [
-        "Refund Excess Contributions to HCEs.",
-        "Make Additional Contributions to Non-HCEs.",
-        "Recharacterize Excess Contributions.",
-      ];
-      const consequences = [
-        "Loss of Tax-Exempt Status for Key Employees.",
-        "IRS Scrutiny and Potential Penalties.",
-        "Plan Disqualification Risks.",
-        "Employee Discontent & Reduced Participation.",
-        "Reputational and Legal Risks.",
-      ];
-      csvRows.push([], ["Corrective Actions"], ...correctiveActions.map(a => ["", a]));
-      csvRows.push([], ["Consequences"], ...consequences.map(c => ["", c]));
-    }
-
     const csvContent = csvRows.map(row => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -353,7 +346,7 @@ const BenefitTest = () => {
           <p className="text-green-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
@@ -468,15 +461,15 @@ const BenefitTest = () => {
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>❌ Loss of Tax-Exempt Status for Key Employees</li>
+                  <li>Loss of Tax-Exempt Status for Key Employees</li>
                   <br />
-                  <li>❌ IRS Scrutiny and Potential Penalties</li>
+                  <li>IRS Scrutiny and Potential Penalties</li>
                   <br />
-                  <li>❌ Plan Disqualification Risks</li>
+                  <li>Plan Disqualification Risks</li>
                   <br />
-                  <li>❌ Employee Discontent & Reduced Participation</li>
+                  <li>Employee Discontent & Reduced Participation</li>
                   <br />
-                  <li>❌ Reputational and Legal Risks</li>
+                  <li>Reputational and Legal Risks</li>
                 </ul>
               </div>
             </>
