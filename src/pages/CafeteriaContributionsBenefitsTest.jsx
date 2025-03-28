@@ -4,7 +4,7 @@ import axios from "axios";
 import { getAuth } from "firebase/auth"; // Firebase Auth
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import CafeConBenCharts from "../components/CafeConBenCharts";
+import CafeConBenCharts from "../Components/CafeConBenCharts";
 import html2canvas from "html2canvas";
 
 const CafeteriaContributionsBenefitsTest = () => {
@@ -554,6 +554,32 @@ const CafeteriaContributionsBenefitsTest = () => {
     <div id="graphContainer" style={{ position: "absolute", left: "-9999px", top: 0 }}>
       <CafeConBenCharts result={result} />
     </div>
+        {/* Corrective Actions & Consequences if Test Failed */}
+          {result["Test Result"]?.toLowerCase() === "failed" && (
+            <>
+              <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+                <h4 className="font-bold text-black-600">Corrective Actions:</h4>
+                <ul className="list-disc list-inside text-black-600">
+                  <li>Reallocate Cafeteria Plan benefits to balance distributions.</li>
+                  <br />
+                  <li>Adjust classifications of key employees.</li>
+                  <br />
+                  <li>Review and update contribution policies.</li>
+                </ul>
+              </div>
+
+              <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
+                <h4 className="font-bold text-black-600">Consequences:</h4>
+                <ul className="list-disc list-inside text-black-600">
+                  <li>❌ Loss of Tax-Exempt Status for Key Employees</li>
+                  <br />
+                  <li>❌ IRS Scrutiny and Potential Penalties</li>
+                  <br />
+                  <li>❌ Risk of Plan Disqualification for Non-Compliance</li>
+                </ul>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
