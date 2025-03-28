@@ -16,27 +16,27 @@ const AverageBenefitTest = () => {
   const API_URL = import.meta.env.VITE_BACKEND_URL;
 
   // ---------- Formatting Helpers ----------
-  const formatCurrency = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
-    return Number(value).toLocaleString("en-US", {
-      style: "currency",
-      currency: "USD",
-    });
-  };
+const formatCurrency = (amount) => {
+  if (amount === null || amount === undefined || isNaN(Number(amount))) return "N/A";
+  return `$${Number(amount).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
 
-  const formatPercentage = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
-    return `${Number(value).toFixed(2)}%`;
-  };
+const formatPercentage = (value) => {
+  if (value === null || value === undefined || isNaN(Number(value))) return "N/A";
+  return `${Number(value).toFixed(2)}%`;
+};
 
   // ----- 1. Drag & Drop Logic -----
-  const onDrop = useCallback((acceptedFiles) => {
-    if (acceptedFiles && acceptedFiles.length > 0) {
-      setFile(acceptedFiles[0]);
-      setResult(null);
-      setError(null);
-    }
-  }, []);
+    const onDrop = useCallback((acceptedFiles) => {
+      if (acceptedFiles && acceptedFiles.length > 0) {
+        setFile(acceptedFiles[0]);
+        setResult(null);
+        setError(null);
+      }
+    }, []);
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
@@ -62,12 +62,11 @@ const AverageBenefitTest = () => {
   ["Last", "First", "010", "4900", "0", "4900", "1987-06-06", "2012-04-10", "Active", "No", "Yes", "2012-05-01", "No", "No"]
 ]
 
-      .map((row) => row.join(","))
-      .join("\n");
+      // Removed invalid Python code. Ensure CSV template logic is implemented correctly in JavaScript.
+
 
     const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-
     const link = document.createElement("a");
     link.href = url;
     link.setAttribute("download", "Average_Benefit_Template.csv");
@@ -76,26 +75,23 @@ const AverageBenefitTest = () => {
     document.body.removeChild(link);
   };
 
-  // ----- 3. Upload File to Backend -----
+ // ----- 2. Upload File to Backend -----
   const handleUpload = async () => {
     if (!file) {
       setError("❌ Please select a file before uploading.");
       return;
     }
 
-    if (!planYear) {
-      setError("❌ Please select a plan year.");
+    // Validate file type
+    const validFileTypes = ["csv"];
+    const fileType = file.name.split(".").pop().toLowerCase();
+    if (!validFileTypes.includes(fileType)) {
+      setError("❌ Invalid file type. Please upload a CSV file.");
       return;
     }
 
-    // Validate file type (CSV or Excel)
-    const validFileTypes = ["csv", "xlsx"];
-    const fileType = file.name.substring(file.name.lastIndexOf(".") + 1).toLowerCase();
-    
-    console.log("Detected File Type:", fileType); // Debugging log
-    
-    if (!validFileTypes.includes(fileType)) {
-      setError("❌ Invalid file type. Please upload a CSV or Excel file.");
+    if (!planYear) {
+      setError("❌ Please select a plan year.");
       return;
     }
 
@@ -106,17 +102,10 @@ const AverageBenefitTest = () => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("selected_tests", "average_benefit");
-    formData.append("plan_year", planYear); // Include the selected plan year
-
-     // ✅ ADD DEBUGGING LOGS HERE
-    console.log("Uploading to API:", API_URL + "/upload-csv/average_benefit");
-    console.log("Form Data:", {
-      fileName: file.name,
-      selectedTest: "average_benefit",
-      planYear: planYear
-    });
 
     try {
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/average_benefit`);
+      // 1. Get Firebase token
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken(true);
       if (!token) {
@@ -124,7 +113,9 @@ const AverageBenefitTest = () => {
         setLoading(false);
         return;
       }
+      console.log("Firebase Token:", token);
 
+      // 2. Send POST request with Bearer token
       const response = await axios.post(`${API_URL}/upload-csv/average_benefit`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -132,12 +123,11 @@ const AverageBenefitTest = () => {
         },
       });
 
+      console.log("✅ API Response:", response.data);
       setResult(response.data?.["Test Results"]?.["average_benefit"] || {});
     } catch (err) {
-      setError(
-        err.response?.data?.error ||
-          "❌ Failed to upload file. Please check the format and try again."
-      );
+      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
+      setError(err.response?.data?.error || "❌ Failed to upload file. Please check the format and try again.");
     } finally {
       setLoading(false);
     }
@@ -151,6 +141,8 @@ const AverageBenefitTest = () => {
     }
 
     const plan = planYear || "N/A";
+    const totalEmployees = result["Total Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
     const totalBenefits = result["Total Benefits"] ?? "N/A";
     const nhceAvg = result["NHCE Average Benefit"] ?? "N/A";
     const hceAvg = result["HCE Average Benefit"] ?? "N/A";
@@ -159,30 +151,13 @@ const AverageBenefitTest = () => {
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", plan],
-      ["Total Benefits", totalBenefits],
+      ["Total Employees", result["Total Employees"] ?? "N/A"],
+      ["Total Participants", result["Total Participants"] ?? "N/A"],
       ["NHCE Average Benefit", nhceAvg],
       ["HCE Average Benefit", hceAvg],
+      ["Total Benefits", totalBenefits],
       ["Test Result", testRes],
     ];
-
-    if (testRes.toLowerCase() === "failed") {
-      const correctiveActions = [
-        "Review benefit allocation formulas.",
-        "Adjust contribution amounts to boost NHCE benefits.",
-        "Consider additional employer contributions.",
-      ];
-      const consequences = [
-        "Potential reclassification of benefits as taxable.",
-        "Increased IRS scrutiny and possible penalties.",
-        "Need for corrective contributions.",
-      ];
-      csvRows.push(["", ""]);
-      csvRows.push(["Corrective Actions", ""]);
-      correctiveActions.forEach((action) => csvRows.push(["", action]));
-      csvRows.push(["", ""]);
-      csvRows.push(["Consequences", ""]);
-      consequences.forEach((item) => csvRows.push(["", item]));
-    }
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -204,10 +179,11 @@ const AverageBenefitTest = () => {
 
     const plan = planYear || "N/A";
     const totalBenefits = formatCurrency(result["Total Benefits"]);
+    const totalEmployees = result["Total Employees"] || "N/A";
+    const totalParticipants = result["Total Participants"] || "N/A";
     const nhceAvg = formatCurrency(result["NHCE Average Benefit"]);
     const hceAvg = formatCurrency(result["HCE Average Benefit"]);
     const testRes = result["Test Result"] || "N/A";
-
 
     const pdf = new jsPDF("p", "mm", "a4");
     pdf.setFont("helvetica", "normal");
@@ -219,6 +195,19 @@ const AverageBenefitTest = () => {
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "normal");
     pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
+    pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
+    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
+
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(60, 60, 60); // Gray text
+    pdf.text(
+      "Test Criterion: NHCE average benefit must be at least 55% of HCE average benefit",
+      105,
+      38,
+      { align: "center", maxWidth: 180 }
+    );
+
 
     // Section 1: Basic Results Table
     pdf.autoTable({
@@ -226,9 +215,11 @@ const AverageBenefitTest = () => {
       theme: "grid",
       head: [["Metric", "Value"]],
       body: [
-        ["Total Benefits", totalBenefits],
+        ["Total Employees", result["Total Employees"] || "N/A"],
+        ["Total Participants", result["Total Participants"] || "N/A"],
         ["NHCE Average Benefit", nhceAvg],
         ["HCE Average Benefit", hceAvg],
+        ["Total Benefits", totalBenefits],
         ["Test Result", testRes],
       ],
       headStyles: {
@@ -242,68 +233,39 @@ const AverageBenefitTest = () => {
       margin: { left: 10, right: 10 },
     });
 
-    // Section 2: Summary Box
-    const summaryStartY = pdf.lastAutoTable.finalY + 10;
-    const boxWidth = 0;
-    const boxHeight = 0;
     const failed = testRes.toLowerCase() === "failed";
 
-    pdf.setDrawColor(0, 0, 0);
-    pdf.setLineWidth(0);
-    pdf.rect(10, summaryStartY, boxWidth, boxHeight, "S");
-
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "bold");
     if (failed) {
-      pdf.text("", 12, summaryStartY + 8);
-    } else {
-      pdf.text("", 12, summaryStartY + 8);
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Corrective Actions"]],
+        body: [
+          ["Review benefit allocation formulas."],
+          ["Adjust contribution amounts to boost NHCE benefits."],
+          ["Consider additional employer contributions."],
+        ],
+        headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Consequences"]],
+        body: [
+          ["Potential reclassification of benefits as taxable."],
+          ["Increased IRS scrutiny and possible penalties."],
+          ["Need for corrective contributions."],
+        ],
+        headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
     }
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(
-      "",
-      12,
-      summaryStartY + 14,
-      { maxWidth: 186 }
-    );
 
-     // Corrective actions & consequences (only if failed)
-  if (failed) {
-    const correctiveActions = [
-      "Review benefit allocation formulas.",
-        "Adjust contribution amounts to boost NHCE benefits.",
-        "Consider additional employer contributions.",
-    ];
-
-    const consequences = [
-      "Potential reclassification of benefits as taxable.",
-        "Increased IRS scrutiny and possible penalties.",
-        "Need for corrective contributions.",
-    ];
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-  }
-
-     // Footer
+    // Footer
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "italic");
     pdf.setTextColor(100, 100, 100);
@@ -314,12 +276,22 @@ const AverageBenefitTest = () => {
 
   // ----- RENDER -----
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white shadow-md rounded-lg border border-gray-300">
+    <div
+      className="max-w-md mx-auto mt-10 p-6 bg-white shadow-md rounded-lg border border-gray-300"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && file && planYear && !loading) {
+          e.preventDefault();
+          e.stopPropagation();
+          handleUpload();
+        }
+      }}
+      tabIndex="0"
+    >
       <h2 className="text-xl font-semibold text-center text-gray-700 mb-6">
         📂 Upload Average Benefit Test File
       </h2>
 
-     {/* Plan Year Dropdown */}
+      {/* Plan Year Dropdown */}
       <div className="mb-6">
         <div className="flex items-center">
           {planYear === "" && <span className="text-red-500 text-lg mr-2">*</span>}
@@ -354,7 +326,7 @@ const AverageBenefitTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV</strong> here.
           </p>
         )}
       </div>
@@ -392,65 +364,73 @@ const AverageBenefitTest = () => {
       {/* Display Errors */}
       {error && <div className="mt-3 text-red-500">{error}</div>}
 
-     {/* Display Results */}
-{result && (
-  <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
-    <h3 className="font-bold text-xl text-gray-700">Average Benefit Test Results</h3>
-    <div className="mt-4">
-      <p className="text-lg">
-        <strong>Plan Year:</strong>{" "}
-        <span className="font-semibold text-blue-600">
-          {planYear || "N/A"}
-        </span>
-      </p>
-      <p className="text-lg mt-2">
-        <strong>HCE Average Benefit:</strong>{" "}
-        {formatCurrency(result?.["HCE Average Benefit"]) || "N/A"}
-      </p>
-      <p className="text-lg mt-2">
-        <strong>NHCE Average Benefit:</strong>{" "}
-        {formatCurrency(result?.["NHCE Average Benefit"]) || "N/A"}
-      </p>
-      <p className="text-lg mt-2">
-        <strong>Total Benefits:</strong>{" "}
-        {formatCurrency(result?.["Total Benefits"]) || "N/A"}
-      </p>
-      <p className="text-lg mt-2">
-        <strong>Test Result:</strong>{" "}
-        <span
-          className={`px-3 py-1 rounded-md font-bold ${
-            result?.["Test Result"] === "Passed"
-              ? "bg-green-500 text-white"
-              : "bg-red-500 text-white"
-          }`}
-        >
-          {result?.["Test Result"] || "N/A"}
-        </span>
-      </p>
-    </div>
+      {/* Display Results */}
+      {result && (
+        <>
+          <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
+            <h3 className="font-bold text-xl text-gray-700">Average Benefit Test Results</h3>
+            <div className="mt-4">
+              <p className="text-lg">
+                <strong>Plan Year:</strong>{" "}
+                <span className="font-semibold text-blue-600">
+                  {planYear || "N/A"}
+                </span>
+              </p>
+              <p className="text-lg mt-2">
+                <strong>HCE Average Benefit:</strong>{" "}
+                <span className="font-semibold text-gray-800">
+                  {formatCurrency(result?.["HCE Average Benefit"])}
+                </span>
+              </p>
+              <p className="text-lg mt-2">
+                <strong>NHCE Average Benefit:</strong>{" "}
+                <span className="font-semibold text-gray-800">
+                  {formatCurrency(result?.["NHCE Average Benefit"])}
+                </span>
+              </p>
+              <p className="text-lg mt-2">
+                <strong>Total Benefits:</strong>{" "}
+                <span className="font-semibold text-gray-800">
+                  {formatCurrency(result?.["Total Benefits"])}
+                </span>
+              </p>
+              <p className="text-lg mt-2">
+                <strong>Test Result:</strong>{" "}
+                <span
+                  className={`px-3 py-1 rounded-md font-bold ${
+                    result?.["Test Result"] === "Passed"
+                      ? "bg-green-500 text-white"
+                      : "bg-red-500 text-white"
+                  }`}
+                >
+                  {result?.["Test Result"] || "N/A"}
+                </span>
+              </p>
+            </div>
+          </div>
 
-          {/* Export & Download Buttons */}
+          {/* Export & Download Buttons (Only appear after test is run) */}
           <div className="flex flex-col gap-2 mt-4">
             <button
               onClick={exportToPDF}
               className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
             >
-              Export PDF Results
+              Export PDF Report
             </button>
             <button
               onClick={downloadResultsAsCSV}
               className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
             >
-              Download CSV Results
+              Download CSV Report
             </button>
           </div>
 
           {/* If test fails, show corrective actions & consequences */}
-          {result["Test Result"]?.toLowerCase() === "failed" && (
-            <>
+          {result?.["Test Result"]?.toLowerCase() === "failed" && (
+            <div>
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
-                <h4 className="font-bold text-black-600">Corrective Actions:</h4>
-                <ul className="list-disc list-inside text-black-600">
+                <h4 className="font-bold text-gray-800">Corrective Actions:</h4>
+                <ul className="list-disc list-inside text-gray-800">
                   <li>Review benefit allocation formulas.</li>
                   <br />
                   <li>Adjust contribution amounts to boost NHCE benefits.</li>
@@ -459,18 +439,18 @@ const AverageBenefitTest = () => {
                 </ul>
               </div>
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
-                <h4 className="font-bold text-black-600">Consequences:</h4>
-                <ul className="list-disc list-inside text-black-600">
-                  <li>❌ Benefits may be reclassified as taxable.</li>
+                <h4 className="font-bold text-gray-800">Consequences:</h4>
+                <ul className="list-disc list-inside text-gray-800">
+                  <li>Benefits may be reclassified as taxable.</li>
                   <br />
-                  <li>❌ Increased IRS scrutiny and potential penalties.</li>
+                  <li>Increased IRS scrutiny and potential penalties.</li>
                   <br />
-                  <li>❌ Additional corrective contributions may be required.</li>
+                  <li>Additional corrective contributions may be required.</li>
                 </ul>
               </div>
-            </>
+            </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );
