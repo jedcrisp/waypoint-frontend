@@ -182,6 +182,7 @@ const CafeteriaContributionsBenefitsTest = () => {
     const testResult = result["Test Result"] ?? "N/A";
     const failed = testResult.toLowerCase() === "failed";
     const hceNhceRatio = result["HCE NHCE Ratio"] ?? "N/A"; // Optional, if needed
+    const totalContributions = formatCurrency(result["Total Contributions"]);
 
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "italic");
@@ -200,7 +201,7 @@ const CafeteriaContributionsBenefitsTest = () => {
       body: [
         ["Total Employees", totalEmployees],
         ["Total Participants", totalParticipants],
-        ["Total Contributions", totalContrib],
+        ["Total Contributions", totalContributions],
         ["Total Benefits", totalBenefits],
         ["Employer Contributions (Avg)", employerAvg],
         ["Employee Contributions (Avg)", employeeAvg],
@@ -276,7 +277,7 @@ const CafeteriaContributionsBenefitsTest = () => {
     }
 
     // Collect data
-    const totalEligibleEmployees = result["Total Eligible Employees"] ?? "N/A";
+    const totalEmployees = result["Total Employees"] ?? "N/A";
     const totalParticipants = result["Total Participants"] ?? "N/A";
     const employerAvg = formatCurrency(result["Employer Contributions (Avg)"]);
     const employeeAvg = formatCurrency(result["Employee Contributions (Avg)"]);
@@ -286,6 +287,7 @@ const CafeteriaContributionsBenefitsTest = () => {
     const testResult = result["Test Result"] ?? "N/A";
     const failed = testResult.toLowerCase() === "failed";
     const hceNhceRatio = result["HCE NHCE Ratio"] ?? "N/A"; // Optional, if needed
+    const totalContributions = formatCurrency(result["Total Contributions"]);
 
     const csvRows = [
         ["Total Employees", totalEmployees],
@@ -336,8 +338,7 @@ const CafeteriaContributionsBenefitsTest = () => {
       handleUpload();
     }
   };
-
-  // --- 7. Render ---
+// --- 7. Render ---
 return (
   <div
     className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
@@ -555,5 +556,7 @@ return (
     )}
   </div>
 );
+
+}
 
 export default CafeteriaContributionsBenefitsTest;
