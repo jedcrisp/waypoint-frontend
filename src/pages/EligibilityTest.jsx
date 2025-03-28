@@ -4,8 +4,6 @@ import axios from "axios";
 import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import CafeEligibilityChart from "../Components/CafeEligibilityChart";
-import html2canvas from "html2canvas";
 
 const EligibilityTest = () => {
   const [file, setFile] = useState(null);
@@ -456,11 +454,6 @@ const EligibilityTest = () => {
               Download CSV Report
             </button>
           </div>
-
-          {/* Graph Container (moved off-screen for PDF capture) */}
-    <div id="graphContainer" style={{ position: "absolute", left: "-9999px", top: 0 }}>
-      <CafeEligibilityChart result={result} />
-    </div>
 
           {/* If test fails, show corrective actions & consequences in the UI */}
           {result["Test Result"]?.toLowerCase() === "failed" && (
