@@ -4,8 +4,6 @@ import axios from "axios";
 import { getAuth } from "firebase/auth"; // Firebase Auth
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import CafeConBenCharts from "../Components/CafeConBenCharts";
-import html2canvas from "html2canvas";
 
 const CafeteriaContributionsBenefitsTest = () => {
   const [file, setFile] = useState(null);
@@ -549,10 +547,6 @@ const CafeteriaContributionsBenefitsTest = () => {
       </button>
     </div>
 
-    {/* Graph Container (moved off-screen for PDF capture) */}
-    <div id="graphContainer" style={{ position: "absolute", left: "-9999px", top: 0 }}>
-      <CafeConBenCharts result={result} />
-    </div>
         {/* Corrective Actions & Consequences if Test Failed */}
           {result["Test Result"]?.toLowerCase() === "failed" && (
             <>
