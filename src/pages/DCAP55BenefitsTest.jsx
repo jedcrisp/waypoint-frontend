@@ -53,10 +53,10 @@ const DCAP55BenefitsTest = () => {
       return;
     }
 
-    const validFileTypes = ["csv", "xlsx"];
+    const validFileTypes = ["csv"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
-      setError("❌ Invalid file type. Please upload a CSV or Excel file.");
+      setError("❌ Invalid file type. Please upload a CSV file.");
       return;
     }
 
@@ -141,6 +141,16 @@ const DCAP55BenefitsTest = () => {
     const pdf = new jsPDF("p", "mm", "a4");
     pdf.setFont("helvetica", "normal");
 
+    pdf.setFontSize(11);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(60, 60, 60); // Gray text
+    pdf.text(
+      "Test Criterion: Non-HCEs must receive greater than or equal to 55% of average HCE benefits",
+      105,
+      40,
+      { align: "center", maxWidth: 170 }
+    );
+
     // Header
     pdf.setFontSize(18);
     pdf.setFont("helvetica", "bold");
@@ -152,7 +162,7 @@ const DCAP55BenefitsTest = () => {
 
     // Table
    pdf.autoTable({
-    startY: 40,
+    startY: 48,
     theme: "grid",
     head: [["Metric", "Value"]],
     body: [
@@ -160,7 +170,7 @@ const DCAP55BenefitsTest = () => {
         ["Total Participants", totalParticipants !== "N/A" ? Number(totalParticipants).toLocaleString("en-US") : "N/A"],
         ["HCE Avg Benefits", hceAvg !== "N/A" ? Number(hceAvg).toLocaleString("en-US", { style: "currency", currency: "USD" }) : "N/A"],
         ["Non-HCE Avg Benefits", nhceAvg !== "N/A" ? Number(nhceAvg).toLocaleString("en-US", { style: "currency", currency: "USD" }) : "N/A"],
-        ["Benefit Ratio", benefitRatio !== "N/A" ? `${benefitRatio}%` : "N/A"],
+        ["Benefit Ratio (%)", benefitRatio !== "N/A" ? `${benefitRatio}%` : "N/A"],
         ["Test Result", testResult],
       ],
     headStyles: {
@@ -244,21 +254,6 @@ const DCAP55BenefitsTest = () => {
       ["Test Result", testResult],
     ];
 
-    if (failed) {
-      const correctiveActions = [
-        "Reduce DCAP benefits for owners/HCEs to bring them under 55%.",
-        "Increase NHCE participation or benefits.",
-        "Redistribute employer contributions to balance the ratio.",
-      ];
-      const consequences = [
-        "HCE DCAP benefits become taxable.",
-        "IRS penalties and plan disqualification risk.",
-        "Loss of tax-free DCAP benefits for employees.",
-      ];
-      csvRows.push([], ["Corrective Actions"], ...correctiveActions.map(a => ["", a]));
-      csvRows.push([], ["Consequences"], ...consequences.map(c => ["", c]));
-    }
-
     const csvContent = csvRows.map(row => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -323,7 +318,7 @@ const DCAP55BenefitsTest = () => {
           <p className="text-green-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV</strong> here.
           </p>
         )}
       </div>
@@ -449,11 +444,11 @@ const DCAP55BenefitsTest = () => {
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>❌ HCE DCAP benefits become taxable.</li>
+                  <li>HCE DCAP benefits become taxable.</li>
                   <br />
-                  <li>❌ IRS penalties and potential plan disqualification.</li>
+                  <li>IRS penalties and potential plan disqualification.</li>
                   <br />
-                  <li>❌ Loss of tax-free DCAP benefits for employees.</li>
+                  <li>Loss of tax-free DCAP benefits for employees.</li>
                 </ul>
               </div>
             </>
