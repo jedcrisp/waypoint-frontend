@@ -4,7 +4,7 @@ import axios from "axios";
 import { getAuth } from "firebase/auth"; // Firebase Auth
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import CafeConBenCharts from "../Components/CafeConBenCharts";
+import CafeConBenCharts from "../components/CafeConBenCharts";
 import html2canvas from "html2canvas";
 
 const CafeteriaContributionsBenefitsTest = () => {
