@@ -153,39 +153,20 @@ const DCAPEligibilityTest = () => {
       return;
     }
 
-    const totalEligibleEmployees = result["Total Eligible Employees"] ?? "N/A";
+    const totalEmployees = result["Total Employees"] ?? "N/A";
     const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
     const dcapEligibilityPercentage = result["DCAP Eligibility Percentage (%)"] ?? "N/A";
     const testRes = result["Test Result"] ?? "N/A";
 
     const csvRows = [
       ["Metric", "Value"],
-      ["Total Eligible Employees", totalEligibleEmployees],
+      ["Total Employees", totalEmployees],
       ["Eligible Employees", eligibleEmployees],
       ["DCAP Eligibility Percentage (%)", dcapEligibilityPercentage],
       ["Test Result", testRes],
     ];
 
     const failed = testRes.toLowerCase() === "failed";
-    if (failed) {
-      const correctiveActions = [
-        "Expand Eligibility for NHCEs: Remove restrictive criteria that exclude NHCEs from participating in DCAP.",
-        "Increase NHCE Participation: Improve education and awareness, offer enrollment incentives, and simplify the sign-up process.",
-        "Adjust Employer Contributions: Ensure employer contributions are evenly distributed among HCEs and NHCEs.",
-        "Amend the Plan Document: Modify eligibility and contribution rules to align with IRS nondiscrimination requirements.",
-      ];
-      const consequences = [
-        "Potential IRS penalties or plan disqualification.",
-        "Potential disqualification of the Health FSA plan.",
-        "Loss of tax-free DCAP benefits for employees.",
-      ];
-      csvRows.push(["", ""]);
-      csvRows.push(["Corrective Actions", ""]);
-      correctiveActions.forEach((action) => csvRows.push(["", action]));
-      csvRows.push(["", ""]);
-      csvRows.push(["Consequences", ""]);
-      consequences.forEach((item) => csvRows.push(["", item]));
-    }
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
 
@@ -207,13 +188,23 @@ const DCAPEligibilityTest = () => {
       return;
     }
 
-    const totalEligibleEmployees = result["Total Eligible Employees"] ?? "N/A";
+    const totalEmployees = result["Total Employees"] ?? "N/A";
     const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
     const dcapEligibilityPercentage = result["DCAP Eligibility Percentage (%)"] ?? "N/A";
     const testResult = result["Test Result"] ?? "N/A";
     const failed = testResult.toLowerCase() === "failed";
 
     const pdf = new jsPDF("p", "mm", "a4");
+
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(60, 60, 60); // Gray text
+    pdf.text(
+     "Test Criterion: At least 50% of eligible employees must be eligible for DCAP",
+      105,
+      38,
+      { align: "center", maxWidth: 180 }
+    );
 
     // Header
     pdf.setFont("helvetica", "bold");
@@ -227,11 +218,11 @@ const DCAPEligibilityTest = () => {
 
     // Results Table
     pdf.autoTable({
-      startY: 40,
+      startY: 43,
       theme: "grid",
       head: [["Metric", "Value"]],
       body: [
-        ["Total Employees", totalEligibleEmployees],
+        ["Total Employees", totalEmployees],
         ["Eligible Employees", eligibleEmployees],
         ["DCAP Eligibility Percentage", formatPercentage(dcapEligibilityPercentage)],
         ["Test Result", testResult],
@@ -398,7 +389,13 @@ const DCAPEligibilityTest = () => {
             <p className="text-lg">
               <strong className="text-gray-700">Total Employees:</strong>{" "}
               <span className="font-semibold text-black-800">
-                {result?.["Total Eligible Employees"] ?? "N/A"}
+                {result?.["Total Employees"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg">
+              <strong className="text-gray-700">Eligible Employees:</strong>{" "}
+              <span className="font-semibold text-black-800">
+                {result?.["Eligible Employees"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
@@ -448,13 +445,13 @@ const DCAPEligibilityTest = () => {
                 <h4 className="font-bold text-gray-800">Consequences:</h4>
                 <ul className="list-disc list-inside text-gray-800">
                   <li className="mt-2">
-                    ❌ Potential IRS penalties or plan disqualification.
+                    Potential IRS penalties or plan disqualification.
                   </li>
                   <li className="mt-2">
-                    ❌ Potential disqualification of the Health FSA plan.
+                    Potential disqualification of the Health FSA plan.
                   </li>
                   <li className="mt-2">
-                    ❌ Loss of tax-free DCAP benefits for employees.
+                    Loss of tax-free DCAP benefits for employees.
                   </li>
                 </ul>
               </div>
