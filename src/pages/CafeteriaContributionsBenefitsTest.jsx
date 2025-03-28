@@ -543,11 +543,11 @@ return (
             <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
               <h4 className="font-bold text-black-600">Consequences:</h4>
               <ul className="list-disc list-inside text-black-600">
-                <li>❌ Benefits may be reclassified as taxable for highly compensated employees.</li>
+                <li>Benefits may be reclassified as taxable for highly compensated employees.</li>
                 <br />
-                <li>❌ Additional employer contributions might be required.</li>
+                <li>Additional employer contributions might be required.</li>
                 <br />
-                <li>❌ Increased risk of IRS penalties and audits.</li>
+                <li>Increased risk of IRS penalties and audits.</li>
               </ul>
             </div>
           </>
