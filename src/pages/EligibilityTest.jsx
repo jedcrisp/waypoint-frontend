@@ -41,7 +41,7 @@ const EligibilityTest = () => {
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
-    accept: ".csv, .xlsx",
+    accept: ".csv",
     multiple: false,
     noClick: true,
     noKeyboard: true,
@@ -55,10 +55,10 @@ const EligibilityTest = () => {
       setError("❌ Please select a file before uploading.");
       return;
     }
-    const validFileTypes = ["csv", "xlsx"];
+    const validFileTypes = ["csv"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
-      setError("❌ Invalid file type. Please upload a CSV or Excel file.");
+      setError("❌ Invalid file type. Please upload a CSV file.");
       return;
     }
     if (!planYear) {
@@ -352,7 +352,7 @@ const EligibilityTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV</strong> here.
           </p>
         )}
       </div>
