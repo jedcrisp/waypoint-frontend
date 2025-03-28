@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
-import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust path as needed
 import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
@@ -155,6 +154,10 @@ const ClassificationTest = () => {
       return;
     }
 
+    const totalEmployees = result["Total Employees"] ?? "N/A"; // ✅ Define this first
+    const totalParticipants = result["Total Participants"] ?? "N/A"; // ✅ Define this first
+    const eligibleForCafeteriaPlan = result["Eligible for Cafeteria Plan"] ?? "N/A"; // ✅ Define this first
+    const eligibilityPercentage = result["Eligibility Percentage (%)"] !== undefined ? result["Eligibility Percentage (%)"] + "%" : "N/A"; // ✅ Define this first
     const testResult = result["Test Result"] ?? "N/A"; // ✅ Define this first
     const failed = testResult.toLowerCase() === "failed"; // ✅ Now it's safe to use
 
@@ -170,15 +173,27 @@ const ClassificationTest = () => {
     pdf.text(`Plan Year: ${planYear || "N/A"}`, 105, 25, { align: "center" });
     pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
+
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(60, 60, 60); // Gray text
+    pdf.text(
+      "Test Criterion: At least 70% of eligible employees must be eligible for the cafeteria plan",
+      105,
+      38,
+      { align: "center", maxWidth: 180 }
+    );
+
     // Results Table
    pdf.autoTable({
-    startY: 40,
+    startY: 43,
     theme: "grid",
     head: [["Metric", "Value"]],
     body: [
         ["Total Employees", result["Total Employees"] ?? "N/A"],
+        ["Total Participants", result["Total Participants"] ?? "N/A"],
         ["Eligible for Cafeteria Plan", result["Eligible for Cafeteria Plan"] ?? "N/A"],
-        ["Eligibility Percentage",  result["Eligibility Percentage (%)"] !== undefined? result["Eligibility Percentage (%)"] + "%": "N/A",],
+        ["Eligibility Percentage (%)",  result["Eligibility Percentage (%)"] !== undefined? result["Eligibility Percentage (%)"] + "%": "N/A",],
         ["Test Result", result["Test Result"] ?? "N/A"],
       ],
     headStyles: {
@@ -244,26 +259,12 @@ const ClassificationTest = () => {
       ["Metric", "Value"],
       ["Plan Year", planYear],
       ["Total Employees", result["Total Employees"] ?? "N/A"],
+      ["Total Participants", result["Total Participants"] ?? "N/A"],
       ["Eligible for Cafeteria Plan", result["Eligible for Cafeteria Plan"] ?? "N/A"],
       ["Eligibility Percentage (%)", result["Eligibility Percentage (%)"] !== undefined ? result["Eligibility Percentage (%)"] + "%" : "N/A"],
       ["Test Result", result["Test Result"] ?? "N/A"],
     ];
 
-    if (result["Test Result"]?.toLowerCase() === "failed") {
-      const correctiveActions = [
-        "Review and verify employee classifications.",
-        "Recalculate benefit allocations for compliance.",
-        "Amend plan documents to clarify classification rules.",
-        "Consult legal/tax advisors for corrections.",
-      ];
-      const consequences = [
-        "Potential loss of tax-exempt status for key employees.",
-        "IRS penalties and plan disqualification risk.",
-        "Employee dissatisfaction and legal risks.",
-      ];
-      csvRows.push([], ["Corrective Actions"], ...correctiveActions.map(a => ["", a]));
-      csvRows.push([], ["Consequences"], ...consequences.map(c => ["", c]));
-    }
 
     const csvContent = csvRows.map(row => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -384,6 +385,12 @@ const ClassificationTest = () => {
               <strong className="text-gray-700">Total Employees:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {result["Total Employees"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Total Participants</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result["Total Participants"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
