@@ -4,7 +4,6 @@ import axios from "axios";
 import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust path as needed
 
 const DCAPContributionsTest = () => {
   const [file, setFile] = useState(null);
@@ -43,7 +42,7 @@ const DCAPContributionsTest = () => {
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
-    accept: ".csv, .xlsx",
+    accept: ".csv",
     multiple: false,
     noClick: true,
     noKeyboard: true,
@@ -59,10 +58,10 @@ const DCAPContributionsTest = () => {
     }
 
     // Validate file extension
-    const validFileTypes = ["csv", "xlsx"];
+    const validFileTypes = ["csv"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
-      setError("❌ Invalid file type. Please upload a CSV or Excel file.");
+      setError("❌ Invalid file type. Please upload a CSV file.");
       return;
     }
 
@@ -153,11 +152,22 @@ const DCAPContributionsTest = () => {
     const totalParticipants = result["Total Participants"] ?? "N/A";
     const hceAvg = result["HCE Average Contributions"] ?? "N/A";
     const nhceAvg = result["NHCE Average Contributions"] ?? "N/A";
+    const percent125NHCEAvg = result["125% of NHCE Average"] ?? "N/A";
     const testRes = result["Test Result"] ?? "N/A";
     const failed = testRes.toLowerCase() === "failed";
 
     const pdf = new jsPDF("p", "mm", "a4");
     pdf.setFont("helvetica", "normal");
+
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(60, 60, 60); // Gray text
+    pdf.text(
+      "Test Criterion: HCE average contributions must not exceed 125% of NHCE average",
+      105,
+      38,
+      { align: "center", maxWidth: 180 }
+    );
 
     // Header
     pdf.setFontSize(18);
@@ -170,7 +180,7 @@ const DCAPContributionsTest = () => {
 
     // Table
     pdf.autoTable({
-    startY: 40,
+    startY: 43,
     theme: "grid",
     head: [["Metric", "Value"]],
     body: [
@@ -184,6 +194,7 @@ const DCAPContributionsTest = () => {
           "NHCE Average Contributions",
           nhceAvg !== "N/A" ? `$${Number(nhceAvg).toLocaleString()}` : "N/A",
         ],
+        ["125% of NHCE Average", percent125NHCEAvg !== "N/A" ? `$${(1.25 * Number(nhceAvg)).toLocaleString()}` : "N/A"],
         ["Test Result", testRes],
       ],
       headStyles: {
@@ -254,6 +265,7 @@ const DCAPContributionsTest = () => {
     const totalParticipants = result["Total Participants"] ?? "N/A";
     const hceAvg = result["HCE Average Contributions"];
     const nhceAvg = result["NHCE Average Contributions"];
+    const percent125NHCEAvg = result["125% of NHCE Average"] ?? "N/A";
     const testRes = result["Test Result"] ?? "N/A";
     const failed = testRes.toLowerCase() === "failed";
 
@@ -270,23 +282,9 @@ const DCAPContributionsTest = () => {
         "NHCE Average Contributions",
         nhceAvg !== undefined ? `$${Number(nhceAvg).toLocaleString()}` : "N/A",
       ],
+      ["125% of NHCE Average", percent125NHCEAvg !== undefined ? `$${(1.25 * Number(nhceAvg)).toLocaleString()}` : "N/A"],
       ["Test Result", testRes],
     ];
-
-    if (failed) {
-      const correctiveActions = [
-        "Limit contributions for HCEs to ensure compliance.",
-        "Increase matching for NHCEs.",
-        "Adjust plan design for balanced contributions.",
-      ];
-      const consequences = [
-        "HCE contributions become taxable.",
-        "IRS penalties and plan disqualification risk.",
-        "Additional corrective contributions may be required.",
-      ];
-      csvRows.push([], ["Corrective Actions"], ...correctiveActions.map(a => ["", a]));
-      csvRows.push([], ["Consequences"], ...consequences.map(c => ["", c]));
-    }
 
     const csvContent = csvRows.map(row => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -358,7 +356,7 @@ const DCAPContributionsTest = () => {
           <p className="text-green-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
@@ -438,6 +436,13 @@ const DCAPContributionsTest = () => {
     {formatCurrency(result?.["NHCE Average Contributions"])}
   </span>
 </p>
+<p className="text-lg mt-2">
+  <strong className="text-gray-700">125% of NHCE Average:</strong>{" "}
+  <span className="font-semibold text-black-600">
+    {formatCurrency(result?.["125% of NHCE Average"])}
+  </span>
+</p>
+
 
 
             <p className="text-lg mt-2">
@@ -487,11 +492,11 @@ const DCAPContributionsTest = () => {
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>❌ HCE contributions become taxable income.</li>
+                  <li>HCE contributions become taxable income.</li>
                   <br />
-                  <li>❌ IRS penalties and possible plan disqualification.</li>
+                  <li>IRS penalties and possible plan disqualification.</li>
                   <br />
-                  <li>❌ Additional corrective contributions may be required.</li>
+                  <li>Additional corrective contributions may be required.</li>
                 </ul>
               </div>
             </>
