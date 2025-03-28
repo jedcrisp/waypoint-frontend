@@ -287,7 +287,6 @@ const CafeteriaContributionsBenefitsTest = () => {
         const graphImgData = canvas.toDataURL("image/png");
         pdf.addPage();
         pdf.setFontSize(14);
-        pdf.text("Graphs", 14, 20);
         pdf.addImage(graphImgData, "PNG", 10, 30, 190, 100);
       } catch (err) {
         console.error("❌ Graph export failed:", err);
