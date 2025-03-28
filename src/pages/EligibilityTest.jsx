@@ -276,23 +276,6 @@ const EligibilityTest = () => {
     });
   }
 
-  // ---------------------------
-    // Add Graphs after Corrective Actions
-    // ---------------------------
-    // Assumes there's an element with the id "graphContainer" in the DOM containing your graphs.
-    const graphElement = document.getElementById("graphContainer");
-    if (graphElement) {
-      try {
-        const canvas = await html2canvas(graphElement, { scale: 2 });
-        const graphImgData = canvas.toDataURL("image/png");
-        pdf.addPage();
-        pdf.setFontSize(14);
-        pdf.addImage(graphImgData, "PNG", 10, 30, 190, 100);
-      } catch (err) {
-        console.error("❌ Graph export failed:", err);
-      }
-    }
-
     // Footer
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "italic");
