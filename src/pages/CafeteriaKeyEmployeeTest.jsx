@@ -4,7 +4,8 @@ import axios from "axios";
 import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import DownloadReportButton from "../components/DownloadReportButton"; // Optional direct generation
+import CafeKeyEmpChart from "../Components/CafeKeyEmpChart";
+import html2canvas from "html2canvas";
 
 const CafeteriaKeyEmployeeTest = () => {
   const [file, setFile] = useState(null);
@@ -148,14 +149,14 @@ const CafeteriaKeyEmployeeTest = () => {
   // =========================
   // 4. Export to PDF
   // =========================
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
 
     const plan = planYear || "N/A";
-    const totalEmployees = result?.["key_employee"]?.["Total Employees"] || "N/A";
+    const totalEmployees = result?.["Total Employees"] ?? "N/A";
     const totalParticipants = result?.["Total Participants"] || "N/A";
     const keyEmployeeBenefits = result?.["Key Employee Benefits"] !== undefined
       ? formatCurrency(result["Key Employee Benefits"])
@@ -172,6 +173,16 @@ const CafeteriaKeyEmployeeTest = () => {
     const pdf = new jsPDF("p", "mm", "a4");
     pdf.setFont("helvetica", "normal");
 
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(60, 60, 60);
+    pdf.text(
+      "Test Criterion: HCE average benefits must not exceed 125% of NHCE average benefits",
+        105,
+        40,
+        { align: "center" }
+      );
+
     // Header
     pdf.setFontSize(18);
     pdf.setFont("helvetica", "bold");
@@ -182,14 +193,14 @@ const CafeteriaKeyEmployeeTest = () => {
     pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
     pdf.autoTable({
-      startY: 40,
+      startY: 47,
       theme: "grid",
       head: [["Metric", "Value"]],
       body: [
         ["Total Employees", totalEmployees],
         ["Total Participants", totalParticipants],
-        ["Key Employee Benefits", keyEmployeeBenefits],
         ["Total Benefits", totalBenefits],
+        ["Key Employee Benefits", keyEmployeeBenefits],
         ["Key Employee Benefit Percentage", keyEmployeeBenefitPercentage],
         ["Test Result", testResult],
       ],
@@ -239,6 +250,15 @@ const CafeteriaKeyEmployeeTest = () => {
     })
    }
 
+   const graphElement = document.getElementById("graphContainer");
+if (graphElement) {
+  const canvas = await html2canvas(graphElement, { scale: 2 });
+  const graphImgData = canvas.toDataURL("image/png");
+  pdf.addPage();
+  pdf.text("V", 14, 20);
+  pdf.addImage(graphImgData, "PNG", 10, 30, 190, 120);
+}
+
     // =========================
     // 4. Footer
     // =========================
@@ -250,52 +270,44 @@ const CafeteriaKeyEmployeeTest = () => {
   };
 
   // =========================
-  // 5. Download Results as CSV
-  // =========================
-  const downloadResultsAsCSV = () => {
-    if (!result) {
-      setError("❌ No results to download.");
-      return;
-    }
+// 5. Download Results as CSV
+// =========================
+const downloadResultsAsCSV = () => {
+  if (!result) {
+    setError("❌ No results to download.");
+    return;
+  }
 
-    const keyPct = result["Key Employee Percentage"] !== undefined
-      ? result["Key Employee Percentage"] + "%"
-      : "N/A";
-    const testRes = result["Test Result"] ?? "N/A";
-    const failed = testRes.toLowerCase() === "failed";
+  const testRes = result["Test Result"] ?? "N/A";
+  const totalEmployees = result?.["Total Employees"] ?? "N/A";
+  const totalParticipants = result?.["Total Participants"] ?? "N/A";
+  const keyEmpBenefit = result?.["Key Employee Benefits"];
+  const benefitPct = result["Key Employee Benefit Percentage"] !== undefined
+    ? `${result["Key Employee Benefit Percentage"]}%`
+    : "N/A";
 
-    const csvRows = [
-      ["Metric", "Value"],
-      ["Plan Year", planYear],
-      ["Key Employee Benefit Percentage", keyPct],
-      ["Test Result", testRes],
-    ];
+  // Wrap values in quotes to prevent breaking on commas
+  const csvRows = [
+    ["Metric", "Value"],
+    ["Plan Year", `"${planYear}"`],
+    ["Total Employees", `"${totalEmployees}"`],
+    ["Total Participants", `"${totalParticipants}"`],
+    ["Key Employee Benefits", `"${formatCurrency(keyEmpBenefit)}"`],
+    ["Key Employee Benefit Percentage", `"${benefitPct}"`],
+    ["Test Result", `"${testRes}"`],
+  ];
 
-    if (failed) {
-      const correctiveActions = [
-        "Reallocate Cafeteria Plan benefits to balance distributions.",
-        "Adjust classifications of key employees.",
-        "Review and update contribution policies.",
-      ];
-      const consequences = [
-        "Loss of Tax-Exempt Status for Key Employees.",
-        "IRS Scrutiny and Potential Penalties.",
-        "Risk of Plan Disqualification for Non-Compliance.",
-      ];
-      csvRows.push([], ["Corrective Actions"], ...correctiveActions.map(a => ["", a]));
-      csvRows.push([], ["Consequences"], ...consequences.map(c => ["", c]));
-    }
+  const csvContent = csvRows.map(row => row.join(",")).join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", "Cafeteria_Key_Employee_Results.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
-    const csvContent = csvRows.map(row => row.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "Cafeteria_Key_Employee_Results.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   // =========================
   // 6. Handle Enter Key
@@ -410,7 +422,8 @@ const CafeteriaKeyEmployeeTest = () => {
              <p className="text-lg mt-2">
               <strong className="text-gray-700">Total Employees:</strong>{" "}
                <span className="font-semibold text-black-600">
-                 {result?.["key_employee"]?.["Total Employees"] ?? "N/A"}
+                 {result?.["Total Employees"] ?? "N/A"}
+
                </span>
 
                 </p>
@@ -418,6 +431,12 @@ const CafeteriaKeyEmployeeTest = () => {
             <strong className="text-gray-700">Total Participants:</strong>{" "}
               <span className="font-semibold text-black-600">
                {result["Total Participants"] ?? "N/A"}
+             </span>
+            </p>
+            <p className="text-lg">
+            <strong className="text-gray-700">Total Benefits:</strong>{" "}
+              <span className="font-semibold text-black-600">
+               {formatCurrency(result?.["Total Benefits"] ?? "N/A")}
              </span>
             </p>
             <p className="text-lg mt-2">
@@ -429,20 +448,14 @@ const CafeteriaKeyEmployeeTest = () => {
               </span>
             </p>
             <p className="text-lg mt-2">
-  <strong className="text-gray-700">Key Employee Benefits:</strong>{" "}
-  <span className="font-semibold text-black-600">
-    {result?.["Key Employee Benefits"] !== undefined
-      ? formatCurrency(result["Key Employee Benefits"])
-      : "N/A"}
-  </span>
-</p>
-
-            <p className="text-lg">
-            <strong className="text-gray-700">Total Benefits:</strong>{" "}
+            <strong className="text-gray-700">Key Employee Benefits:</strong>{" "}
               <span className="font-semibold text-black-600">
-               {formatCurrency(result?.["Total Benefits"] ?? "N/A")}
-             </span>
-            </p>
+              {result?.["Key Employee Benefits"] !== undefined
+              ? formatCurrency(result["Key Employee Benefits"])
+               : "N/A"}
+              </span>
+              </p>
+            
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
@@ -472,6 +485,11 @@ const CafeteriaKeyEmployeeTest = () => {
               </button>
             </div>
 
+            {/* Graph Container (moved off-screen for PDF capture) */}
+    <div id="graphContainer" style={{ position: "absolute", left: "-9999px", top: 0 }}>
+      <CafeKeyEmpChart result={result} />
+    </div>
+
             {/* Corrective Actions & Consequences if Failed */}
             {result["Test Result"]?.toLowerCase() === "failed" && (
               <>
@@ -489,11 +507,11 @@ const CafeteriaKeyEmployeeTest = () => {
                 <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                   <h4 className="font-bold text-black-600">Consequences:</h4>
                   <ul className="list-disc list-inside text-black-600">
-                    <li>❌ Loss of Tax-Exempt Status for Key Employees</li>
+                    <li>Loss of Tax-Exempt Status for Key Employees</li>
                     <br />
-                    <li>❌ IRS Scrutiny and Potential Penalties</li>
+                    <li>IRS Scrutiny and Potential Penalties</li>
                     <br />
-                    <li>❌ Risk of Plan Disqualification for Non-Compliance</li>
+                    <li>Risk of Plan Disqualification for Non-Compliance</li>
                   </ul>
                 </div>
               </>
