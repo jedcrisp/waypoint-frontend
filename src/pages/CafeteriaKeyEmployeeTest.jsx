@@ -4,8 +4,6 @@ import axios from "axios";
 import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import CafeKeyEmpChart from "../Components/CafeKeyEmpChart";
-import html2canvas from "html2canvas";
 
 const CafeteriaKeyEmployeeTest = () => {
   const [file, setFile] = useState(null);
@@ -483,11 +481,6 @@ const downloadResultsAsCSV = () => {
                 Download CSV Report
               </button>
             </div>
-
-            {/* Graph Container (moved off-screen for PDF capture) */}
-    <div id="graphContainer" style={{ position: "absolute", left: "-9999px", top: 0 }}>
-      <CafeKeyEmpChart result={result} />
-    </div>
 
             {/* Corrective Actions & Consequences if Failed */}
             {result["Test Result"]?.toLowerCase() === "failed" && (
