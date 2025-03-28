@@ -4,7 +4,6 @@ import axios from "axios";
 import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust the path as needed
 
 const DCAPOwnersTest = () => {
   const [file, setFile] = useState(null);
@@ -42,7 +41,7 @@ const DCAPOwnersTest = () => {
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
-    accept: ".csv, .xlsx",
+    accept: ".csv",
     multiple: false,
     noClick: true,
     noKeyboard: true,
@@ -56,10 +55,10 @@ const DCAPOwnersTest = () => {
       setError("❌ Please select a file before uploading.");
       return;
     }
-    const validFileTypes = ["csv", "xlsx"];
+    const validFileTypes = ["csv"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
-      setError("❌ Invalid file type. Please upload a CSV or Excel file.");
+      setError("❌ Invalid file type. Please upload a CSV file.");
       return;
     }
     if (!planYear) {
@@ -164,31 +163,13 @@ const DCAPOwnersTest = () => {
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", planYear],
+      ["Total Employees", result["Total Employees"] ?? "N/A"],
+      ["Total Participants", result["Total Participants"] ?? "N/A"],
       ["Average DCAP Benefit for Owners", result["Average DCAP Benefit for Owners"] ?? "N/A"],
       ["Percentage of Benefits to Owners", result["Percentage of Benefits to Owners"] ? result["Percentage of Benefits to Owners"] + "%" : "N/A",],
       ["Test Result", result["Test Result"] ?? "N/A"],
     ];
 
-    if (result["Test Result"]?.toLowerCase() === "failed") {
-      const correctiveActions = [
-        "Review and adjust the classification of owners.",
-        "Consider increasing the number of non-owner employees.",
-        "Implement a plan to ensure a more balanced distribution of benefits.",
-      ];
-      const consequences = [
-        "Loss of Tax-Exempt Status for Owners.",
-        "IRS Scrutiny and Potential Penalties.",
-        "Reduced Employee Morale and Participation.",
-        "Risk of Plan Disqualification for Non-Compliance.",
-        "Reputational and Legal Risks.",
-      ];
-      csvRows.push(["", ""]);
-      csvRows.push(["Corrective Actions", ""]);
-      correctiveActions.forEach((action) => csvRows.push(["", action]));
-      csvRows.push(["", ""]);
-      csvRows.push(["Consequences", ""]);
-      consequences.forEach((item) => csvRows.push(["", item]));
-    }
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -223,15 +204,26 @@ const DCAPOwnersTest = () => {
     const generatedTimestamp = new Date().toLocaleString();
     pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(60, 60, 60); // Gray text
+    pdf.text(
+       "Test Criterion: ≤ 25% of total DCAP benefits may go to owners",
+      105,
+      38,
+      { align: "center", maxWidth: 180 }
+    );
+
     // Table
     pdf.autoTable({
     startY: 40,
     theme: "grid",
     head: [["Metric", "Value"]],
     body: [
+        ["Total Employees", result["Total Employees"] ?? "N/A"],
+        ["Total Participants", result["Total Participants"] ?? "N/A"],  
         ['Average DCAP Benefit for Owners (Formatted)', formatCurrency(result["Average DCAP Benefit for Owners"])],
         ["Percentage of Benefits to Owners", result["Percentage of Benefits to Owners"] ? result["Percentage of Benefits to Owners"] + "%" : "N/A",],
-        ["Total Participants", result["Total Participants"] ?? "N/A"],  
         ["Test Result", result["Test Result"] ?? "N/A"],
       ],
       headStyles: {
@@ -338,7 +330,7 @@ const DCAPOwnersTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV</strong> here.
           </p>
         )}
       </div>
