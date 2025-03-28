@@ -255,7 +255,6 @@ if (graphElement) {
   const canvas = await html2canvas(graphElement, { scale: 2 });
   const graphImgData = canvas.toDataURL("image/png");
   pdf.addPage();
-  pdf.text("V", 14, 20);
   pdf.addImage(graphImgData, "PNG", 10, 30, 190, 120);
 }
 
