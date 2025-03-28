@@ -223,6 +223,8 @@ const CoverageTest = () => {
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "normal");
     pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
+    pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
+    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
     // Section 1: Basic Results Table
     pdf.autoTable({
