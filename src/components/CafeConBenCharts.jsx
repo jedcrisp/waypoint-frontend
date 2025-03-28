@@ -12,8 +12,7 @@ import {
   Cell,
   ResponsiveContainer,
   RadialBarChart,
-  RadialBar,
-  Label,
+  RadialBar
 } from "recharts";
 
 const COLORS = ["#0074D9", "#FF4136"];
@@ -44,15 +43,15 @@ const Charts = () => {
     },
     {
       group: "NHCE",
-      employer: 0, // Adjust if available
-      employee: 0, // Adjust if available
+      employer: 0,
+      employee: 0,
       benefits: 300.0,
     },
   ];
 
   const gaugeData = [
     {
-      name: "Ratio",
+      name: "HCE/NHCE Ratio",
       value: hceNhceRatio,
       fill: hceNhceRatio > 1.25 ? "#FF4136" : "#2ECC40",
     },
@@ -65,10 +64,11 @@ const Charts = () => {
         <h3 className="text-xl font-bold mb-2">HCE vs NHCE Average Benefits</h3>
         <BarChart width={400} height={250} data={barData}>
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="group" />
-          <YAxis />
+          <XAxis dataKey="group" label={{ value: "Group", position: "insideBottom", offset: -5 }} />
+          <YAxis label={{ value: "Avg Benefit ($)", angle: -90, position: "insideLeft" }} />
           <Tooltip />
-          <Bar dataKey="benefit" fill="#0074D9" />
+          <Legend />
+          <Bar dataKey="benefit" fill="#0074D9" name="Average Benefit" />
         </BarChart>
       </div>
 
@@ -90,6 +90,7 @@ const Charts = () => {
             ))}
           </Pie>
           <Tooltip />
+          <Legend verticalAlign="bottom" />
         </PieChart>
       </div>
 
@@ -98,10 +99,10 @@ const Charts = () => {
         <h3 className="text-xl font-bold mb-2">Benefits vs Contributions by Group</h3>
         <BarChart width={450} height={300} data={stackedBarData}>
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="group" />
-          <YAxis />
+          <XAxis dataKey="group" label={{ value: "Group", position: "insideBottom", offset: -5 }} />
+          <YAxis label={{ value: "Amount ($)", angle: -90, position: "insideLeft" }} />
           <Tooltip />
-          <Legend />
+          <Legend verticalAlign="top" />
           <Bar dataKey="employer" stackId="a" fill="#0074D9" name="Employer Contribution" />
           <Bar dataKey="employee" stackId="a" fill="#7FDBFF" name="Employee Contribution" />
           <Bar dataKey="benefits" stackId="b" fill="#2ECC40" name="Benefits" />
@@ -123,16 +124,12 @@ const Charts = () => {
         >
           <RadialBar
             minAngle={15}
-            label={{ position: "insideStart", fill: "#000" }}
             background
             clockWise
             dataKey="value"
+            label={{ position: "inside", fill: "#000", formatter: () => `Ratio: ${hceNhceRatio}` }}
           />
-          <Label
-            value={`Ratio: ${hceNhceRatio}`}
-            position="center"
-            style={{ fontSize: 16, fill: "#333" }}
-          />
+          <Tooltip />
         </RadialBarChart>
       </div>
     </div>
