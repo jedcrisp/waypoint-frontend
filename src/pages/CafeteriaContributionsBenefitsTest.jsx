@@ -42,7 +42,7 @@ const CafeteriaContributionsBenefitsTest = () => {
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
-    accept: ".csv, .xlsx",
+    accept: ".csv",
     multiple: false,
     noClick: true,
     noKeyboard: true,
@@ -405,7 +405,7 @@ const CafeteriaContributionsBenefitsTest = () => {
           <p className="text-green-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV</strong> here.
           </p>
         )}
       </div>
