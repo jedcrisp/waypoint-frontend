@@ -56,10 +56,10 @@ const formatPercentage = (value) => {
       return;
     }
 
-    const validFileTypes = ["csv", "xlsx"];
+    const validFileTypes = ["csv"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
-      setError("❌ Invalid file type. Please upload a CSV or Excel file.");
+      setError("❌ Invalid file type. Please upload a CSV file.");
       return;
     }
     if (!planYear) {
@@ -134,20 +134,17 @@ const formatPercentage = (value) => {
     "Union Employee",
     "Part-Time / Seasonal"
   ],
-  ["Last", "First", "001", "$1000.00", "Yes", "1980-05-10", "2010-06-01", "Active", "No", "2011-01-01", "No", "No"],
-  ["Last", "First", "002", "$1500.00", "No", "1985-08-15", "2012-03-10", "Active", "No", "2013-01-01", "No", "Yes"],
-  ["Last", "First", "003", "$2000.00", "Yes", "1975-01-20", "2005-05-05", "Active", "No", "2006-01-01", "Yes", "No"],
-  ["Last", "First", "004", "$1200.00", "No", "1990-12-01", "2020-08-20", "Active", "Yes", "2021-01-01", "No", "No"],
-  ["Last", "First", "005", "$1800.00", "Yes", "1995-07-19", "2021-04-10", "Leave", "No", "2022-01-01", "No", "Yes"],
-  ["Last", "First", "006", "$1100.00", "No", "1982-11-03", "2009-11-01", "Active", "No", "2010-01-01", "Yes", "No"],
-  ["Last", "First", "007", "$1300.00", "Yes", "2001-04-25", "2022-09-15", "Active", "No", "2023-01-01", "No", "No"],
-  ["Last", "First", "008", "$1600.00", "No", "1978-02-14", "2000-01-01", "Terminated", "No", "2001-01-01", "Yes", "Yes"],
-  ["Last", "First", "009", "$1400.00", "Yes", "1999-06-30", "2019-03-05", "Active", "No", "2020-01-01", "No", "No"],
-  ["Last", "First", "010", "$1700.00", "No", "2003-09-12", "2023-01-10", "Active", "No", "2023-07-01", "Yes", "Yes"]
-].map(row => row.join(",")).join("\n");
-
-console.log(csvTemplate);
-
+  ["Last", "First", "001", "$1,000.00", "Yes", "1980-05-10", "2010-06-01", "Active", "No", "2011-01-01", "No", "No"],
+  ["Last", "First",  "002", "$1,500.00", "No", "1985-08-15", "2012-03-10", "Active", "No", "2013-01-01", "No", "Yes"],
+  ["Last", "First",  "003", "$2,000.00", "Yes", "1975-01-20", "2005-05-05", "Active", "No", "2006-01-01", "Yes", "No"],
+  ["Last", "First",  "004", "$1,200.00", "No", "1990-12-01", "2020-08-20", "Active", "Yes", "2021-01-01", "No", "No"],
+  ["Last", "First",  "005", "$1,800.00", "Yes", "1995-07-19", "2021-04-10", "Leave", "No", "2022-01-01", "No", "Yes"],
+  ["Last", "First",  "006", "$1,100.00", "No", "1982-11-03", "2009-11-01", "Active", "No", "2010-01-01", "Yes", "No"],
+  ["Last", "First",  "007", "$1,300.00", "Yes", "2001-04-25", "2022-09-15", "Active", "No", "2023-01-01", "No", "No"],
+  ["Last", "First",  "008", "$1,600.00", "No", "1978-02-14", "2000-01-01", "Terminated", "No", "2001-01-01", "Yes", "Yes"],
+  ["Last", "First",  "009", "$1,400.00", "Yes", "1999-06-30", "2019-03-05", "Active", "No", "2020-01-01", "No", "No"],
+  ["Last", "First",  "010", "$1,700.00", "No", "2003-09-12", "2023-01-10", "Active", "No", "2023-07-01", "Yes", "Yes"],
+].map((row) => row.join(",")).join("\n");
 
 
   const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
@@ -155,7 +152,7 @@ console.log(csvTemplate);
 
   const link = document.createElement("a");
   link.href = url;
-  link.setAttribute("download", "DCAP_Key_Employee_Concentration_Template.csv");
+  link.setAttribute("download", "DCAP_Eligibility_Template.csv");
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -172,29 +169,13 @@ console.log(csvTemplate);
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", planYear],
-      ["Total DCAP Benefits", result["Total DCAP Benefits"] ?? "N/A"],
+      ["Total Employees", result["Total Employees"] ?? "N/A"],
+      ["Total Participants", result["Total Participants"] ?? "N/A"],
       ["Key Employee Benefits", result["Key Employee Benefits"] ?? "N/A"],
-      [
-        "Key Employee Benefit Percentage",
-        result["Key Employee Benefit Percentage"] ? `${result["Key Employee Benefit Percentage"]}%` : "N/A",
-      ],
+      ["Key Employee Benefit Percentage", result["Key Employee Benefit Percentage"] ? `${result["Key Employee Benefit Percentage"]}%` : "N/A",],
+      ["Total DCAP Benefits", result["Total DCAP Benefits"] ?? "N/A"],
       ["Test Result", result["Test Result"] ?? "N/A"],
     ];
-
-    if (result["Test Result"]?.toLowerCase() === "failed") {
-      const correctiveActions = [
-        "Adjust benefits allocations to reduce concentration among key employees.",
-        "Consider reallocating contributions for a more balanced distribution.",
-        "Review and update plan design and eligibility criteria to ensure IRS compliance.",
-      ];
-      const consequences = [
-        "Potential reclassification of benefits as taxable income for key employees.",
-        "Increased corrective contributions may be required.",
-        "Heightened risk of IRS penalties and additional compliance audits.",
-      ];
-      csvRows.push([], ["Corrective Actions"], ...correctiveActions.map(action => ["", action]));
-      csvRows.push([], ["Consequences"], ...consequences.map(item => ["", item]));
-    }
 
     const csvContent = csvRows.map(row => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -219,6 +200,16 @@ console.log(csvTemplate);
     const pdf = new jsPDF("p", "mm", "a4");
     pdf.setFont("helvetica", "normal");
 
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(60, 60, 60); // Gray text
+    pdf.text(
+       "Test Criterion: Key employee benefits must not exceed 25% of total DCAP benefits",
+      105,
+      38,
+      { align: "center", maxWidth: 180 }
+    );
+
     // Header
     pdf.setFontSize(18);
     pdf.setFont("helvetica", "bold");
@@ -231,28 +222,15 @@ console.log(csvTemplate);
     pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
   pdf.autoTable({
-    startY: 40,
+    startY: 43,
     theme: "grid", // Ensures full table grid
     head: [["Metric", "Value"]],
     body: [
-      [
-        "Total DCAP Benefits",
-        result["Total DCAP Benefits"]
-          ? formatCurrency(result["Total DCAP Benefits"])
-          : "N/A",
-      ],
-      [
-        "Key Employee Benefits",
-        result["Key Employee Benefits"]
-          ? formatCurrency(result["Key Employee Benefits"])
-          : "N/A",
-      ],
-      [
-        "Key Employee Benefit Percentage",
-        result["Key Employee Benefit Percentage"]
-          ? `${result["Key Employee Benefit Percentage"]}%`
-          : "N/A",
-      ],
+      ["Total Employees", result["Total Employees"] ?? "N/A",],
+      ["Total Participants", result["Total Participants"] ?? "N/A",],
+      ["Key Employee Benefits", result["Key Employee Benefits"] ? formatCurrency(result["Key Employee Benefits"]) : "N/A",],
+      ["Key Employee Benefit Percentage", result["Key Employee Benefit Percentage"] ? `${result["Key Employee Benefit Percentage"]}%` : "N/A",],
+      ["Total DCAP Benefits", result["Total DCAP Benefits"] ? formatCurrency(result["Total DCAP Benefits"]) : "N/A",],
       ["Test Result", result["Test Result"] ?? "N/A"],
     ],
     headStyles: {
@@ -359,7 +337,7 @@ console.log(csvTemplate);
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
@@ -408,14 +386,19 @@ console.log(csvTemplate);
                 {planYear || "N/A"}
               </span>
             </p>
-            <p className="text-lg">
-  <strong className="text-gray-700">Total DCAP Benefits:</strong>{" "}
-  <span className="font-semibold text-gray-800">
-    {result["Total DCAP Benefits"]
-      ? formatCurrency(result["Total DCAP Benefits"])
-      : "N/A"}
-  </span>
-</p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Total Employees:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Employees"] ?? "N/A"}
+              </span>
+            </p>
+
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Total Participants:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Participants"] ?? "N/A"}
+              </span>
+            </p>
 <p className="text-lg mt-2">
   <strong className="text-gray-700">Key Employee Benefits:</strong>{" "}
   <span className="font-semibold text-gray-800">
@@ -429,6 +412,15 @@ console.log(csvTemplate);
   <span className="font-semibold text-gray-800">
     {result["Key Employee Benefit Percentage"]
       ? formatPercentage(result["Key Employee Benefit Percentage"])
+      : "N/A"}
+  </span>
+</p>
+
+<p className="text-lg">
+  <strong className="text-gray-700">Total DCAP Benefits:</strong>{" "}
+  <span className="font-semibold text-gray-800">
+    {result["Total DCAP Benefits"]
+      ? formatCurrency(result["Total DCAP Benefits"])
       : "N/A"}
   </span>
 </p>
@@ -480,11 +472,11 @@ console.log(csvTemplate);
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>❌ Potential reclassification of benefits as taxable income for key employees.</li>
+                  <li>Potential reclassification of benefits as taxable income for key employees.</li>
                   <br />
-                  <li>❌ Increased corrective contributions may be required from the employer.</li>
+                  <li>Increased corrective contributions may be required from the employer.</li>
                   <br />
-                  <li>❌ Heightened risk of IRS penalties and additional compliance audits.</li>
+                  <li>Heightened risk of IRS penalties and additional compliance audits.</li>
                 </ul>
               </div>
             </>
