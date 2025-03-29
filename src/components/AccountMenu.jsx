@@ -43,12 +43,20 @@ const AccountMenu = () => {
             Account Info
           </button>
           <button
+            onClick={() => navigate("/security")}
+            className="block w-full px-4 py-2 text-left hover:bg-gray-100"
+          >
+            Security
+          </button>
+          <button
             onClick={() => navigate("/archived-tests")}
             className="block w-full px-4 py-2 text-left hover:bg-gray-100"
           >
             Test History
           </button>
+
           <hr className="my-1 border-gray-200" />
+
           <button
             onClick={handleSignOut}
             className="block w-full px-4 py-2 text-left text-red-600 hover:bg-red-50"
