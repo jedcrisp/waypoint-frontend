@@ -4,6 +4,9 @@ import axios from "axios";
 import { getAuth } from "firebase/auth"; // Firebase Auth
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver";
+
+
 
 const CafeteriaContributionsBenefitsTest = () => {
   const [file, setFile] = useState(null);
@@ -42,7 +45,7 @@ const CafeteriaContributionsBenefitsTest = () => {
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
-    accept: ".csv",
+    accept: ".csv, .xlsx",
     multiple: false,
     noClick: true,
     noKeyboard: true,
@@ -113,10 +116,10 @@ const CafeteriaContributionsBenefitsTest = () => {
     }
 
     // Validate file type
-    const validFileTypes = ["csv"];
+    const validFileTypes = ["csv", "xlsx"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
-      setError("❌ Invalid file type. Please upload a CSV file.");
+      setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
     }
 
@@ -153,6 +156,8 @@ const CafeteriaContributionsBenefitsTest = () => {
         }
       );
 
+
+
       console.log("✅ API Response:", response.data);
       setResult(response.data?.["Test Results"]?.["cafeteria_contributions_benefits"] || {});
     } catch (err) {
@@ -170,118 +175,139 @@ const CafeteriaContributionsBenefitsTest = () => {
   // 4. Export PDF
   // =========================
   const exportToPDF = async () => {
-    if (!result) {
-      setError("❌ No results available to export.");
-      return;
-    }
+  if (!result) {
+    setError("❌ No results available to export.");
+    return;
+  }
 
-    const pdf = new jsPDF("p", "mm", "a4");
-    pdf.setFont("helvetica", "normal");
+  // Create a new PDF document
+  const pdf = new jsPDF("p", "mm", "a4");
+  pdf.setFont("helvetica", "normal");
 
-    // Header
-    pdf.setFontSize(18);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Cafeteria Contributions & Benefits Test Results", 105, 15, { align: "center" });
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
-    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
+  // Header
+  pdf.setFontSize(18);
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Cafeteria Contributions & Benefits Test Results", 105, 15, { align: "center" });
+  pdf.setFontSize(12);
+  pdf.setFont("helvetica", "normal");
+  pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
+  pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
-    // Collect data
-    const totalEmployees = result["Total Employees"] ?? "N/A";
-    const totalParticipants = result["Total Participants"] ?? "N/A";
-    const employerAvg = formatCurrency(result["Employer Contributions (Avg)"]);
-    const employeeAvg = formatCurrency(result["Employee Contributions (Avg)"]);
-    const hceAverageBenefit = formatCurrency(result["HCE Average Benefit"]);
-    const nhceAverageBenefit = formatCurrency(result["NHCE Average Benefit"]);
-    const totalBenefits = formatCurrency(result["Total Benefits"]);
-    const testResult = result["Test Result"] ?? "N/A";
-    const failed = testResult.toLowerCase() === "failed";
-    const hceNhceRatio = result["HCE/NHCE Ratio"] ?? "N/A";
-    const totalContributions = formatCurrency(result["Total Contributions"]);
+  // Collect data from result (adjust keys as needed)
+  const totalEmployees = result["Total Employees"] ?? "N/A";
+  const totalParticipants = result["Total Participants"] ?? "N/A";
+  const employerAvg = formatCurrency(result["Employer Contributions (Avg)"]);
+  const employeeAvg = formatCurrency(result["Employee Contributions (Avg)"]);
+  const hceAverageBenefit = formatCurrency(result["HCE Average Benefit"]);
+  const nhceAverageBenefit = formatCurrency(result["NHCE Average Benefit"]);
+  const totalBenefits = formatCurrency(result["Total Benefits"]);
+  const testResult = result["Test Result"] ?? "N/A";
+  const failed = testResult.toLowerCase() === "failed";
+  const hceNhceRatio = result["HCE/NHCE Ratio"] ?? "N/A";
+  const totalContributions = formatCurrency(result["Total Contributions"]);
 
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "italic");
-    pdf.setTextColor(60, 60, 60); // Gray text
-    pdf.text(
-      "Test Criterion: HCE average benefits must not exceed 125% of NHCE average benefits",
-      105,
-      38,
-      { align: "center", maxWidth: 180 }
-    );
+  // Additional header text
+  pdf.setFontSize(12);
+  pdf.setFont("helvetica", "italic");
+  pdf.setTextColor(60, 60, 60); // Gray text
+  pdf.text(
+    "Test Criterion: HCE average benefits must not exceed 125% of NHCE average benefits",
+    105,
+    38,
+    { align: "center", maxWidth: 180 }
+  );
 
-    // Table
+  // Create a table with autoTable for the metrics
+  pdf.autoTable({
+    startY: 45,
+    head: [["Metric", "Value"]],
+    body: [
+      ["Total Employees", totalEmployees],
+      ["Total Participants", totalParticipants],
+      ["Total Contributions", totalContributions],
+      ["Total Benefits", totalBenefits],
+      ["Employer Contributions (Avg)", employerAvg],
+      ["Employee Contributions (Avg)", employeeAvg],
+      ["HCE Average Benefit", hceAverageBenefit],
+      ["NHCE Average Benefit", nhceAverageBenefit],
+      ["HCE/NHCE Ratio", hceNhceRatio],
+      ["Test Result", testResult],
+    ],
+    headStyles: {
+      fillColor: [41, 128, 185],
+      textColor: [255, 255, 255],
+    },
+    styles: {
+      fontSize: 12,
+      font: "helvetica",
+      lineColor: [150, 150, 150],
+      lineWidth: 0.2,
+    },
+    margin: { left: 10, right: 10 },
+  });
+
+  // If the test failed, add corrective actions and consequences
+  if (failed) {
+    const correctiveActions = [
+      "Review allocation of contributions between employer and employees",
+      "Adjust plan design to promote equitable contributions",
+      "Reevaluate plan terms to align with non-discrimination requirements",
+    ];
+
+    const consequences = [
+      "Benefits may be reclassified as taxable for HCEs",
+      "Additional employer contributions might be required",
+      "Increased risk of IRS penalties and audits",
+    ];
+
     pdf.autoTable({
-      startY: 45,
-      head: [["Metric", "Value"]],
-      body: [
-        ["Total Employees", totalEmployees],
-        ["Total Participants", totalParticipants],
-        ["Total Contributions", totalContributions],
-        ["Total Benefits", totalBenefits],
-        ["Employer Contributions (Avg)", employerAvg],
-        ["Employee Contributions (Avg)", employeeAvg],
-        ["HCE Average Benefit", hceAverageBenefit],
-        ["NHCE Average Benefit", nhceAverageBenefit],
-        ["HCE/NHCE Ratio", hceNhceRatio],
-        ["Test Result", testResult],
-      ],
-      headStyles: {
-        fillColor: [41, 128, 185],
-        textColor: [255, 255, 255],
-      },
-      styles: {
-        fontSize: 12,
-        font: "helvetica",
-        lineColor: [150, 150, 150],
-        lineWidth: 0.2
-      },
+      startY: pdf.lastAutoTable.finalY + 10,
+      theme: "grid",
+      head: [["Corrective Actions"]],
+      body: correctiveActions.map(action => [action]),
+      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+      styles: { fontSize: 11, font: "helvetica" },
       margin: { left: 10, right: 10 },
     });
 
-    // Corrective actions & consequences (only if failed)
-    if (failed) {
-      const correctiveActions = [
-        "Review allocation of contributions between employer and employees",
-        "Adjust plan design to promote equitable contributions",
-        "Reevaluate plan terms to align with non-discrimination requirements",
-      ];
+    pdf.autoTable({
+      startY: pdf.lastAutoTable.finalY + 10,
+      theme: "grid",
+      head: [["Consequences"]],
+      body: consequences.map(consequence => [consequence]),
+      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+      styles: { fontSize: 11, font: "helvetica" },
+      margin: { left: 10, right: 10 },
+    });
+  }
 
-      const consequences = [
-        "Benefits may be reclassified as taxable for HCEs",
-        "Additional employer contributions might be required",
-        "Increased risk of IRS penalties and audits",
-      ];
+  // Footer
+  pdf.setFontSize(10);
+  pdf.setFont("helvetica", "italic");
+  pdf.setTextColor(100, 100, 100);
+  pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
-      pdf.autoTable({
-        startY: pdf.lastAutoTable.finalY + 10,
-        theme: "grid",
-        head: [["Corrective Actions"]],
-        body: correctiveActions.map(action => [action]),
-        headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-        styles: { fontSize: 11, font: "helvetica" },
-        margin: { left: 10, right: 10 },
-      });
+  // Optionally, trigger a download of the PDF to the client
+  pdf.save("Cafeteria_Contributions_Benefits_Results.pdf");
 
-      pdf.autoTable({
-        startY: pdf.lastAutoTable.finalY + 10,
-        theme: "grid",
-        head: [["Consequences"]],
-        body: consequences.map(consequence => [consequence]),
-        headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-        styles: { fontSize: 11, font: "helvetica" },
-        margin: { left: 10, right: 10 },
-      });
-    }
-    // ---------------------------
-    // Footer
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "italic");
-    pdf.setTextColor(100, 100, 100);
-    pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
+  // Convert PDF to Blob for saving to Firebase Storage
+  const pdfBlob = pdf.output("blob");
 
-    pdf.save("Cafeteria_Contributions_Benefits_Results.pdf");
-  };
+  // Save the PDF Blob to Firebase Storage and get its URL
+  try {
+    const pdfURL = await savePdfResultToFirebase({
+      fileName: "Cafeteria_Contributions_Benefits",
+      pdfBlob,
+      additionalData: { planYear, testResult },
+    });
+    console.log("Download your PDF here:", pdfURL);
+    // Optionally, update your component state to display the URL in the UI.
+  } catch (error) {
+    console.error("Error saving PDF to Firebase:", error);
+    setError("Failed to save PDF to Firebase.");
+  }
+};
+
 
   // =========================
   // 5. Download Results as CSV
@@ -388,7 +414,7 @@ const CafeteriaContributionsBenefitsTest = () => {
           <p className="text-green-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV</strong> here.
+            Drag & drop a <strong>CSV or Excel file</strong> here.
           </p>
         )}
       </div>
