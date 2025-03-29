@@ -31,6 +31,7 @@ export default function Navbar() {
   // Added missing test page paths: "/retirement-plan-tests", "/additional-ndt-tests", "/health-hra-tests", "/health-fsa-tests"
   const isSpecialTestPage =
     location.pathname.includes("/account") ||
+    location.pathname.includes("/security") ||
     location.pathname.includes("/dcap-tests") ||
     location.pathname.includes("/additional-ndt-tests") ||
     location.pathname.includes("/retirement-plan-tests") ||
