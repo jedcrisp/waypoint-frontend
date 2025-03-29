@@ -104,7 +104,7 @@ export default function Navbar() {
 
       {/* Right: Account Menu */}
 <div className="flex items-center space-x-4">
-  {user && <AccountMenu />}
+  {user && <AccountMenu textColor={isSpecialTestPage ? "text-white" : "text-black"} />}
 </div>
 
     </nav>
