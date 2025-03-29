@@ -46,6 +46,7 @@ import HealthHRATests from "./pages/HealthHRATests";
 import AverageBenefitTest from "./pages/AverageBenefitTest";
 import AccountInfo from "./components/AccountInfo";
 import Security from "./components/Security";
+import TestHistory from "./components/TestHistory";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -152,6 +153,7 @@ function App() {
             <Route path="/report" element={<ReportPage />} />
             <Route path="/account" element={<AccountInfo />} />
             <Route path="/security" element={<Security />} />
+            <Route path="/test-history" element={<TestHistory />} />
           </Routes>
         </Router>
       </TestContext.Provider>
