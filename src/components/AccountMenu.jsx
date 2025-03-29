@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { getAuth, signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 
-const AccountMenu = () => {
+const AccountMenu = ({ textColor = "text-black" }) => {
   const [open, setOpen] = useState(false);
   const menuRef = useRef();
   const navigate = useNavigate();
@@ -29,7 +29,7 @@ const AccountMenu = () => {
     <div className="relative inline-block text-left" ref={menuRef}>
       <button
         onClick={() => setOpen((prev) => !prev)}
-        className="text-white font-medium hover:underline focus:outline-none"
+        className={`font-medium hover:underline focus:outline-none ${textColor}`}
       >
         Account
       </button>
