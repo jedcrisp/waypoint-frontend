@@ -49,7 +49,7 @@ const AccountMenu = () => {
             Security
           </button>
           <button
-            onClick={() => navigate("/archived-tests")}
+            onClick={() => navigate("/test-history")}
             className="block w-full px-4 py-2 text-left hover:bg-gray-100"
           >
             Test History
