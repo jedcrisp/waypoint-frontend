@@ -1,0 +1,12 @@
+[
+  {
+    "origin": [
+      "http://localhost:5173",
+      "https://www.thewaypoint.app",
+      "https://thewaypoint.app"
+    ],
+    "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "responseHeader": ["Content-Type"],
+    "maxAgeSeconds": 3600
+  }
+]
