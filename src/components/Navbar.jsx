@@ -30,6 +30,7 @@ export default function Navbar() {
   // Determine navbar styling based on the current route.
   // Added missing test page paths: "/retirement-plan-tests", "/additional-ndt-tests", "/health-hra-tests", "/health-fsa-tests"
   const isSpecialTestPage =
+    location.pathname.includes("/account") ||
     location.pathname.includes("/dcap-tests") ||
     location.pathname.includes("/additional-ndt-tests") ||
     location.pathname.includes("/retirement-plan-tests") ||
