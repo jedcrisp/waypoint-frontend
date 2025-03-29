@@ -44,6 +44,7 @@ import AdditionalNDTTests from "./pages/AdditionalNDTTests";
 import RetirementPlanTests from "./pages/RetirementPlanTests";
 import HealthHRATests from "./pages/HealthHRATests";
 import AverageBenefitTest from "./pages/AverageBenefitTest";
+import AccountInfo from "./components/AccountInfo";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -148,6 +149,7 @@ function App() {
             <Route path="/additional-ndt-tests" element={<AdditionalNDTTests />} />
             <Route path="/test-average-benefit" element={<AverageBenefitTest />} />
             <Route path="/report" element={<ReportPage />} />
+            <Route path="/account" element={<AccountInfo />} />
           </Routes>
         </Router>
       </TestContext.Provider>
