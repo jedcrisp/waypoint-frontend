@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../firebase"; // Adjust the path if needed
 import { ArrowLeft } from "lucide-react";
+import AccountMenu from "./AccountMenu";
 
 export default function Navbar() {
   const [user, setUser] = useState(null);
@@ -32,6 +33,7 @@ export default function Navbar() {
   const isSpecialTestPage =
     location.pathname.includes("/account") ||
     location.pathname.includes("/security") ||
+    location.pathname.includes("/test-history") ||
     location.pathname.includes("/dcap-tests") ||
     location.pathname.includes("/additional-ndt-tests") ||
     location.pathname.includes("/retirement-plan-tests") ||
@@ -52,6 +54,7 @@ export default function Navbar() {
     location.pathname.includes("/test-dcap-55-benefits") ||
     location.pathname.includes("/test-dcap-contributions") ||
     location.pathname.includes("/test-dcap-key-employee-concentration") ||
+    location.pathname.includes("/test-dcap-employee-concentration") ||
     location.pathname.includes("/test-key-employee") ||
     location.pathname.includes("/test-eligibility") ||
     location.pathname.includes("/test-classification") ||
@@ -99,17 +102,11 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* Right: Sign Out */}
-      <div className="flex items-center space-x-4">
-        {user && (
-          <button
-            onClick={handleSignOut}
-            className={`hover:text-gray-700 ${textColor}`}
-          >
-            Sign Out
-          </button>
-        )}
-      </div>
+      {/* Right: Account Menu */}
+<div className="flex items-center space-x-4">
+  {user && <AccountMenu />}
+</div>
+
     </nav>
   );
 }
