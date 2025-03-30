@@ -461,9 +461,7 @@ const ADPSafeHarborSlidingTest = () => {
             </p>
           </div>
 
-        {/* If failed, show corrective actions + consequences in the UI as well */}
-            {result["ADP Safe Harbor Sliding Test Result"] &&
-              result["ADP Safe Harbor Sliding Test Result"].toLowerCase() === "failed" && (
+              result["Test Result"].toLowerCase() === "failed" && (
                 <>
                   <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                     <h4 className="font-bold text-black-600">
