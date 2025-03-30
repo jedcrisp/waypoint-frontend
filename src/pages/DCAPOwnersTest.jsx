@@ -314,7 +314,7 @@ const DCAPOwnersTest = () => {
     }
     try {
       await savePdfResultToFirebase({
-        fileName: "DCAP Owners Test",
+        fileName: "DCAP Owners",
         pdfBlob,
         additionalData: {
           planYear,
@@ -421,6 +421,12 @@ const DCAPOwnersTest = () => {
               <strong className="text-gray-700">Plan Year:</strong>{" "}
               <span className="font-semibold text-blue-600">
                 {planYear || "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Total Employees:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Employees"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
