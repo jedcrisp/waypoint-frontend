@@ -1,7 +1,9 @@
 import React, { useState, useCallback } from "react";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Use the external helper
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
+import { getStorage, ref, uploadBytes } from "firebase/storage";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
@@ -91,7 +93,6 @@ const DCAPOwnersTest = () => {
         },
       });
 
-      // Check if the response structure is as expected
       if (
         response.data &&
         response.data["Test Results"] &&
@@ -125,18 +126,32 @@ const DCAPOwnersTest = () => {
   // =========================
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-  ["Last Name", "First Name", "Employee ID", "Ownership %", "DCAP Benefits", "DOB", "DOH", "Employment Status", "Excluded from Test", "Family Member", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
-  ["Last", "First", "001", "0",     2500, "1980-01-15", "2010-06-01", "Active", "No", "No", "2011-01-01", "No", "No"],
-  ["Last", "First", "002", "10",    3200, "1975-09-23", "2005-03-10", "Active", "No", "No", "2006-01-01", "No", "No"],
-  ["Last", "First", "003", "5",     0,    "1990-03-12", "2021-07-15", "Active", "No", "No", "2022-01-01", "No", "No"],
-  ["Last", "First", "004", "50",    4000, "1982-11-05", "2008-04-25", "Active", "No", "Yes", "2009-01-01", "No", "No"],
-  ["Last", "First", "005", "0",     1800, "1995-06-18", "2019-09-30", "Terminated", "No", "No", "2020-01-01", "No", "No"],
-  ["Last", "First", "006", "20",    3600, "1987-07-01", "2012-10-10", "Active", "No", "No", "2013-01-01", "No", "No"],
-  ["Last", "First", "007", "0",     0,    "2001-05-21", "2023-04-01", "Active", "No", "No", "2023-07-01", "No", "Yes"],
-  ["Last", "First", "008", "30",    4100, "1979-08-29", "2006-12-20", "Active", "No", "Yes", "2007-01-01", "No", "No"],
-  ["Last", "First", "009", "0",     2100, "1993-01-01", "2018-08-15", "Leave", "No", "No", "2019-01-01", "No", "No"],
-  ["Last", "First", "010", "0",     1500, "2000-10-10", "2022-03-05", "Active", "No", "No", "2023-01-01", "No", "No"],
-]
+      [
+        "Last Name",
+        "First Name",
+        "Employee ID",
+        "Ownership %",
+        "DCAP Benefits",
+        "DOB",
+        "DOH",
+        "Employment Status",
+        "Excluded from Test",
+        "Family Member",
+        "Plan Entry Date",
+        "Union Employee",
+        "Part-Time / Seasonal",
+      ],
+      ["Last", "First", "001", "0", 2500, "1980-01-15", "2010-06-01", "Active", "No", "No", "2011-01-01", "No", "No"],
+      ["Last", "First", "002", "10", 3200, "1975-09-23", "2005-03-10", "Active", "No", "No", "2006-01-01", "No", "No"],
+      ["Last", "First", "003", "5", 0, "1990-03-12", "2021-07-15", "Active", "No", "No", "2022-01-01", "No", "No"],
+      ["Last", "First", "004", "50", 4000, "1982-11-05", "2008-04-25", "Active", "No", "Yes", "2009-01-01", "No", "No"],
+      ["Last", "First", "005", "0", 1800, "1995-06-18", "2019-09-30", "Terminated", "No", "No", "2020-01-01", "No", "No"],
+      ["Last", "First", "006", "20", 3600, "1987-07-01", "2012-10-10", "Active", "No", "No", "2013-01-01", "No", "No"],
+      ["Last", "First", "007", "0", 0, "2001-05-21", "2023-04-01", "Active", "No", "No", "2023-07-01", "No", "Yes"],
+      ["Last", "First", "008", "30", 4100, "1979-08-29", "2006-12-20", "Active", "No", "Yes", "2007-01-01", "No", "No"],
+      ["Last", "First", "009", "0", 2100, "1993-01-01", "2018-08-15", "Leave", "No", "No", "2019-01-01", "No", "No"],
+      ["Last", "First", "010", "0", 1500, "2000-10-10", "2022-03-05", "Active", "No", "No", "2023-01-01", "No", "No"],
+    ]
       .map((row) => row.join(","))
       .join("\n");
 
@@ -166,10 +181,14 @@ const DCAPOwnersTest = () => {
       ["Total Employees", result["Total Employees"] ?? "N/A"],
       ["Total Participants", result["Total Participants"] ?? "N/A"],
       ["Average DCAP Benefit for Owners", result["Average DCAP Benefit for Owners"] ?? "N/A"],
-      ["Percentage of Benefits to Owners", result["Percentage of Benefits to Owners"] ? result["Percentage of Benefits to Owners"] + "%" : "N/A",],
+      [
+        "Percentage of Benefits to Owners",
+        result["Percentage of Benefits to Owners"]
+          ? result["Percentage of Benefits to Owners"] + "%"
+          : "N/A",
+      ],
       ["Test Result", result["Test Result"] ?? "N/A"],
     ];
-
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -183,103 +202,128 @@ const DCAPOwnersTest = () => {
   };
 
   // =========================
-  // 6. Export to PDF
+  // 6. Export to PDF with Firebase Save
   // =========================
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
+    let pdfBlob;
+    try {
+      const pdf = new jsPDF("p", "mm", "a4");
+      // Header
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(18);
+      pdf.text("DCAP Owners Test Results", 105, 15, { align: "center" });
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
+      const generatedTimestamp = new Date().toLocaleString();
+      pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
-    const pdf = new jsPDF("p", "mm", "a4");
-    pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(
+        "Test Criterion: ≤ 25% of total DCAP benefits may go to owners",
+        105,
+        38,
+        { align: "center", maxWidth: 180 }
+      );
 
-    // Header
-    pdf.setFontSize(18);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("DCAP Owners Test Results", 105, 15, { align: "center" });
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
-    const generatedTimestamp = new Date().toLocaleString();
-    pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
+      // Table with Results
+      pdf.autoTable({
+        startY: 40,
+        theme: "grid",
+        head: [["Metric", "Value"]],
+        body: [
+          ["Total Employees", result["Total Employees"] ?? "N/A"],
+          ["Total Participants", result["Total Participants"] ?? "N/A"],
+          [
+            "Average DCAP Benefit for Owners (Formatted)",
+            formatCurrency(result["Average DCAP Benefit for Owners"])
+          ],
+          [
+            "Percentage of Benefits to Owners",
+            result["Percentage of Benefits to Owners"]
+              ? result["Percentage of Benefits to Owners"] + "%"
+              : "N/A"
+          ],
+          ["Test Result", result["Test Result"] ?? "N/A"],
+        ],
+        headStyles: {
+          fillColor: [41, 128, 185],
+          textColor: [255, 255, 255],
+        },
+        styles: {
+          fontSize: 12,
+          font: "helvetica",
+        },
+        margin: { left: 10, right: 10 },
+      });
 
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "italic");
-    pdf.setTextColor(60, 60, 60); // Gray text
-    pdf.text(
-       "Test Criterion: ≤ 25% of total DCAP benefits may go to owners",
-      105,
-      38,
-      { align: "center", maxWidth: 180 }
-    );
+      // Corrective actions & consequences (if test failed)
+      if (result["Test Result"]?.toLowerCase() === "failed") {
+        const correctiveActions = [
+          "Review and adjust the classification of owners",
+          "Consider increasing the number of non-owner employees",
+          "Implement a plan to ensure a more balanced distribution of benefits",
+        ];
 
-    // Table
-    pdf.autoTable({
-    startY: 40,
-    theme: "grid",
-    head: [["Metric", "Value"]],
-    body: [
-        ["Total Employees", result["Total Employees"] ?? "N/A"],
-        ["Total Participants", result["Total Participants"] ?? "N/A"],  
-        ['Average DCAP Benefit for Owners (Formatted)', formatCurrency(result["Average DCAP Benefit for Owners"])],
-        ["Percentage of Benefits to Owners", result["Percentage of Benefits to Owners"] ? result["Percentage of Benefits to Owners"] + "%" : "N/A",],
-        ["Test Result", result["Test Result"] ?? "N/A"],
-      ],
-      headStyles: {
-        fillColor: [41, 128, 185],
-        textColor: [255, 255, 255],
-      },
-      styles: {
-        fontSize: 12,
-        font: "helvetica",
-      },
-      margin: { left: 10, right: 10 },
-    });
+        const consequences = [
+          "IRS Scrutiny and Potential Penalties",
+          "Reduced Employee Morale and Participation",
+          "Risk of Plan Disqualification",
+          "Reputational and Legal Risks",
+        ];
 
-    // Corrective actions & consequences (only if failed)
-  if (result["Test Result"]?.toLowerCase() === "failed") {
-    const correctiveActions = [
-        "Review and adjust the classification of owners",
-        "Consider increasing the number of non-owner employees",
-        "Implement a plan to ensure a more balanced distribution of benefits",
-    ];
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Corrective Actions"]],
+          body: correctiveActions.map((action) => [action]),
+          headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
 
-    const consequences = [
-        "IRS Scrutiny and Potential Penalties",
-        "Reduced Employee Morale and Participation",
-        "Risk of Plan Disqualification",
-        "Reputational and Legal Risks",
-    ];
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Consequences"]],
+          body: consequences.map((consequence) => [consequence]),
+          headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+      }
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
+      // Footer
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-
-  }
-    // Footer
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "italic");
-    pdf.setTextColor(100, 100, 100);
-    pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
-
-    pdf.save("DCAP_Owners_Results.pdf");
+      // Generate blob and save locally
+      pdfBlob = pdf.output("blob");
+      pdf.save("DCAP_Owners_Results.pdf");
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
+      return;
+    }
+    try {
+      await savePdfResultToFirebase({
+        fileName: "DCAP Owners Test",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult: result["Test Result"] ?? "Unknown",
+        },
+      });
+    } catch (error) {
+      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+    }
   };
 
   // =========================
@@ -380,26 +424,23 @@ const DCAPOwnersTest = () => {
               </span>
             </p>
             <p className="text-lg mt-2">
-  <strong className="text-gray-700">Total Participants:</strong>{" "}
-  <span className="font-semibold text-black-600">
-    {result?.["Total Participants"] ?? "N/A"}
-  </span>
-</p>
-
+              <strong className="text-gray-700">Total Participants:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Participants"] ?? "N/A"}
+              </span>
+            </p>
             <p className="text-lg">
-  <strong className="text-gray-700">Average DCAP Benefit for Owners:</strong>{" "}
-  <span className="font-semibold text-black-600">
-    {formatCurrency(result?.["Average DCAP Benefit for Owners"])}
-  </span>
-</p>
-
-<p className="text-lg mt-2">
-  <strong className="text-gray-700">Percentage of Benefits to Owners:</strong>{" "}
-  <span className="font-semibold text-black-600">
-    {formatPercentage(result?.["Percentage of Benefits to Owners"])}
-  </span>
-</p>
-
+              <strong className="text-gray-700">Average DCAP Benefit for Owners:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatCurrency(result?.["Average DCAP Benefit for Owners"])}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Percentage of Benefits to Owners:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatPercentage(result?.["Percentage of Benefits to Owners"])}
+              </span>
+            </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
@@ -430,7 +471,7 @@ const DCAPOwnersTest = () => {
             </button>
           </div>
 
-          {/* If test fails, show corrective actions & consequences in the UI */}
+          {/* Corrective actions & consequences if test fails */}
           {result["Test Result"]?.toLowerCase() === "failed" && (
             <>
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
@@ -447,15 +488,15 @@ const DCAPOwnersTest = () => {
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>❌ Loss of Tax-Exempt Status for Owners</li>
+                  <li>Loss of Tax-Exempt Status for Owners</li>
                   <br />
-                  <li>❌ IRS Scrutiny and Potential Penalties</li>
+                  <li>IRS Scrutiny and Potential Penalties</li>
                   <br />
-                  <li>❌ Reduced Employee Morale and Participation</li>
+                  <li>Reduced Employee Morale and Participation</li>
                   <br />
-                  <li>❌ Risk of Plan Disqualification for Non-Compliance</li>
+                  <li>Risk of Plan Disqualification for Non-Compliance</li>
                   <br />
-                  <li>❌ Reputational and Legal Risks</li>
+                  <li>Reputational and Legal Risks</li>
                 </ul>
               </div>
             </>
