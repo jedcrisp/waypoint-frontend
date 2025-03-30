@@ -145,6 +145,7 @@ const ADPSafeHarbor401kTest = () => {
     }
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
     const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
     const eligibilityPct = result["Eligibility Percentage (%)"] ?? "N/A";
     const avgEmployerContribution = result["Average Employer Contribution (%)"] ?? "N/A";
@@ -154,6 +155,7 @@ const ADPSafeHarbor401kTest = () => {
       ["Metric", "Value"],
       ["Plan Year", plan],
       ["Total Employees", totalEmployees],
+      ["Total Participants", totalParticipants],
       ["Eligible Employees", eligibleEmployees],
       ["Eligibility Percentage (%)", eligibilityPct],
       ["Average Employer Contribution (%)", avgEmployerContribution],
@@ -199,7 +201,7 @@ const ADPSafeHarbor401kTest = () => {
     }
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
-    const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
     const eligibilityPct = result["Eligibility Percentage (%)"] ?? "N/A";
     const avgEmployerContribution = result["Average Employer Contribution (%)"] ?? "N/A";
     const testRes = result["Test Result"] ?? "N/A";
@@ -223,7 +225,7 @@ const ADPSafeHarbor401kTest = () => {
       head: [["Metric", "Value"]],
       body: [
         ["Total Employees", totalEmployees],
-        ["Eligible Employees", eligibleEmployees],
+        ["Total Participants", totalParticipants],
         ["Eligibility Percentage (%)", eligibilityPct],
         ["Average Employer Contribution (%)", avgEmployerContribution],
         ["Test Result", testRes],
@@ -404,9 +406,9 @@ const ADPSafeHarbor401kTest = () => {
               <strong className="text-gray-700">Total Employees:</strong>{" "}
               {result["Total Employees"] ?? "N/A"}
             </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Eligible Employees:</strong>{" "}
-              {result["Eligible Employees"] ?? "N/A"}
+            <p className="text-lg">
+              <strong className="text-gray-700">Total Participants:</strong>{" "}
+              {result["Total Participants"] ?? "N/A"}
             </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Eligibility Percentage:</strong>{" "}
