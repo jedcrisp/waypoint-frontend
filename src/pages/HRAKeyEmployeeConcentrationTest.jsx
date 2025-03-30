@@ -157,6 +157,8 @@ const HRAKeyEmployeeConcentrationTest = () => {
     }
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
+    const totalHRABenefits = result["Total HRA Benefits"] ?? "N/A";
     const keyEmployeeBenefits = result["Key Employee Benefits"] ?? "N/A";
     const keyEmployeeBenefitPercentage = result["Key Employee Benefit Percentage"] ?? "N/A";
     const testRes = result["Test Result"] ?? "N/A";
@@ -165,29 +167,13 @@ const HRAKeyEmployeeConcentrationTest = () => {
       ["Metric", "Value"],
       ["Plan Year", plan],
       ["Total Employees", totalEmployees],
+      ["Total Participants", totalParticipants],  
+      ["Total HRA Benefits", totalHRABenefits],
       ["Key Employee Benefits", keyEmployeeBenefits],
       ["Key Employee Benefit Percentage", keyEmployeeBenefitPercentage],
       ["Test Result", testRes],
     ];
 
-    if (String(testRes).toLowerCase() === "failed") {
-      const correctiveActions = [
-        "Review and adjust the allocation of HRA benefits for key employees.",
-        "Modify plan design to lower the concentration among key employees.",
-        "Reevaluate eligibility criteria to ensure compliance.",
-      ];
-      const consequences = [
-        "Benefits for key employees may be reclassified as taxable.",
-        "Employer may need to make corrective contributions.",
-        "Increased IRS scrutiny and potential penalties.",
-      ];
-      csvRows.push(["", ""]);
-      csvRows.push(["Corrective Actions", ""]);
-      correctiveActions.forEach((action) => csvRows.push(["", action]));
-      csvRows.push(["", ""]);
-      csvRows.push(["Consequences", ""]);
-      consequences.forEach((item) => csvRows.push(["", item]));
-    }
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -208,6 +194,7 @@ const HRAKeyEmployeeConcentrationTest = () => {
     let pdfBlob;
     try {
       const totalEmployees = result["Total Employees"] ?? "N/A";
+      const totalParticipants = result["Total Participants"] ?? "N/A";
       const keyEmployeeBenefits = formatCurrency(result["Key Employee Benefits"]) || "N/A";
       const keyEmployeeBenefitPercentage = formatPercentage(result["Key Employee Benefit Percentage"]) || "N/A";
       const testRes = result["Test Result"] ?? "N/A";
@@ -232,6 +219,8 @@ const HRAKeyEmployeeConcentrationTest = () => {
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", totalEmployees],
+          ["Total Participants", totalParticipants],
+          ["Total HRA Benefits", formatCurrency(result["Total HRA Benefits"]) || "N/A"],
           ["Key Employee Benefits", keyEmployeeBenefits],
           ["Key Employee Benefit Percentage", keyEmployeeBenefitPercentage],
           ["Test Result", testRes],
@@ -286,7 +275,7 @@ const HRAKeyEmployeeConcentrationTest = () => {
       }
       try {
         await savePdfResultToFirebase({
-          fileName: "HRA_Key_Employee_Concentration_Test",
+          fileName: "HRA Key Employee Concentration",
           pdfBlob,
           additionalData: {
             planYear,
@@ -300,6 +289,7 @@ const HRAKeyEmployeeConcentrationTest = () => {
       setError(`❌ Error exporting PDF: ${error.message}`);
     }
   };
+
 
   // ----- 8. Render -----
   return (
@@ -396,8 +386,16 @@ const HRAKeyEmployeeConcentrationTest = () => {
               <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
             </p>
             <p className="text-lg mt-2">
-              <strong>HRA Benefits:</strong>{" "}
-              {formatCurrency(result["Total HRA Benefits"] ?? "N/A")}
+              <strong>Total Employees:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Employees"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong>Total Participants:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Participants"] ?? "N/A"}
+              </span>
             </p>
             <p className="text-lg mt-2">
               <strong>Key Employee Benefits:</strong>{" "}
@@ -406,6 +404,10 @@ const HRAKeyEmployeeConcentrationTest = () => {
             <p className="text-lg mt-2">
               <strong>Key Employee Benefit Percentage:</strong>{" "}
               {formatPercentage(result["Key Employee Benefit Percentage"] ?? "N/A")}
+            </p>
+            <p className="text-lg mt-2">
+              <strong>Total HRA Benefits:</strong>{" "}
+              {formatCurrency(result["Total HRA Benefits"] ?? "N/A")}
             </p>
             <p className="text-lg mt-2">
               <strong>Test Result:</strong>{" "}
