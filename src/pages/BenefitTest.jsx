@@ -75,7 +75,7 @@ const BenefitTest = () => {
 
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Benefit_Test_Template.csv");
+    link.setAttribute("download", "Benefit_Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -152,7 +152,8 @@ const BenefitTest = () => {
     }
 
     const plan = planYear || "N/A";
-    const totalEligibleEmployees = result["Total Eligible Employees"] ?? "N/A";
+    const totalEmployees = result["Total Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A"; 
     const hceCount = result["HCE Count"] ?? "N/A";
     const hcePct = formatPercentage(result["HCE Percentage (%)"]);
     const testResult = result["Test Result"] || "N/A";
@@ -188,7 +189,8 @@ const BenefitTest = () => {
       theme: "grid",
       head: [["Metric", "Value"]],
       body: [
-        ["Total Eligible Employees", totalEligibleEmployees],
+        ["Total Employees", totalEmployees],
+        ["Total Participants", totalParticipants],
         ["HCE Count", hceCount],
         ["HCE Percentage", hcePct],
         ["Test Result", testResult],
@@ -283,20 +285,20 @@ const BenefitTest = () => {
     }
 
     const plan = planYear || "N/A";
-    const totalEligibleEmployees = result["Total Eligible Employees"] ?? "N/A";
+    const totalmployees = result["Total Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
     const hceCount = result["HCE Count"] ?? "N/A";
-    const hcePct = result["HCE Percentage (%)"] !== undefined
-      ? result["HCE Percentage (%)"] + "%"
-      : "N/A";
-    const testRes = result["Test Result"] ?? "N/A";
+    const hcePct = result["HCE Percentage (%)"] !== undefined ? result["HCE Percentage (%)"] + "%" : "N/A";
+    const testResult = result["Test Result"] ?? "N/A";
 
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", plan],
-      ["Total Eligible Employees", totalEligibleEmployees],
+      ["Total Employees", totalEmployees],
+      ["Total Participants", totalParticipants],
       ["HCE Count", hceCount],
       ["HCE Percentage (%)", hcePct],
-      ["Test Result", testRes],
+      ["Test Result", testResult],
     ];
 
     if (testRes.toLowerCase() === "failed") {
@@ -453,6 +455,12 @@ const BenefitTest = () => {
               <strong className="text-gray-700">Total Employees:</strong>{" "}
               <span className="font-semibold text-blue-600">
                 {result?.["Total Employees"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg">
+              <strong className="text-gray-700">Total Participants:</strong>{" "}
+              <span className="font-semibold text-blue-600">
+                {result?.["Total Participants"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
