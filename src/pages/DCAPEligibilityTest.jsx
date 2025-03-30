@@ -150,14 +150,14 @@ const DCAPEligibilityTest = () => {
       return;
     }
     const totalEmployees = result["Total Employees"] ?? "N/A";
-    const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
     const dcapEligibilityPercentage = result["DCAP Eligibility Percentage (%)"] ?? "N/A";
     const testRes = result["Test Result"] ?? "N/A";
 
     const csvRows = [
       ["Metric", "Value"],
       ["Total Employees", totalEmployees],
-      ["Eligible Employees", eligibleEmployees],
+      ["Total Participants", totalParticipants],
       ["DCAP Eligibility Percentage (%)", formatPercentage(dcapEligibilityPercentage)],
       ["Test Result", testRes],
     ];
@@ -186,7 +186,7 @@ const DCAPEligibilityTest = () => {
       pdf.setFont("helvetica", "normal");
 
       const totalEmployees = result["Total Employees"] ?? "N/A";
-      const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
+      const totalParticipants = result["Total Participants"] ?? "N/A";
       const dcapEligibilityPercentage = result["DCAP Eligibility Percentage (%)"] ?? "N/A";
       const testRes = result["Test Result"] ?? "N/A";
       const failed = testRes.toLowerCase() === "failed";
@@ -215,11 +215,8 @@ const DCAPEligibilityTest = () => {
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", totalEmployees],
-          ["Eligible Employees", eligibleEmployees],
-          [
-            "DCAP Eligibility Percentage",
-            dcapEligibilityPercentage !== "N/A" ? formatPercentage(dcapEligibilityPercentage) : "N/A",
-          ],
+          ["Total Participants", totalParticipants],
+          ["DCAP Eligibility Percentage", dcapEligibilityPercentage !== "N/A" ? formatPercentage(dcapEligibilityPercentage) : "N/A",],
           ["Test Result", testRes],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
@@ -399,9 +396,9 @@ const DCAPEligibilityTest = () => {
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Eligible Employees:</strong>{" "}
+              <strong className="text-gray-700">Total Participants:</strong>{" "}
               <span className="font-semibold text-black-800">
-                {result?.["Eligible Employees"] ?? "N/A"}
+                {result?.["Total Participants"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
