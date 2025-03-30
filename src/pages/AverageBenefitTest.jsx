@@ -4,6 +4,7 @@ import axios from "axios";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { getAuth } from "firebase/auth"; // Import Firebase Auth
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Integrated from DCAP contributions
 
 const AverageBenefitTest = () => {
   // ----- State -----
@@ -16,27 +17,29 @@ const AverageBenefitTest = () => {
   const API_URL = import.meta.env.VITE_BACKEND_URL;
 
   // ---------- Formatting Helpers ----------
-const formatCurrency = (amount) => {
-  if (amount === null || amount === undefined || isNaN(Number(amount))) return "N/A";
-  return `$${Number(amount).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-};
+  const formatCurrency = (amount) => {
+    if (amount === null || amount === undefined || isNaN(Number(amount)))
+      return "N/A";
+    return `$${Number(amount).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
 
-const formatPercentage = (value) => {
-  if (value === null || value === undefined || isNaN(Number(value))) return "N/A";
-  return `${Number(value).toFixed(2)}%`;
-};
+  const formatPercentage = (value) => {
+    if (value === null || value === undefined || isNaN(Number(value)))
+      return "N/A";
+    return `${Number(value).toFixed(2)}%`;
+  };
 
   // ----- 1. Drag & Drop Logic -----
-    const onDrop = useCallback((acceptedFiles) => {
-      if (acceptedFiles && acceptedFiles.length > 0) {
-        setFile(acceptedFiles[0]);
-        setResult(null);
-        setError(null);
-      }
-    }, []);
+  const onDrop = useCallback((acceptedFiles) => {
+    if (acceptedFiles && acceptedFiles.length > 0) {
+      setFile(acceptedFiles[0]);
+      setResult(null);
+      setError(null);
+    }
+  }, []);
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
@@ -62,10 +65,9 @@ const formatPercentage = (value) => {
   ["Last", "First", "010", "4900", "0", "4900", "1987-06-06", "2012-04-10", "Active", "No", "Yes", "2012-05-01", "No", "No"]
 ]
 
-      // Removed invalid Python code. Ensure CSV template logic is implemented correctly in JavaScript.
-
-
-    const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([csvTemplate.join("\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -75,7 +77,7 @@ const formatPercentage = (value) => {
     document.body.removeChild(link);
   };
 
- // ----- 2. Upload File to Backend -----
+  // ----- 3. Upload File to Backend -----
   const handleUpload = async () => {
     if (!file) {
       setError("❌ Please select a file before uploading.");
@@ -116,18 +118,25 @@ const formatPercentage = (value) => {
       console.log("Firebase Token:", token);
 
       // 2. Send POST request with Bearer token
-      const response = await axios.post(`${API_URL}/upload-csv/average_benefit`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const response = await axios.post(
+        `${API_URL}/upload-csv/average_benefit`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       console.log("✅ API Response:", response.data);
       setResult(response.data?.["Test Results"]?.["average_benefit"] || {});
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
-      setError(err.response?.data?.error || "❌ Failed to upload file. Please check the format and try again.");
+      setError(
+        err.response?.data?.error ||
+          "❌ Failed to upload file. Please check the format and try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -151,8 +160,8 @@ const formatPercentage = (value) => {
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", plan],
-      ["Total Employees", result["Total Employees"] ?? "N/A"],
-      ["Total Participants", result["Total Participants"] ?? "N/A"],
+      ["Total Employees", totalEmployees],
+      ["Total Participants", totalParticipants],
       ["NHCE Average Benefit", nhceAvg],
       ["HCE Average Benefit", hceAvg],
       ["Total Benefits", totalBenefits],
@@ -170,108 +179,125 @@ const formatPercentage = (value) => {
     document.body.removeChild(link);
   };
 
-  // ----- 5. Export to PDF -----
-  const exportToPDF = () => {
+  // ----- 5. Export to PDF (Integrated with DCAP Contributions functions) -----
+  const exportToPDF = async () => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
 
-    const plan = planYear || "N/A";
-    const totalBenefits = formatCurrency(result["Total Benefits"]);
-    const totalEmployees = result["Total Employees"] || "N/A";
-    const totalParticipants = result["Total Participants"] || "N/A";
-    const nhceAvg = formatCurrency(result["NHCE Average Benefit"]);
-    const hceAvg = formatCurrency(result["HCE Average Benefit"]);
-    const testRes = result["Test Result"] || "N/A";
+    let pdfBlob;
+    try {
+      const plan = planYear || "N/A";
+      const totalBenefits = formatCurrency(result["Total Benefits"]);
+      const totalEmployees = result["Total Employees"] || "N/A";
+      const totalParticipants = result["Total Participants"] || "N/A";
+      const nhceAvg = formatCurrency(result["NHCE Average Benefit"]);
+      const hceAvg = formatCurrency(result["HCE Average Benefit"]);
+      const testRes = result["Test Result"] || "N/A";
+      const failed = testRes.toLowerCase() === "failed";
 
-    const pdf = new jsPDF("p", "mm", "a4");
-    pdf.setFont("helvetica", "normal");
+      const pdf = new jsPDF("p", "mm", "a4");
+      pdf.setFont("helvetica", "normal");
 
-    // Header
-    pdf.setFontSize(18);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Average Benefit Test Results", 105, 15, { align: "center" });
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
-    pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
-    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
+      // Header
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Average Benefit Test Results", 105, 15, { align: "center" });
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
+      pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "italic");
-    pdf.setTextColor(60, 60, 60); // Gray text
-    pdf.text(
-      "Test Criterion: NHCE average benefit must be at least 55% of HCE average benefit",
-      105,
-      38,
-      { align: "center", maxWidth: 180 }
-    );
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(
+        "Test Criterion: NHCE average benefit must be at least 55% of HCE average benefit",
+        105,
+        38,
+        { align: "center", maxWidth: 180 }
+      );
 
-
-    // Section 1: Basic Results Table
-    pdf.autoTable({
-      startY: 40,
-      theme: "grid",
-      head: [["Metric", "Value"]],
-      body: [
-        ["Total Employees", result["Total Employees"] || "N/A"],
-        ["Total Participants", result["Total Participants"] || "N/A"],
-        ["NHCE Average Benefit", nhceAvg],
-        ["HCE Average Benefit", hceAvg],
-        ["Total Benefits", totalBenefits],
-        ["Test Result", testRes],
-      ],
-      headStyles: {
-        fillColor: [41, 128, 185],
-        textColor: [255, 255, 255],
-      },
-      styles: {
-        fontSize: 12,
-        font: "helvetica",
-      },
-      margin: { left: 10, right: 10 },
-    });
-
-    const failed = testRes.toLowerCase() === "failed";
-
-    if (failed) {
+      // Section 1: Basic Results Table
       pdf.autoTable({
-        startY: pdf.lastAutoTable.finalY + 10,
+        startY: 40,
         theme: "grid",
-        head: [["Corrective Actions"]],
+        head: [["Metric", "Value"]],
         body: [
-          ["Review benefit allocation formulas."],
-          ["Adjust contribution amounts to boost NHCE benefits."],
-          ["Consider additional employer contributions."],
+          ["Total Employees", totalEmployees],
+          ["Total Participants", totalParticipants],
+          ["NHCE Average Benefit", nhceAvg],
+          ["HCE Average Benefit", hceAvg],
+          ["Total Benefits", totalBenefits],
+          ["Test Result", testRes],
         ],
-        headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-        styles: { fontSize: 11, font: "helvetica" },
+        headStyles: {
+          fillColor: [41, 128, 185],
+          textColor: [255, 255, 255],
+        },
+        styles: {
+          fontSize: 12,
+          font: "helvetica",
+        },
         margin: { left: 10, right: 10 },
       });
 
-      pdf.autoTable({
-        startY: pdf.lastAutoTable.finalY + 10,
-        theme: "grid",
-        head: [["Consequences"]],
-        body: [
-          ["Potential reclassification of benefits as taxable."],
-          ["Increased IRS scrutiny and possible penalties."],
-          ["Need for corrective contributions."],
-        ],
-        headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-        styles: { fontSize: 11, font: "helvetica" },
-        margin: { left: 10, right: 10 },
-      });
+      if (failed) {
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Corrective Actions"]],
+          body: [
+            ["Review benefit allocation formulas."],
+            ["Adjust contribution amounts to boost NHCE benefits."],
+            ["Consider additional employer contributions."],
+          ],
+          headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Consequences"]],
+          body: [
+            ["Potential reclassification of benefits as taxable."],
+            ["Increased IRS scrutiny and possible penalties."],
+            ["Need for corrective contributions."],
+          ],
+          headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+      }
+
+      // Footer
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
+
+      pdfBlob = pdf.output("blob");
+      pdf.save("Average_Benefit_Results.pdf");
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
+      return;
     }
 
-    // Footer
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "italic");
-    pdf.setTextColor(100, 100, 100);
-    pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
-
-    pdf.save("Average_Benefit_Results.pdf");
+    try {
+      await savePdfResultToFirebase({
+        fileName: "Average Benefit Test",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult: result["Test Result"] || "Unknown",
+        },
+      });
+    } catch (error) {
+      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+    }
   };
 
   // ----- RENDER -----
@@ -294,7 +320,9 @@ const formatPercentage = (value) => {
       {/* Plan Year Dropdown */}
       <div className="mb-6">
         <div className="flex items-center">
-          {planYear === "" && <span className="text-red-500 text-lg mr-2">*</span>}
+          {planYear === "" && (
+            <span className="text-red-500 text-lg mr-2">*</span>
+          )}
           <select
             id="planYear"
             value={planYear}
@@ -316,7 +344,9 @@ const formatPercentage = (value) => {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
+          isDragActive
+            ? "border-green-500 bg-blue-100"
+            : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
@@ -354,7 +384,9 @@ const formatPercentage = (value) => {
       <button
         onClick={handleUpload}
         className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
-          !file || !planYear ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
+          !file || !planYear
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-green-500 hover:bg-green-400"
         }`}
         disabled={!file || !planYear || loading}
       >
@@ -368,7 +400,9 @@ const formatPercentage = (value) => {
       {result && (
         <>
           <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
-            <h3 className="font-bold text-xl text-gray-700">Average Benefit Test Results</h3>
+            <h3 className="font-bold text-xl text-gray-700">
+              Average Benefit Test Results
+            </h3>
             <div className="mt-4">
               <p className="text-lg">
                 <strong>Plan Year:</strong>{" "}
