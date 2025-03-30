@@ -293,15 +293,6 @@ const TopHeavyTest = () => {
     }
   };
 
-  // ----- 7. Handle Enter Key -----
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && file && !loading) {
-      e.preventDefault();
-      e.stopPropagation();
-      handleUpload();
-    }
-  };
-
   // ----- 8. Render -----
   return (
     <div
