@@ -413,6 +413,11 @@ const ClassificationTest = () => {
           </h3>
           <div className="mt-4">
             <p className="text-lg">
+              <strong>Plan Year:</strong>{" "}
+              <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
+            </p>
+          <div className="mt-4">
+            <p className="text-lg">
               <strong className="text-gray-700">Total Employees:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {result["Total Employees"] ?? "N/A"}
