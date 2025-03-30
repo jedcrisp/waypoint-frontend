@@ -492,7 +492,7 @@ const DCAP55BenefitsTest = () => {
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Benefit Ratio (%):</strong>{" "}
+              <strong className="text-gray-700">Benefit Ratio:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {result?.["Benefit Ratio (%)"] !== undefined
                   ? formatPercentage(result["Benefit Ratio (%)"])
