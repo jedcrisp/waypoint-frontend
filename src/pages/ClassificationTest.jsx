@@ -4,6 +4,7 @@ import axios from "axios";
 import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver";
 
 const ClassificationTest = () => {
   const [file, setFile] = useState(null);
@@ -12,7 +13,7 @@ const ClassificationTest = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure correct backend URL
+  const API_URL = import.meta.env.VITE_BACKEND_URL;
 
   // ---------- Formatting Helpers ----------
   const formatCurrency = (value) => {
@@ -41,7 +42,7 @@ const ClassificationTest = () => {
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
-    accept: ".csv",
+    accept: ".csv, .xlsx",
     multiple: false,
     noClick: true,
     noKeyboard: true,
@@ -56,17 +57,16 @@ const ClassificationTest = () => {
       return;
     }
     // Validate file extension
-    const validFileTypes = ["csv"];
+    const validFileTypes = ["csv", "xlsx"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
-      setError("❌ Invalid file type. Please upload a CSV file.");
+      setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
     }
     if (!planYear) {
       setError("❌ Please select a plan year.");
       return;
     }
-
     setLoading(true);
     setError(null);
     setResult(null);
@@ -98,7 +98,6 @@ const ClassificationTest = () => {
       });
 
       console.log("✅ API Response:", response.data);
-      // Set result from response structure
       const classificationResults = response.data?.["Test Results"]?.["classification"];
       if (!classificationResults) {
         setError("❌ No classification test results found in response.");
@@ -117,21 +116,19 @@ const ClassificationTest = () => {
   // 3. Download CSV Template
   // =========================
   const downloadCSVTemplate = () => {
-    // Example CSV template for classification test
     const csvTemplate = [
-  ["Last Name", "First Name", "Employee ID", "Eligible for Cafeteria Plan", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
-  ["Last", "First", "E001", "Yes", "1985-04-12", "2015-01-01", "Active", "No", "2016-01-01", "No", "No"],
-  ["Last", "First", "E002", "Yes", "1990-06-15", "2018-03-10", "Active", "No", "2019-01-01", "No", "No"],
-  ["Last", "First", "E003", "No", "1992-09-22", "2020-07-20", "Active", "No", "2021-01-01", "No", "No"],
-  ["Last", "First", "E004", "Yes", "1988-12-05", "2012-11-30", "Active", "No", "2013-01-01", "No", "No"],
-  ["Last", "First", "E005", "Yes", "1983-02-18", "2010-05-25", "Active", "No", "2011-01-01", "No", "No"],
-  ["Last", "First", "E006", "No", "2000-07-10", "2023-03-01", "Active", "No", "2023-03-01", "No", "No"],
-  ["Last", "First", "E007", "Yes", "1995-11-03", "2016-09-15", "Active", "No", "2017-01-01", "No", "No"],
-  ["Last", "First", "E008", "Yes", "1987-01-28", "2011-06-14", "Active", "No", "2012-01-01", "No", "No"],
-  ["Last", "First", "E009", "No", "1999-05-09", "2022-08-20", "Active", "No", "2023-01-01", "No", "Yes"],
-  ["Last", "First", "E010", "Yes", "1991-10-17", "2017-04-22", "Terminated", "No", "2018-01-01", "Yes", "No"]
-]
-
+      ["Last Name", "First Name", "Employee ID", "Eligible for Cafeteria Plan", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
+      ["Last", "First", "E001", "Yes", "1985-04-12", "2015-01-01", "Active", "No", "2016-01-01", "No", "No"],
+      ["Last", "First", "E002", "Yes", "1990-06-15", "2018-03-10", "Active", "No", "2019-01-01", "No", "No"],
+      ["Last", "First", "E003", "No", "1992-09-22", "2020-07-20", "Active", "No", "2021-01-01", "No", "No"],
+      ["Last", "First", "E004", "Yes", "1988-12-05", "2012-11-30", "Active", "No", "2013-01-01", "No", "No"],
+      ["Last", "First", "E005", "Yes", "1983-02-18", "2010-05-25", "Active", "No", "2011-01-01", "No", "No"],
+      ["Last", "First", "E006", "No", "2000-07-10", "2023-03-01", "Active", "No", "2023-03-01", "No", "No"],
+      ["Last", "First", "E007", "Yes", "1995-11-03", "2016-09-15", "Active", "No", "2017-01-01", "No", "No"],
+      ["Last", "First", "E008", "Yes", "1987-01-28", "2011-06-14", "Active", "No", "2012-01-01", "No", "No"],
+      ["Last", "First", "E009", "No", "1999-05-09", "2022-08-20", "Active", "No", "2023-01-01", "No", "Yes"],
+      ["Last", "First", "E010", "Yes", "1991-10-17", "2017-04-22", "Terminated", "No", "2018-01-01", "Yes", "No"],
+    ]
       .map((row) => row.join(","))
       .join("\n");
 
@@ -146,20 +143,23 @@ const ClassificationTest = () => {
   };
 
   // =========================
-  // 4. Export Results to PDF
+  // 4. Export Results to PDF (with Firebase saving)
   // =========================
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
 
-    const totalEmployees = result["Total Employees"] ?? "N/A"; // ✅ Define this first
-    const totalParticipants = result["Total Participants"] ?? "N/A"; // ✅ Define this first
-    const eligibleForCafeteriaPlan = result["Eligible for Cafeteria Plan"] ?? "N/A"; // ✅ Define this first
-    const eligibilityPercentage = result["Eligibility Percentage (%)"] !== undefined ? result["Eligibility Percentage (%)"] + "%" : "N/A"; // ✅ Define this first
-    const testResult = result["Test Result"] ?? "N/A"; // ✅ Define this first
-    const failed = testResult.toLowerCase() === "failed"; // ✅ Now it's safe to use
+    const totalEmployees = result["Total Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
+    const eligibleForCafeteriaPlan = result["Eligible for Cafeteria Plan"] ?? "N/A";
+    const eligibilityPercentage =
+      result["Eligibility Percentage (%)"] !== undefined
+        ? result["Eligibility Percentage (%)"] + "%"
+        : "N/A";
+    const testResult = result["Test Result"] ?? "N/A";
+    const failed = testResult.toLowerCase() === "failed";
 
     const pdf = new jsPDF("p", "mm", "a4");
     pdf.setFont("helvetica", "normal");
@@ -173,10 +173,10 @@ const ClassificationTest = () => {
     pdf.text(`Plan Year: ${planYear || "N/A"}`, 105, 25, { align: "center" });
     pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
-
+    // Subheader with test criterion
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "italic");
-    pdf.setTextColor(60, 60, 60); // Gray text
+    pdf.setTextColor(60, 60, 60);
     pdf.text(
       "Test Criterion: At least 70% of eligible employees must be eligible for the cafeteria plan",
       105,
@@ -185,65 +185,87 @@ const ClassificationTest = () => {
     );
 
     // Results Table
-   pdf.autoTable({
-    startY: 43,
-    theme: "grid",
-    head: [["Metric", "Value"]],
-    body: [
-        ["Total Employees", result["Total Employees"] ?? "N/A"],
-        ["Total Participants", result["Total Participants"] ?? "N/A"],
-        ["Eligible for Cafeteria Plan", result["Eligible for Cafeteria Plan"] ?? "N/A"],
-        ["Eligibility Percentage (%)",  result["Eligibility Percentage (%)"] !== undefined? result["Eligibility Percentage (%)"] + "%": "N/A",],
-        ["Test Result", result["Test Result"] ?? "N/A"],
+    pdf.autoTable({
+      startY: 43,
+      theme: "grid",
+      head: [["Metric", "Value"]],
+      body: [
+        ["Total Employees", totalEmployees],
+        ["Total Participants", totalParticipants],
+        ["Eligible for Cafeteria Plan", eligibleForCafeteriaPlan],
+        ["Eligibility Percentage (%)", eligibilityPercentage],
+        ["Test Result", testResult],
       ],
-    headStyles: {
-      fillColor: [41, 128, 185],
-      textColor: [255, 255, 255],
-    },
-    styles: {
-      fontSize: 12,
-      font: "helvetica",
-    },
-    margin: { left: 10, right: 10 },
-  });
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: [255, 255, 255],
+      },
+      styles: {
+        fontSize: 12,
+        font: "helvetica",
+      },
+      margin: { left: 10, right: 10 },
+    });
 
-  // Corrective actions & consequences (only if failed)
-  if (failed) {
-    const correctiveActions = [
+    // Add corrective actions & consequences if test failed
+    if (failed) {
+      const correctiveActions = [
         "Review and verify employee classifications",
         "Recalculate benefit allocations for compliance",
         "Amend plan documents to clarify classification rules",
-        "Consult legal/tax advisors for corrections",
-    ];
+        "Consult with legal/tax advisors for corrections",
+      ];
 
-    const consequences = [
+      const consequences = [
         "Potential loss of tax-exempt status for key employees",
         "IRS penalties and plan disqualification risk",
         "Employee dissatisfaction and legal risks",
-    ];
+      ];
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Corrective Actions"]],
+        body: correctiveActions.map((action) => [action]),
+        headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-  }
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Consequences"]],
+        body: consequences.map((consequence) => [consequence]),
+        headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+    }
 
-    pdf.save("Classification_Test_Results.pdf");
+    // Output PDF as a blob and save locally
+    let pdfBlob;
+    try {
+      pdfBlob = pdf.output("blob");
+      pdf.save("Classification_Test_Results.pdf");
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
+      return;
+    }
+
+    // Save PDF to Firebase using the helper function
+    try {
+      await savePdfResultToFirebase({
+        fileName: "Classification Test",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult: testResult || "Unknown",
+        },
+      });
+    } catch (error) {
+      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+    }
   };
 
   // =========================
@@ -260,13 +282,20 @@ const ClassificationTest = () => {
       ["Plan Year", planYear],
       ["Total Employees", result["Total Employees"] ?? "N/A"],
       ["Total Participants", result["Total Participants"] ?? "N/A"],
-      ["Eligible for Cafeteria Plan", result["Eligible for Cafeteria Plan"] ?? "N/A"],
-      ["Eligibility Percentage (%)", result["Eligibility Percentage (%)"] !== undefined ? result["Eligibility Percentage (%)"] + "%" : "N/A"],
+      [
+        "Eligible for Cafeteria Plan",
+        result["Eligible for Cafeteria Plan"] ?? "N/A",
+      ],
+      [
+        "Eligibility Percentage (%)",
+        result["Eligibility Percentage (%)"] !== undefined
+          ? result["Eligibility Percentage (%)"] + "%"
+          : "N/A",
+      ],
       ["Test Result", result["Test Result"] ?? "N/A"],
     ];
 
-
-    const csvContent = csvRows.map(row => row.join(",")).join("\n");
+    const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -289,7 +318,7 @@ const ClassificationTest = () => {
   };
 
   // =========================
-  // 7. Render
+  // RENDER
   // =========================
   return (
     <div
@@ -328,7 +357,9 @@ const ClassificationTest = () => {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
+          isDragActive
+            ? "border-green-500 bg-blue-100"
+            : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
@@ -338,7 +369,7 @@ const ClassificationTest = () => {
           <p className="text-green-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV</strong> here.
+            Drag & drop a <strong>CSV or Excel file</strong> here.
           </p>
         )}
       </div>
@@ -388,7 +419,7 @@ const ClassificationTest = () => {
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Total Participants</strong>{" "}
+              <strong className="text-gray-700">Total Participants:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {result["Total Participants"] ?? "N/A"}
               </span>
@@ -400,7 +431,9 @@ const ClassificationTest = () => {
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Eligibility Percentage (%):</strong>{" "}
+              <strong className="text-gray-700">
+                Eligibility Percentage (%):
+              </strong>{" "}
               <span className="font-semibold text-black-600">
                 {result["Eligibility Percentage (%)"] !== undefined
                   ? result["Eligibility Percentage (%)"] + "%"
@@ -456,13 +489,13 @@ const ClassificationTest = () => {
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>❌ Loss of tax-exempt status for key employees.</li>
+                  <li>Loss of tax-exempt status for key employees.</li>
                   <br />
-                  <li>❌ IRS compliance violations and penalties.</li>
+                  <li>IRS compliance violations and penalties.</li>
                   <br />
-                  <li>❌ Plan disqualification risks.</li>
+                  <li>Plan disqualification risks.</li>
                   <br />
-                  <li>❌ Employee dissatisfaction and legal risks.</li>
+                  <li>Employee dissatisfaction and legal risks.</li>
                 </ul>
               </div>
             </>
