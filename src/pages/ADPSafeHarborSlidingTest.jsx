@@ -432,19 +432,19 @@ const ADPSafeHarborSlidingTest = () => {
               {result["Total Employees"] ?? "N/A"}
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">HCE ADP (%):</strong>{" "}
+              <strong className="text-gray-700">HCE ADP:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {formatPercentage(result?.["HCE ADP (%)"])}
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">NHCE ADP (%):</strong>{" "}
+              <strong className="text-gray-700">NHCE ADP:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {formatPercentage(result?.["NHCE ADP (%)"])}
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">IRS Safe Harbor Limit (%):</strong>{" "}
+              <strong className="text-gray-700">IRS Safe Harbor Limit:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {formatPercentage(result?.["IRS Safe Harbor Limit"])}
               </span>
