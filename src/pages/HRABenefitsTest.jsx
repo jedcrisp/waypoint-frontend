@@ -122,7 +122,7 @@ const HRA55AverageBenefitsTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "HRA_55_Average_Benefits_Template.csv");
+    link.setAttribute("download", "HRA_Benefits_Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
