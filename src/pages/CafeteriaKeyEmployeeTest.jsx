@@ -440,7 +440,7 @@ const CafeteriaKeyEmployeeTest = () => {
             </p>
             <p className="text-lg">
               <strong className="text-gray-700">Total Employees:</strong>{" "}
-              <span className="font-semibold text-blue-600">
+              <span className="font-semibold text-black-600">
                 {result?.["Total Employees"] ?? "N/A"}
               </span>
             </p>
