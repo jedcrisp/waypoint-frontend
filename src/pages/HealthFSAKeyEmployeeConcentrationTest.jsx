@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from "react";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Firebase Storage export helper
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
-import { getAuth } from "firebase/auth";
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
@@ -12,18 +13,21 @@ const HealthFSAKeyEmployeeConcentrationTest = () => {
   const [error, setError] = useState(null);
   const [planYear, setPlanYear] = useState("");
 
-  const API_URL = import.meta.env.VITE_BACKEND_URL || "https://waypoint-app.up.railway.app"; // Fallback URL
+  const API_URL = import.meta.env.VITE_BACKEND_URL;
 
   // Format Helpers
   const formatCurrency = (amount) =>
     !amount || isNaN(amount)
       ? "N/A"
-      : `$${parseFloat(amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      : `$${parseFloat(amount).toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`;
 
   const formatPercentage = (value) =>
     !value || isNaN(value) ? "N/A" : `${parseFloat(value).toFixed(2)}%`;
 
-  // Handle Enter Key
+  // Handle Enter key for upload
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && file && !loading) {
       e.preventDefault();
@@ -83,7 +87,6 @@ const HealthFSAKeyEmployeeConcentrationTest = () => {
         setLoading(false);
         return;
       }
-
       const response = await axios.post(
         `${API_URL}/upload-csv/health_fsa_key_employee_concentration`,
         formData,
@@ -94,7 +97,6 @@ const HealthFSAKeyEmployeeConcentrationTest = () => {
           },
         }
       );
-
       setResult(response.data?.["Test Results"]?.["health_fsa_key_employee_concentration"] || {});
     } catch (err) {
       console.error("❌ Upload error:", err.response?.data || err.message);
@@ -108,24 +110,34 @@ const HealthFSAKeyEmployeeConcentrationTest = () => {
     }
   };
 
-  // Download CSV Template
+  // CSV Template Download
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-  ["Last Name", "First Name", "Employee ID", "Health FSA Benefits", "Key Employee", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
-  ["Last", "First", "E001", "125000", "Yes", "1980-05-12", "2015-03-01", "Active", "No", "2015-04-01", "No", "Yes"],
-  ["Last", "First", "E002", "10000", "No", "1995-07-20", "2020-06-15", "Active", "No", "2020-07-01", "No", "No"],
-  ["Last", "First", "E003", "15000", "No", "1988-11-03", "2018-01-10", "Active", "No", "2018-02-01", "No", "No"],
-  ["Last", "First", "E004", "30000", "Yes", "1979-02-28", "2010-09-23", "Active", "No", "2010-10-01", "No", "No"],
-  ["Last", "First", "E005", "5000", "No", "1990-12-11", "2016-04-19", "Active", "No", "2016-05-01", "No", "No"],
-  ["Last", "First", "E006", "20000", "No", "1992-03-05", "2014-08-30", "Active", "No", "2014-09-01", "No", "No"],
-  ["Last", "First", "E007", "60000", "Yes", "1985-06-17", "2008-11-11", "Active", "No", "2008-12-01", "No", "No"],
-  ["Last", "First", "E008", "8000", "No", "1991-09-30", "2017-07-22", "Active", "No", "2017-08-01", "No", "No"],
-  ["Last", "First", "E009", "12000", "No", "1983-01-26", "2012-10-05", "Active", "No", "2012-11-01", "No", "No"],
-  ["Last", "First", "E010", "7000", "No", "1987-04-14", "2011-12-17", "Active", "No", "2012-01-01", "No", "No"],
-]
-
-      .map((row) => row.join(","))
-      .join("\n");
+      [
+        "Last Name",
+        "First Name",
+        "Employee ID",
+        "Health FSA Benefits",
+        "Key Employee",
+        "DOB",
+        "DOH",
+        "Employment Status",
+        "Excluded from Test",
+        "Plan Entry Date",
+        "Union Employee",
+        "Part-Time / Seasonal",
+      ],
+      ["Last", "First", "E001", "125000", "Yes", "1980-05-12", "2015-03-01", "Active", "No", "2015-04-01", "No", "Yes"],
+      ["Last", "First", "E002", "10000", "No", "1995-07-20", "2020-06-15", "Active", "No", "2020-07-01", "No", "No"],
+      ["Last", "First", "E003", "15000", "No", "1988-11-03", "2018-01-10", "Active", "No", "2018-02-01", "No", "No"],
+      ["Last", "First", "E004", "30000", "Yes", "1979-02-28", "2010-09-23", "Active", "No", "2010-10-01", "No", "No"],
+      ["Last", "First", "E005", "5000", "No", "1990-12-11", "2016-04-19", "Active", "No", "2016-05-01", "No", "No"],
+      ["Last", "First", "E006", "20000", "No", "1992-03-05", "2014-08-30", "Active", "No", "2014-09-01", "No", "No"],
+      ["Last", "First", "E007", "60000", "Yes", "1985-06-17", "2008-11-11", "Active", "No", "2008-12-01", "No", "No"],
+      ["Last", "First", "E008", "8000", "No", "1991-09-30", "2017-07-22", "Active", "No", "2017-08-01", "No", "No"],
+      ["Last", "First", "E009", "12000", "No", "1983-01-26", "2012-10-05", "Active", "No", "2012-11-01", "No", "No"],
+      ["Last", "First", "E010", "7000", "No", "1987-04-14", "2011-12-17", "Active", "No", "2012-01-01", "No", "No"],
+    ].map((row) => row.join(",")).join("\n");
 
     const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -137,20 +149,19 @@ const HealthFSAKeyEmployeeConcentrationTest = () => {
     document.body.removeChild(link);
   };
 
-  // Download Results as CSV (including corrective actions and consequences if failed)
+  // CSV Results Download
   const downloadResultsAsCSV = () => {
     if (!result) {
       setError("❌ No results to download.");
       return;
     }
-    const plan = planYear || "N/A";
     const csvRows = [
       ["Metric", "Value"],
-      ["Plan Year", plan],
-      ["Total Health FSA Benefits", result["Total Health FSA Benefits"]],
-      ["Key Employee Benefits", result["Key Employee Benefits"]],
-      ["Key Employee Benefit Percentage", result["Key Employee Benefit Percentage"] + "%"],
-      ["Test Result", result["Test Result"]],
+      ["Plan Year", planYear],
+      ["Total Health FSA Benefits", result["Total Health FSA Benefits"] ?? "N/A"],
+      ["Key Employee Benefits", result["Key Employee Benefits"] ?? "N/A"],
+      ["Key Employee Benefit Percentage", result["Key Employee Benefit Percentage"] ? formatPercentage(result["Key Employee Benefit Percentage"]) : "N/A"],
+      ["Test Result", result["Test Result"] ?? "N/A"],
     ];
 
     if (result["Test Result"]?.toLowerCase() === "failed") {
@@ -164,12 +175,8 @@ const HealthFSAKeyEmployeeConcentrationTest = () => {
         "Increased corrective contributions or adjustments may be required from the employer.",
         "Heightened risk of IRS penalties and compliance audits.",
       ];
-      csvRows.push(["", ""]);
-      csvRows.push(["Corrective Actions", ""]);
-      correctiveActions.forEach((action) => csvRows.push(["", action]));
-      csvRows.push(["", ""]);
-      csvRows.push(["Consequences", ""]);
-      consequences.forEach((item) => csvRows.push(["", item]));
+      csvRows.push([], ["Corrective Actions"], ...correctiveActions.map(action => ["", action]));
+      csvRows.push([], ["Consequences"], ...consequences.map(item => ["", item]));
     }
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
@@ -177,100 +184,122 @@ const HealthFSAKeyEmployeeConcentrationTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Health_FSA_Results.csv");
+    link.setAttribute("download", "Health_FSA_Eligibility_Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  const exportToPDF = () => {
-  if (!result) {
-    setError("❌ No results available to export.");
-    return;
-  }
+  // PDF Export with Firebase Storage Integration
+  const exportToPDF = async () => {
+    if (!result) {
+      setError("❌ No results available to export.");
+      return;
+    }
+    let pdfBlob;
+    try {
+      const testResult = result["Test Result"] ?? "N/A";
+      const failed = testResult.toLowerCase() === "failed";
+      const pdf = new jsPDF("p", "mm", "a4");
+      pdf.setFont("helvetica", "normal");
 
-  const testResult = result["Test Result"] ?? "N/A";
-  const failed = testResult.toLowerCase() === "failed";
+      // Header
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Health FSA Key Employee Concentration Test Results", 105, 15, { align: "center" });
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
+      pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
-  const pdf = new jsPDF("p", "mm", "a4");
-  pdf.setFont("helvetica", "normal");
+      // Table with Results
+      pdf.autoTable({
+        startY: 44,
+        theme: "grid",
+        head: [["Metric", "Value"]],
+        body: [
+          ["Total Health FSA Benefits", formatCurrency(result["Total Health FSA Benefits"])],
+          ["Key Employee Benefits", formatCurrency(result["Key Employee Benefits"])],
+          ["Key Employee Benefit Percentage", formatPercentage(result["Key Employee Benefit Percentage"])],
+          ["Test Result", testResult],
+        ],
+        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+        styles: { fontSize: 12, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
 
-  pdf.setFontSize(18);
-  pdf.setFont("helvetica", "bold");
-  pdf.text("Health FSA Key Employee Concentration Test Results", 105, 15, { align: "center" });
+      // Corrective actions & consequences (if test failed)
+      if (failed) {
+        const y = pdf.lastAutoTable.finalY + 10;
+        pdf.setFillColor(255, 230, 230);
+        pdf.setDrawColor(255, 0, 0);
+        pdf.rect(10, y, 190, 30, "FD");
+        pdf.setFontSize(12);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text("Corrective Actions:", 15, y + 7);
+        const actions = [
+          "• Review the allocation of Health FSA benefits",
+          "• Adjust plan eligibility criteria or contribution formulas",
+          "• Consider rebalancing contributions",
+        ];
+        actions.forEach((action, i) => pdf.text(action, 15, y + 14 + i * 5));
 
-  pdf.setFontSize(12);
-  pdf.setFont("helvetica", "normal");
-  const generatedTimestamp = new Date().toLocaleString();
-  pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
-  pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
+        const y2 = y + 40;
+        pdf.setFillColor(255, 255, 204);
+        pdf.setDrawColor(255, 204, 0);
+        pdf.rect(10, y2, 190, 30, "FD");
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(14);
+        pdf.setTextColor(204, 153, 0);
+        pdf.text("Consequences:", 15, y2 + 10);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(11);
+        pdf.setTextColor(0, 0, 0);
+        const consequences = [
+          "• Taxation of FSA benefits for HCEs",
+          "• Increased IRS scrutiny and potential penalties",
+          "• Risk of plan disqualification",
+          "• Retroactive correction requirements",
+        ];
+        consequences.forEach((item, i) => pdf.text(item, 15, y2 + 18 + i * 5));
+      }
 
-  pdf.autoTable({
-    startY: 40,
-    theme: "grid", // Ensures full table grid
-    head: [["Metric", "Value"]],
-    body: [
-      ["Total Health FSA Benefits", formatCurrency(result["Total Health FSA Benefits"])],
-      ["Key Employee Benefits", formatCurrency(result["Key Employee Benefits"])],
-      ["Key Employee Benefit Percentage", formatPercentage(result["Key Employee Benefit Percentage"])],
-      ["Test Result", testResult],
-    ],
-    headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
-    styles: { fontSize: 12, font: "helvetica" },
-    margin: { left: 10, right: 10 },
-  });
+      // Footer
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
-  if (failed) {
-    const correctiveActions = [
-      "Review the allocation of Health FSA benefits",
-      "Adjust plan eligibility criteria or contribution formulas",
-      "Consider rebalancing contributions",
-    ];
+      // Generate PDF blob and trigger local download
+      pdfBlob = pdf.output("blob");
+      pdf.save("Health_FSA_Key_Employee_Concentration_Results.pdf");
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
+      return;
+    }
+    try {
+      await savePdfResultToFirebase({
+        fileName: "Health_FSA_Key_Employee_Concentration_Test",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult: result["Test Result"] ?? "Unknown",
+        },
+      });
+    } catch (error) {
+      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+    }
+  };
 
-    const consequences = [
-      "Potential reclassification of Health FSA benefits as taxable",
-      "Increased corrective contributions or adjustments may be required",
-      "Heightened risk of IRS penalties and compliance audits",
-    ];
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-  }
-
-
-   // Footer
-  pdf.setFontSize(10);
-  pdf.setFont("helvetica", "italic");
-  pdf.setTextColor(100, 100, 100);
-  pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
-
-  pdf.save("Health_FSA_Key_Employee_Concentration_Results.pdf");
-}; // 👈 This ends exportToPDF()
-
-// ✅ Now this is your actual component render
-return (
-  <div
-    className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
-    onKeyDown={handleKeyDown}
-    tabIndex="0"
-  >
+  // =========================
+  // 7. RENDER
+  // =========================
+  return (
+    <div
+      className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
+      onKeyDown={handleKeyDown}
+      tabIndex="0"
+    >
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
         📂 Upload Health FSA Key Employee Concentration File
       </h2>
@@ -304,13 +333,15 @@ return (
         }`}
       >
         <input {...getInputProps()} />
+        <input type="file" accept=".csv, .xlsx" onChange={(e) => setFile(e.target.files[0])} className="hidden" />
         {file ? (
           <p className="text-green-600 font-semibold">{file.name}</p>
         ) : isDragActive ? (
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV or Excel file</strong> here, or{" "}
+            <span className="text-blue-500 font-semibold">click to browse</span>
           </p>
         )}
       </div>
@@ -322,14 +353,16 @@ return (
       >
         Download CSV Template
       </button>
+
       {/* "Choose File" Button */}
       <button
         type="button"
-        onClick={open}
+        onClick={() => open()}
         className="mt-4 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
       >
         Choose File
       </button>
+
       {/* Upload Button */}
       <button
         onClick={handleUpload}
@@ -425,13 +458,13 @@ return (
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
                   <li>
-                    ❌ Potential reclassification of Health FSA benefits as taxable for key employees.
+                    Potential reclassification of Health FSA benefits as taxable for key employees.
                   </li>
                   <li>
-                    ❌ Increased corrective contributions or adjustments may be required from the employer.
+                    Increased corrective contributions or adjustments may be required from the employer.
                   </li>
                   <li>
-                    ❌ Heightened risk of IRS penalties and compliance audits.
+                    Heightened risk of IRS penalties and compliance audits.
                   </li>
                 </ul>
               </div>
@@ -441,5 +474,6 @@ return (
       )}
     </div>
   );
-}; // Closing the component function
+};
+
 export default HealthFSAKeyEmployeeConcentrationTest;
