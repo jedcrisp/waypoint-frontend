@@ -2,32 +2,18 @@ import React, { useState, useCallback } from "react";
 import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Firebase PDF saver
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
-import { getAuth } from "firebase/auth";
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import "jspdf-autotable"; // For table generation
 
 const TopHeavyTest = () => {
   const [file, setFile] = useState(null);
-  const [planYear, setPlanYear] = useState(""); // Plan year state
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [planYear, setPlanYear] = useState(""); // Plan year state
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
-
-  // ----- Formatting Helpers -----
-  const formatCurrency = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
-    return Number(value).toLocaleString("en-US", {
-      style: "currency",
-      currency: "USD",
-    });
-  };
-
-  const formatPercentage = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
-    return `${Number(value).toFixed(2)}%`;
-  };
 
   // ----- 1. Drag & Drop Logic -----
   const onDrop = useCallback((acceptedFiles) => {
@@ -52,16 +38,20 @@ const TopHeavyTest = () => {
       setError("❌ Please select a file before uploading.");
       return;
     }
-    if (!planYear) {
-      setError("❌ Please select a plan year.");
-      return;
-    }
+
+    // Validate file type
     const validFileTypes = ["csv", "xlsx"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
     }
+
+    if (!planYear) {
+      setError("❌ Please select a plan year.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
@@ -72,6 +62,7 @@ const TopHeavyTest = () => {
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/top_heavy`);
+      // 1. Get Firebase token
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken(true);
       if (!token) {
@@ -81,12 +72,14 @@ const TopHeavyTest = () => {
       }
       console.log("Firebase Token:", token);
 
+      // 2. Send POST request with Bearer token
       const response = await axios.post(`${API_URL}/upload-csv/top_heavy`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       });
+
       console.log("✅ API Response:", response.data);
       setResult(response.data?.["Test Results"]?.["top_heavy"] || {});
     } catch (err) {
@@ -120,8 +113,9 @@ const TopHeavyTest = () => {
       ["Last", "First", "008", 22000, "Yes", "15", "Yes", "1978-04-25", "2003-02-10", "No", "Active"],
       ["Last", "First", "009", 0, "No", "0", "No", "1995-11-11", "2023-01-05", "No", "Active"],
       ["Last", "First", "010", 27000, "Yes", "8", "No", "1982-02-02", "2011-06-30", "No", "Active"],
-    ].map((row) => row.join(",")).join("\n");
-
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
     const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -132,14 +126,15 @@ const TopHeavyTest = () => {
     document.body.removeChild(link);
   };
 
-  // ----- 5. Download Results as CSV -----
+  // ----- 5. Download Results as CSV (with corrective actions & consequences if failed) -----
   const downloadResultsAsCSV = () => {
     if (!result) {
       setError("❌ No results to download.");
       return;
     }
     const plan = planYear || "N/A";
-    const totalEmployees = result["Total Employees"] ?? "N/A";
+    const totalEmployees = result["Total Employees"] ?? "N/A"; // Added for completeness
+    const totalParticipants = result["Total Participants"] ?? "N/A";
     const totalAssets = result["Total Plan Assets"] ?? "N/A";
     const keyEmployeeAssets = result["Key Employee Assets"] ?? "N/A";
     const topHeavyPct = result["Top Heavy Percentage (%)"] ?? "N/A";
@@ -147,33 +142,14 @@ const TopHeavyTest = () => {
 
     const csvRows = [
       ["Metric", "Value"],
-      ["Plan Year", plan],
       ["Total Employees", totalEmployees],
+      ["Total Participants", totalParticipants],
+      ["Plan Year", plan],
       ["Total Plan Assets", totalAssets],
       ["Key Employee Assets", keyEmployeeAssets],
       ["Top Heavy Percentage (%)", topHeavyPct],
       ["Test Result", testRes],
     ];
-
-    if (testRes.toLowerCase() === "failed") {
-      const correctiveActions = [
-        "Ensure key employees hold no more than 60% of total plan assets.",
-        "Provide additional employer contributions for non-key employees.",
-        "Review and adjust contribution allocations per IRS § 416.",
-      ];
-      const consequences = [
-        "Mandatory employer contributions (3% of pay) for non-key employees.",
-        "Potential loss of plan tax advantages if not corrected.",
-        "Increased IRS audit risk due to noncompliance.",
-        "Possible penalties or disqualification risks.",
-      ];
-      csvRows.push(["", ""]);
-      csvRows.push(["Corrective Actions", ""]);
-      correctiveActions.forEach((action) => csvRows.push(["", action]));
-      csvRows.push(["", ""]);
-      csvRows.push(["Consequences", ""]);
-      consequences.forEach((item) => csvRows.push(["", item]));
-    }
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -186,114 +162,146 @@ const TopHeavyTest = () => {
     document.body.removeChild(link);
   };
 
-  // ----- 6. Export to PDF with Firebase Storage Integration -----
+  // ----- 6. Export to PDF (with Firebase Storage Integration) -----
+  // (Redefine formatCurrency & formatPercentage for PDF formatting if needed)
+  const pdfFormatCurrency = (amount) => {
+    if (amount === "N/A") return "N/A"; // Handle missing values
+    return `$${parseFloat(amount).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+
+  const pdfFormatPercentage = (percent) => {
+    if (percent === "N/A") return "N/A";
+    return `${parseFloat(percent).toFixed(2)}%`;
+  };
+
   const exportToPDF = async () => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
-    let pdfBlob;
-    try {
-      const totalEmployees = result["Total Employees"] ?? "N/A";
-      const totalAssets = result["Total Plan Assets"] ?? "N/A";
-      const keyEmployeeAssets = result["Key Employee Assets"] ?? "N/A";
-      const topHeavyPct = result["Top Heavy Percentage (%)"] ?? "N/A";
-      const testRes = result["Test Result"] ?? "N/A";
-      const failed = testRes.toLowerCase() === "failed";
 
-      const pdf = new jsPDF("p", "mm", "a4");
-      pdf.setFont("helvetica", "normal");
+    const plan = planYear || "N/A";
+    const totalEmployees = result["Total Employees"] ?? "N/A"; // Added for completeness
+    const totalParticipants = result["Total Participants"] ?? "N/A";
+    const totalAssets = result["Total Plan Assets"] ?? "N/A";
+    const keyEmployeeAssets = result["Key Employee Assets"] ?? "N/A";
+    const topHeavyPct = result["Top Heavy Percentage (%)"] ?? "N/A";
+    const testResult = result["Test Result"] ?? "N/A";
 
-      // Header
-      pdf.setFontSize(18);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Top Heavy Test Results", 105, 15, { align: "center" });
-      pdf.setFontSize(12);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`Plan Year: ${planYear || "N/A"}`, 105, 25, { align: "center" });
-      const generatedTimestamp = new Date().toLocaleString();
-      pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
+    const failed = testResult.toLowerCase() === "failed"; // Define `failed` here
 
-      // Results Table
+    const pdf = new jsPDF("p", "mm", "a4");
+    pdf.setFont("helvetica", "normal");
+
+    // Header
+    pdf.setFontSize(18);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Top Heavy Test Results", 105, 15, { align: "center" });
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
+    const generatedTimestamp = new Date().toLocaleString();
+    pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
+
+    const testCriterion = "Key employee assets should not exceed 60% of total plan assets";
+    pdf.text(`Test Criterion: ${testCriterion}`, 105, 38, { align: "center" });
+
+
+    // Section 1: Basic Results Table
+    pdf.autoTable({
+      startY: 43,
+      theme: "grid", // Ensures full table grid
+      head: [["Metric", "Value"]],
+      body: [
+        ["Total Employees", totalEmployees],
+        ["Total Participants", totalParticipants],
+        ["Total Plan Assets", pdfFormatCurrency(totalAssets)],
+        ["Key Employee Assets", pdfFormatCurrency(keyEmployeeAssets)],
+        ["Top Heavy Percentage (%)", pdfFormatPercentage(topHeavyPct)],
+        ["Test Result", testResult],
+      ],
+      styles: {
+        fontSize: 12,
+        textColor: [0, 0, 0], // Black text for table body
+        halign: "right", // Right-align numeric values
+      },
+      columnStyles: {
+        0: { halign: "left", fontStyle: "bold" }, // Left-align metric names & bold
+        1: { halign: "left" }, // Left-align values
+      },
+      headStyles: {
+        fillColor: [41, 128, 185], // Dark Blue Header
+        textColor: [255, 255, 255], // White text
+        fontSize: 12,
+        fontStyle: "helvetica",
+        halign: "left", // Left-align header text
+      },
+      margin: { left: 15, right: 15 },
+    });
+
+    // Section 2: Corrective actions & consequences (if test failed)
+    if (failed) {
+      const correctiveActions = [
+        "Ensure key employees hold no more than 60% of total plan assets.",
+        "Provide additional employer contributions for non-key employees.",
+        "Review and adjust contribution allocations per IRS § 416.",
+      ];
+
+      const consequences = [
+        "Mandatory employer contributions (3% of pay) for non-key employees.",
+        "Loss of plan tax advantages if not corrected.",
+        "Increased IRS audit risk.",
+        "Additional corrective contributions may be required.",
+      ];
+
       pdf.autoTable({
-        startY: 40,
-        head: [["Metric", "Value"]],
-        body: [
-          ["Total Employees", totalEmployees],
-          ["Total Plan Assets", formatCurrency(totalAssets)],
-          ["Key Employee Assets", formatCurrency(keyEmployeeAssets)],
-          ["Top Heavy Percentage (%)", formatPercentage(topHeavyPct)],
-          ["Test Result", testRes],
-        ],
-        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
-        styles: { fontSize: 12, font: "helvetica" },
-        margin: { left: 15, right: 15 },
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Corrective Actions"]],
+        body: correctiveActions.map((action) => [action]),
+        headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
       });
 
-      // If test failed, add corrective actions & consequences
-      if (failed) {
-        const correctiveActions = [
-          "Ensure key employees hold no more than 60% of total plan assets.",
-          "Provide additional employer contributions for non-key employees.",
-          "Review and adjust contribution allocations per IRS § 416.",
-        ];
-        const consequences = [
-          "Mandatory employer contributions (3% of pay) for non-key employees.",
-          "Potential loss of plan tax advantages if not corrected.",
-          "Increased IRS audit risk due to noncompliance.",
-          "Possible penalties or disqualification risks.",
-        ];
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Consequences"]],
+        body: consequences.map((item) => [item]),
+        headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+    }
 
-        pdf.autoTable({
-          startY: pdf.lastAutoTable.finalY + 10,
-          head: [["Corrective Actions"]],
-          body: correctiveActions.map((action) => [action]),
-          headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-          styles: { fontSize: 11, font: "helvetica" },
-          margin: { left: 10, right: 10 },
-        });
+    // Footer
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(100, 100, 100);
+    pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
-        pdf.autoTable({
-          startY: pdf.lastAutoTable.finalY + 10,
-          head: [["Consequences"]],
-          body: consequences.map((item) => [item]),
-          headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-          styles: { fontSize: 11, font: "helvetica" },
-          margin: { left: 10, right: 10 },
-        });
-      }
-
-      // Footer
-      pdf.setFont("helvetica", "italic");
-      pdf.setFontSize(10);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
-
-      try {
-        pdfBlob = pdf.output("blob");
-        pdf.save("Top_Heavy_Results.pdf");
-      } catch (error) {
-        setError(`❌ Error exporting PDF: ${error.message}`);
-        return;
-      }
-      try {
-        await savePdfResultToFirebase({
-          fileName: "Top_Heavy_Test",
-          pdfBlob,
-          additionalData: {
-            planYear,
-            testResult: testRes || "Unknown",
-          },
-        });
-      } catch (error) {
-        setError(`❌ Error saving PDF to Firebase: ${error.message}`);
-      }
+    try {
+      const pdfBlob = pdf.output("blob");
+      pdf.save("Top_Heavy_Results.pdf");
+      // Save the PDF blob to Firebase
+      await savePdfResultToFirebase({
+        fileName: "Top Heavy",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult: testResult || "Unknown",
+        },
+      });
     } catch (error) {
-      setError(`❌ Error exporting PDF: ${error.message}`);
+      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
     }
   };
 
-  // ----- 8. Render -----
+  // ----- 7. Render -----
   return (
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
@@ -307,7 +315,9 @@ const TopHeavyTest = () => {
       {/* Plan Year Dropdown */}
       <div className="mb-6">
         <div className="flex items-center">
-          {planYear === "" && <span className="text-red-500 text-lg mr-2">*</span>}
+          {planYear === "" && (
+            <span className="text-red-500 text-lg mr-2">*</span>
+          )}
           <select
             id="planYear"
             value={planYear}
@@ -329,11 +339,12 @@ const TopHeavyTest = () => {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
+          isDragActive
+            ? "border-green-500 bg-blue-100"
+            : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
-        <input type="file" accept=".csv, .xlsx" onChange={(e) => setFile(e.target.files[0])} className="hidden" />
         {file ? (
           <p className="text-green-600 font-semibold">{file.name}</p>
         ) : isDragActive ? (
@@ -353,10 +364,10 @@ const TopHeavyTest = () => {
         Download CSV Template
       </button>
 
-      {/* Choose File Button */}
+      {/* "Choose File" Button */}
       <button
         type="button"
-        onClick={() => open()}
+        onClick={open}
         className="mt-4 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
       >
         Choose File
@@ -366,9 +377,9 @@ const TopHeavyTest = () => {
       <button
         onClick={handleUpload}
         className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
-          !file || !planYear ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
+          !file ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
         }`}
-        disabled={!file || !planYear || loading}
+        disabled={!file || loading}
       >
         {loading ? "Uploading..." : "Upload"}
       </button>
@@ -378,41 +389,47 @@ const TopHeavyTest = () => {
 
       {/* Display Results */}
       {result && (
-        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-md">
+        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
           <h3 className="font-bold text-xl text-gray-700">Top Heavy Test Results</h3>
           <div className="mt-4">
             <p className="text-lg">
-              <strong>Plan Year:</strong>{" "}
+              <strong className="text-gray-700">Plan Year:</strong>{" "}
               <span className="font-semibold text-blue-600">
                 {planYear || "N/A"}
               </span>
             </p>
-            <p className="text-lg mt-2">
-              <strong>Total Employees:</strong>{" "}
+            <p className="text-lg">
+              <strong className="text-gray-700">Total Employees:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {result?.["Total Employees"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg">
-              <strong>Total Plan Assets:</strong>{" "}
+              <strong className="text-gray-700">Total Participants:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Participants"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg">
+              <strong className="text-gray-700">Total Plan Assets:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {formatCurrency(result?.["Total Plan Assets"])}
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong>Key Employee Assets:</strong>{" "}
+              <strong className="text-gray-700">Key Employee Assets:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {formatCurrency(result?.["Key Employee Assets"])}
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong>Top Heavy Percentage:</strong>{" "}
+              <strong className="text-gray-700">Top Heavy Percentage:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {formatPercentage(result?.["Top Heavy Percentage (%)"])}
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong>Test Result:</strong>{" "}
+              <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
                   result["Test Result"] === "Passed"
@@ -441,7 +458,7 @@ const TopHeavyTest = () => {
             </button>
           </div>
 
-          {/* Corrective Actions & Consequences if Test Failed */}
+          {/* If test fails, show corrective actions & consequences in the UI */}
           {result["Test Result"]?.toLowerCase() === "failed" && (
             <>
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
