@@ -317,7 +317,7 @@ const EligibilityTest = () => {
     }
     try {
       await savePdfResultToFirebase({
-        fileName: "Cafeteria_Eligibility_Test",
+        fileName: "Cafeteria Eligibility",
         pdfBlob,
         additionalData: {
           planYear,
