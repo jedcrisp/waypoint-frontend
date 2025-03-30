@@ -317,17 +317,6 @@ const RatioPercentageTest = () => {
   };
 
   // =========================
-  // Handle Enter Key
-  // =========================
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && file && !loading) {
-      e.preventDefault();
-      e.stopPropagation();
-      handleUpload();
-    }
-  };
-
-  // =========================
   // Render
   // =========================
   return (
