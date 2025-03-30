@@ -16,7 +16,7 @@ const CafeteriaContributionsBenefitsTest = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  const API_URL = import.meta.env.VITE_BACKEND_URL || "https://waypoint-app.up.railway.app";
+  const API_URL = import.meta.env.VITE_BACKEND_URL;
 
   const formatCurrency = (value) => {
     if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
