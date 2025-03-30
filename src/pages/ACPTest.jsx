@@ -105,17 +105,6 @@ const ACPTest = () => {
         },
       });
 
-      // Expecting structure:
-      // {
-      //   "Test Results": {
-      //     "acp": {
-      //       "HCE ACP (%)": 12.6,
-      //       "NHCE ACP (%)": 0.83,
-      //       "ACP Test Result": "Failed",
-      //       "Total Participants": 123
-      //     }
-      //   }
-      // }
       console.log("✅ Response received:", response.data);
       setResult(response.data["Test Results"]["acp"]);
     } catch (err) {
@@ -166,6 +155,7 @@ const ACPTest = () => {
       return;
     }
 
+    const totalEmployees = result["Total Employees"] ?? "N/A";
     const totalParticipants = result["Total Participants"] ?? "N/A";
     const hceAvg = result["HCE ACP (%)"];
     const nhceAvg = result["NHCE ACP (%)"];
@@ -178,6 +168,7 @@ const ACPTest = () => {
 
     const csvRows = [
       ["Metric", "Value"],
+      ["Total Employees", totalEmployees],
       ["Total Participants", totalParticipants],
       ["HCE ACP (%)", formatPct(hceAvg)],
       ["NHCE ACP (%)", formatPct(nhceAvg)],
@@ -235,6 +226,7 @@ const ACPTest = () => {
     let pdfBlob;
     try {
       // Extract data from the result object
+      const totalEmployees = result?.["Total Employees"] || "N/A";
       const totalParticipants = result?.["Total Participants"] || "N/A";
       const hceAvg =
         result?.["HCE ACP (%)"] !== undefined
@@ -264,6 +256,7 @@ const ACPTest = () => {
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
+          ["Total Employees", totalEmployees],
           ["Total Participants", totalParticipants],
           ["HCE ACP (%)", hceAvg],
           ["NHCE ACP (%)", nhceAvg],
@@ -455,6 +448,12 @@ const ACPTest = () => {
               <strong>Plan Year:</strong>{" "}
               <span className="font-semibold text-blue-600">
                 {planYear || "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong>Total Employees:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Employees"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
