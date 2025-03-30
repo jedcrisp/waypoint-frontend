@@ -259,26 +259,6 @@ const HRAEligibilityTest = () => {
       ["Test Result", testRes],
     ];
 
-    if (String(testRes).toLowerCase() === "failed") {
-      const correctiveActions = [
-        "Review employee eligibility criteria.",
-        "Recalculate benefit allocations for compliance.",
-        "Amend plan documents to clarify classification rules.",
-        "Consult with legal or tax advisors for corrections.",
-      ];
-      const consequences = [
-        "Loss of tax benefits.",
-        "Increased IRS penalties.",
-        "Plan disqualification risk.",
-        "Employee dissatisfaction & legal risks.",
-      ];
-      csvRows.push(["", ""]);
-      csvRows.push(["Corrective Actions", ""]);
-      correctiveActions.forEach((action) => csvRows.push(["", action]));
-      csvRows.push(["", ""]);
-      csvRows.push(["Consequences", ""]);
-      consequences.forEach((item) => csvRows.push(["", item]));
-    }
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -392,6 +372,18 @@ const HRAEligibilityTest = () => {
               <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
             </p>
             <p className="text-lg mt-2">
+              <strong>Total Employees:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Employees"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong>Total Participants:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Participants"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
               <strong>HCI Eligibility:</strong>{" "}
               {formatPercentage(result["HCI Eligibility (%)"])}
             </p>
@@ -402,12 +394,6 @@ const HRAEligibilityTest = () => {
             <p className="text-lg mt-2">
               <strong>Key Employee Benefit:</strong>{" "}
               {formatPercentage(result["Eligibility Ratio (%)"])}
-            </p>
-            <p className="text-lg mt-2">
-              <strong>Test Criterion:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {result["Test Criterion"] || "N/A"}
-              </span>
             </p>
             <p className="text-lg mt-2">
               <strong>Test Result:</strong>{" "}
@@ -462,11 +448,11 @@ const HRAEligibilityTest = () => {
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black">Consequences:</h4>
                 <ul className="list-disc list-inside text-black">
-                  <li>❌ HRA benefits for HCEs may become taxable.</li>
+                  <li>HRA benefits for HCEs may become taxable.</li>
                   <br />
-                  <li>❌ Increased IRS audit risk.</li>
+                  <li>Increased IRS audit risk.</li>
                   <br />
-                  <li>❌ Additional corrective contributions may be required.</li>
+                  <li>Additional corrective contributions may be required.</li>
                 </ul>
               </div>
             </>
