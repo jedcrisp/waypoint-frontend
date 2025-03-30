@@ -75,7 +75,7 @@ const HRABenefitsTest = () => {
     formData.append("selected_tests", "hra_benefits");
 
     try {
-      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/hra_55_average_benefits`);
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/hra_benefits`);
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken(true);
       if (!token) {
@@ -136,40 +136,23 @@ const HRABenefitsTest = () => {
     }
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
     const hceAvg = result["HCE Average Benefits"] ?? "N/A";
     const nhceAvg = result["NHCE Average Benefits"] ?? "N/A";
-    const benefitRatio = result["Average Benefits Ratio (%)"] ?? "N/A";
+    const benefitRatio = result["Benefit Ratio (%)"] ?? "N/A";
     const testRes = result["Test Result"] ?? "N/A";
 
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", plan],
       ["Total Employees", totalEmployees],
+      ["Total Participants", result["Total Participants"]],
       ["HCE Average Benefits", hceAvg],
       ["NHCE Average Benefits", nhceAvg],
-      ["Average Benefits Ratio (%)", benefitRatio],
+      ["Benefit Ratio (%)", benefitRatio],
       ["Test Result", testRes],
     ];
 
-    if (String(testRes).toLowerCase() === "failed") {
-      const correctiveActions = [
-        "Review HRA plan design to ensure NHCE benefits are at least 55% of HCE benefits.",
-        "Adjust employer contributions to balance HRA benefits distribution.",
-        "Enhance communication to improve NHCE participation.",
-      ];
-      const consequences = [
-        "HRA benefits for HCEs may become taxable.",
-        "Plan disqualification risk if not corrected.",
-        "Increased IRS audit risk.",
-        "Additional corrective contributions may be required.",
-      ];
-      csvRows.push(["", ""]);
-      csvRows.push(["Corrective Actions", ""]);
-      correctiveActions.forEach((action) => csvRows.push(["", action]));
-      csvRows.push(["", ""]);
-      csvRows.push(["Consequences", ""]);
-      consequences.forEach((item) => csvRows.push(["", item]));
-    }
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -195,7 +178,7 @@ const HRABenefitsTest = () => {
       const totalParticipants = result["Total Participants"] ?? "N/A";
       const hceAvg = result["HCE Average Benefits"] ?? "N/A";
       const nhceAvg = result["NHCE Average Benefits"] ?? "N/A";
-      const benefitRatio = result["Average Benefits Ratio (%)"] ?? "N/A";
+      const benefitRatio = result["Benefit Ratio (%)"] ?? "N/A";
       const failed = testRes.toLowerCase() === "failed";
       const pdf = new jsPDF("p", "mm", "a4");
       pdf.setFont("helvetica", "normal");
@@ -220,7 +203,7 @@ const HRABenefitsTest = () => {
           ["Total Participants", totalParticipants],
           ["HCE Average Benefits", formatCurrency(hceAvg)],
           ["NHCE Average Benefits", formatCurrency(nhceAvg)],
-          ["Average Benefits Ratio (%)", formatPercentage(benefitRatio)],
+          ["Benefit Ratio (%)", formatPercentage(benefitRatio)],
           ["Test Result", testRes],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
@@ -277,7 +260,7 @@ const HRABenefitsTest = () => {
     }
     try {
       await savePdfResultToFirebase({
-        fileName: "HRA_Benefits_Test",
+        fileName: "HRA Benefits",
         pdfBlob,
         additionalData: {
           planYear,
@@ -413,9 +396,9 @@ const HRABenefitsTest = () => {
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong>Average Benefit Ratio:</strong>{" "}
+              <strong>Benefit Ratio:</strong>{" "}
               <span className="font-semibold text-black-600">
-                {formatPercentage(result?.["Average Benefits Ratio (%)"]) || "N/A"}
+                {formatPercentage(result?.["Benefit Ratio (%)"]) || "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
