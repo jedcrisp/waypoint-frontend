@@ -5,7 +5,6 @@ import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import html2canvas from "html2canvas";
-import CafeKeyEmpChart from "../Components/CafeKeyEmpChart";
 import { savePdfResultToFirebase } from "../utils/firebaseTestSaver";
 
 const CafeteriaKeyEmployeeTest = () => {
