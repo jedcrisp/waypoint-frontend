@@ -128,18 +128,19 @@ const CoverageTest = () => {
   // =========================
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-      ["Last Name", "First Name", "Employee ID", "Eligible for Plan", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "Plan Entry Date"],
-      ["Last", "First", "E001", "Yes", "No", "1985-04-12", "2015-01-01", "Active", "No", "No", "2016-01-01"],
-      ["Last", "First", "E002", "Yes", "Yes", "1990-06-15", "2018-03-10", "Active", "No", "No", "2019-01-01"],
-      ["Last", "First", "E003", "No", "No", "1992-09-22", "2020-07-20", "Active", "No", "No", "2021-01-01"],
-      ["Last", "First", "E004", "Yes", "Yes", "1988-12-05", "2012-11-30", "Active", "No", "No", "2013-01-01"],
-      ["Last", "First", "E005", "Yes", "No", "1983-02-18", "2010-05-25", "Active", "No", "No", "2011-01-01"],
-      ["Last", "First", "E006", "No", "No", "2000-07-10", "2023-03-01", "Active", "No", "No", "2023-03-01"],
-      ["Last", "First", "E007", "Yes", "No", "1995-11-03", "2016-09-15", "Active", "No", "No", "2017-01-01"],
-      ["Last", "First", "E008", "Yes", "Yes", "1987-01-28", "2011-06-14", "Active", "No", "No", "2012-01-01"],
-      ["Last", "First", "E009", "No", "No", "1999-05-09", "2022-08-20", "Active", "No", "Yes", "Yes", "2023-01-01"],
-      ["Last", "First", "E010", "Yes", "No", "1991-10-17", "2017-04-22", "Terminated", "No", "No", "No", "2018-01-01"],
-    ]
+  ["Last Name", "First Name", "Employee ID", "Eligible for Plan", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "Plan Entry Date"],
+  ["Last", "First", "E001", "Yes", "No", "1985-04-12", "2015-01-01", "Active", "No", "No", "No", "2016-01-01"],
+  ["Last", "First", "E002", "Yes", "Yes", "1990-06-15", "2018-03-10", "Active", "No", "No", "No", "2019-01-01"],
+  ["Last", "First", "E003", "No", "No", "1992-09-22", "2020-07-20", "Active", "No", "No", "No", "2021-01-01"],
+  ["Last", "First", "E004", "Yes", "Yes", "1988-12-05", "2012-11-30", "Active", "No", "No", "No", "2013-01-01"],
+  ["Last", "First", "E005", "Yes", "No", "1983-02-18", "2010-05-25", "Active", "No", "No", "No", "2011-01-01"],
+  ["Last", "First", "E006", "No", "No", "2000-07-10", "2023-03-01", "Active", "No", "No", "No", "2023-03-01"],
+  ["Last", "First", "E007", "Yes", "No", "1995-11-03", "2016-09-15", "Active", "No", "No", "No", "2017-01-01"],
+  ["Last", "First", "E008", "Yes", "Yes", "1987-01-28", "2011-06-14", "Active", "No", "No", "No", "2012-01-01"],
+  ["Last", "First", "E009", "No", "No", "1999-05-09", "2022-08-20", "Active", "No", "Yes", "Yes", "2023-01-01"],
+  ["Last", "First", "E010", "Yes", "No", "1991-10-17", "2017-04-22", "Terminated", "No", "No", "No", "2018-01-01"]
+]
+
       .map((row) => row.join(","))
       .join("\n");
 
