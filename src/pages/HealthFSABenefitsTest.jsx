@@ -284,7 +284,7 @@ const HealthFSABenefitsTest = () => {
     try {
       // Upload the PDF blob to Firebase Storage using your helper utility
       await savePdfResultToFirebase({
-        fileName: "Health_FSA_55_Average_Benefits_Test",
+        fileName: "Health_FSA_Benefits_Test",
         pdfBlob,
         additionalData: {
           planYear,
