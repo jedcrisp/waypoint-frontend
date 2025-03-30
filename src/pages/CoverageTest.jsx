@@ -128,19 +128,18 @@ const CoverageTest = () => {
   // =========================
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-  ["Last Name", "First Name", "Employee ID", "Eligible for Plan", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "Plan Entry Date"],
-  ["Last", "First", "E001", "Yes", "No", "1985-04-12", "2015-01-01", "Active", "No", "No", "No", "2016-01-01"],
-  ["Last", "First", "E002", "Yes", "Yes", "1990-06-15", "2018-03-10", "Active", "No", "No", "No", "2019-01-01"],
-  ["Last", "First", "E003", "No", "No", "1992-09-22", "2020-07-20", "Active", "No", "No", "No", "2021-01-01"],
-  ["Last", "First", "E004", "Yes", "Yes", "1988-12-05", "2012-11-30", "Active", "No", "No", "No", "2013-01-01"],
-  ["Last", "First", "E005", "Yes", "No", "1983-02-18", "2010-05-25", "Active", "No", "No", "No", "2011-01-01"],
-  ["Last", "First", "E006", "No", "No", "2000-07-10", "2023-03-01", "Active", "No", "No", "No", "2023-03-01"],
-  ["Last", "First", "E007", "Yes", "No", "1995-11-03", "2016-09-15", "Active", "No", "No", "No", "2017-01-01"],
-  ["Last", "First", "E008", "Yes", "Yes", "1987-01-28", "2011-06-14", "Active", "No", "No", "No", "2012-01-01"],
-  ["Last", "First", "E009", "No", "No", "1999-05-09", "2022-08-20", "Active", "No", "Yes", "Yes", "2023-01-01"],
-  ["Last", "First", "E010", "Yes", "No", "1991-10-17", "2017-04-22", "Terminated", "No", "No", "No", "2018-01-01"]
-]
-
+      ["Last Name", "First Name", "Employee ID", "Eligible for Plan", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "Plan Entry Date"],
+      ["Last", "First", "E001", "Yes", "No", "1985-04-12", "2015-01-01", "Active", "No", "No", "2016-01-01"],
+      ["Last", "First", "E002", "Yes", "Yes", "1990-06-15", "2018-03-10", "Active", "No", "No", "2019-01-01"],
+      ["Last", "First", "E003", "No", "No", "1992-09-22", "2020-07-20", "Active", "No", "No", "2021-01-01"],
+      ["Last", "First", "E004", "Yes", "Yes", "1988-12-05", "2012-11-30", "Active", "No", "No", "2013-01-01"],
+      ["Last", "First", "E005", "Yes", "No", "1983-02-18", "2010-05-25", "Active", "No", "No", "2011-01-01"],
+      ["Last", "First", "E006", "No", "No", "2000-07-10", "2023-03-01", "Active", "No", "No", "2023-03-01"],
+      ["Last", "First", "E007", "Yes", "No", "1995-11-03", "2016-09-15", "Active", "No", "No", "2017-01-01"],
+      ["Last", "First", "E008", "Yes", "Yes", "1987-01-28", "2011-06-14", "Active", "No", "No", "2012-01-01"],
+      ["Last", "First", "E009", "No", "No", "1999-05-09", "2022-08-20", "Active", "No", "Yes", "Yes", "2023-01-01"],
+      ["Last", "First", "E010", "Yes", "No", "1991-10-17", "2017-04-22", "Terminated", "No", "No", "No", "2018-01-01"],
+    ]
       .map((row) => row.join(","))
       .join("\n");
 
@@ -148,7 +147,7 @@ const CoverageTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Coverage_Test_Template.csv");
+    link.setAttribute("download", "Cafeteria_Coverage_Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -165,7 +164,7 @@ const CoverageTest = () => {
 
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
-    const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
     const eligibilityPercentage =
       result["Eligibility Percentage (%)"] !== undefined
         ? result["Eligibility Percentage (%)"] + "%"
@@ -176,7 +175,7 @@ const CoverageTest = () => {
       ["Metric", "Value"],
       ["Plan Year", plan],
       ["Total Employees", totalEmployees],
-      ["Eligible Employees", eligibleEmployees],
+      ["Total Participants", totalParticipants],
       ["Eligibility Percentage (%)", eligibilityPercentage],
       ["Test Result", testRes],
     ];
@@ -225,7 +224,7 @@ const CoverageTest = () => {
 
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
-    const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
     const eligibilityPercentage =
       result["Eligibility Percentage (%)"] !== undefined
         ? result["Eligibility Percentage (%)"] + "%"
@@ -263,8 +262,8 @@ const CoverageTest = () => {
       head: [["Metric", "Value"]],
       body: [
         ["Total Employees", totalEmployees],
-        ["Eligible Employees", eligibleEmployees],
-        ["Eligibility Percentage (%)", eligibilityPercentage],
+        ["Total Participants", totalParticipants],
+        ["Eligibility Percentage", eligibilityPercentage],
         ["Test Result", testResult],
       ],
       headStyles: {
@@ -326,7 +325,7 @@ const CoverageTest = () => {
     let pdfBlob;
     try {
       pdfBlob = pdf.output("blob");
-      pdf.save("Safe_Harbor_Coverage_Test_Results.pdf");
+      pdf.save("Cafeteria_Coverage_Test_Results.pdf");
     } catch (error) {
       setError(`❌ Error exporting PDF: ${error.message}`);
       return;
@@ -368,7 +367,7 @@ const CoverageTest = () => {
       tabIndex="0"
     >
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
-        📂 Upload Coverage File
+        📂 Upload Cafeteria Coverage File
       </h2>
 
       {/* Plan Year Dropdown */}
@@ -442,8 +441,8 @@ const CoverageTest = () => {
               {result["Total Employees"] ?? "N/A"}
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Eligible Employees:</strong>{" "}
-              {result["Eligible Employees"] ?? "N/A"}
+              <strong className="text-gray-700">Total Participants:</strong>{" "}
+              {result["Total Participants"] ?? "N/A"}
             </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Eligibility Percentage:</strong>{" "}
