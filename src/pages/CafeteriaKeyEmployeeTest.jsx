@@ -5,6 +5,7 @@ import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import html2canvas from "html2canvas";
+import CafeKeyEmpChart from "../Components/CafeKeyEmpChart";
 import { savePdfResultToFirebase } from "../utils/firebaseTestSaver";
 
 const CafeteriaKeyEmployeeTest = () => {
@@ -198,7 +199,7 @@ const CafeteriaKeyEmployeeTest = () => {
       theme: "grid",
       head: [["Metric", "Value"]],
       body: [
-        ["Total Eligible Employees", result?.["Total Eligible Employees"] ?? "N/A"],
+        ["Total Employees", result?.["Total Employees"] ?? "N/A"],
         ["Total Participants", totalParticipants],
         ["Total Benefits", totalBenefits],
         ["Key Employee Benefits", keyEmployeeBenefits],
@@ -289,7 +290,7 @@ const CafeteriaKeyEmployeeTest = () => {
     }
 
     const plan = planYear || "N/A";
-    const totalEligibleEmployees = result["Total Eligible Employees"] ?? "N/A";
+    const totalmployees = result["Total Employees"] ?? "N/A";
     const totalParticipants = result["Total Participants"] ?? "N/A";
     const keyEmpBenefits =
       result["Key Employee Benefits"] !== undefined
@@ -299,16 +300,18 @@ const CafeteriaKeyEmployeeTest = () => {
       result["Key Employee Benefit Percentage"] !== undefined
         ? result["Key Employee Benefit Percentage"] + "%"
         : "N/A";
-    const testRes = result["Test Result"] ?? "N/A";
+    const totalBenefits = result["Total Benefits"] !== undefined ? formatCurrency(result["Total Benefits"]) : "N/A";
+    const testResult = result["Test Result"] ?? "N/A";
 
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", `"${plan}"`],
-      ["Total Eligible Employees", `"${totalEligibleEmployees}"`],
+      ["Total Employees", `"${totalEmployees}"`],
       ["Total Participants", `"${totalParticipants}"`],
       ["Key Employee Benefits", `"${keyEmpBenefits}"`],
       ["Key Employee Benefit Percentage", `"${benefitPct}"`],
-      ["Test Result", `"${testRes}"`],
+      ["Total Benefits", `"${totalBenefits}"`],
+      ["Test Result", `"${testResult}"`],
     ];
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
@@ -448,10 +451,12 @@ const CafeteriaKeyEmployeeTest = () => {
                 {result?.["Total Participants"] ?? "N/A"}
               </span>
             </p>
-            <p className="text-lg">
-              <strong className="text-gray-700">Total Benefits:</strong>{" "}
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Key Employee Benefits:</strong>{" "}
               <span className="font-semibold text-black-600">
-                {formatCurrency(result?.["Total Benefits"])}
+                {result?.["Key Employee Benefits"] !== undefined
+                  ? formatCurrency(result["Key Employee Benefits"])
+                  : "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
@@ -464,14 +469,13 @@ const CafeteriaKeyEmployeeTest = () => {
                   : "N/A"}
               </span>
             </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Key Employee Benefits:</strong>{" "}
+            <p className="text-lg">
+              <strong className="text-gray-700">Total Benefits:</strong>{" "}
               <span className="font-semibold text-black-600">
-                {result?.["Key Employee Benefits"] !== undefined
-                  ? formatCurrency(result["Key Employee Benefits"])
-                  : "N/A"}
+                {formatCurrency(result?.["Total Benefits"])}
               </span>
             </p>
+  
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
@@ -500,6 +504,11 @@ const CafeteriaKeyEmployeeTest = () => {
             >
               Download CSV Report
             </button>
+          </div>
+
+          {/* Graph Container for PDF capture */}
+          <div id="graphContainer" style={{ position: "absolute", left: "-9999px", top: 0 }}>
+            <CafeKeyEmpChart result={result} />
           </div>
 
           {/* Corrective Actions & Consequences if Failed */}
