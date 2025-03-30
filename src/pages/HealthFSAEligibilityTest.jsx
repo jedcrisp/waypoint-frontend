@@ -2,7 +2,6 @@ import { useState, useCallback } from "react";
 import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Ensure this utility exports the helper
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
-import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust the path if needed
 import { getAuth } from "firebase/auth"; // Import Firebase Auth
 import jsPDF from "jspdf";
 import "jspdf-autotable";
@@ -168,7 +167,8 @@ const HealthFSAEligibilityTest = () => {
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", planYear],
-      ["Total Eligible Employees", result["Total Eligible Employees"] ?? "N/A"],
+      ["Total Employees", result["Total Employees"] ?? "N/A"],
+      ["Total Participants", result["Total Participants"] ?? "N/A"],
       ["Eligibility Percentage (%)", result["Eligibility Percentage (%)"] ? formatPercentage(result["Eligibility Percentage (%)"]) : "N/A"],
       ["Eligible for FSA", result["Eligible for FSA"] ?? "N/A"],
       ["Test Result", result["Health FSA Eligibility Test Result"] ?? "N/A"],
@@ -228,7 +228,8 @@ const HealthFSAEligibilityTest = () => {
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
-          ["Total Eligible Employees", result["Total Eligible Employees"] ?? "N/A"],
+          ["Total Employees", result["Total Employees"] ?? "N/A"],
+          ["Total Participants", result["Total Participants"] ?? "N/A"],
           ["Eligible for FSA", result["Eligible for FSA"] ?? "N/A"],
           ["Eligibility Percentage (%)", formatPercentage(result["Eligibility Percentage (%)"])],
           ["Test Result", result["Health FSA Eligibility Test Result"] ?? "N/A"],
@@ -248,10 +249,10 @@ const HealthFSAEligibilityTest = () => {
         pdf.setTextColor(0, 0, 0);
         pdf.text("Corrective Actions:", 15, y + 7);
         const actions = [
-          "• Expand eligibility for NHCEs",
-          "• Increase NHCE participation through education and incentives",
-          "• Adjust employer contributions to encourage NHCE participation",
-          "• Amend the plan document to correct historical disparities",
+          "Expand eligibility for NHCEs",
+          "Increase NHCE participation through education and incentives",
+          "Adjust employer contributions to encourage NHCE participation",
+          "Amend the plan document to correct historical disparities",
         ];
         actions.forEach((action, i) => pdf.text(action, 15, y + 14 + i * 5));
 
@@ -267,10 +268,10 @@ const HealthFSAEligibilityTest = () => {
         pdf.setFontSize(11);
         pdf.setTextColor(0, 0, 0);
         const consequences = [
-          "• Taxation of FSA benefits for HCEs",
-          "• Increased IRS scrutiny and potential penalties",
-          "• Risk of plan disqualification",
-          "• Retroactive correction requirements",
+          "Taxation of FSA benefits for HCEs",
+          "Increased IRS scrutiny and potential penalties",
+          "Risk of plan disqualification",
+          "Retroactive correction requirements",
         ];
         consequences.forEach((item, i) => pdf.text(item, 15, y2 + 18 + i * 5));
       }
@@ -284,7 +285,7 @@ const HealthFSAEligibilityTest = () => {
     }
     try {
       await savePdfResultToFirebase({
-        fileName: "Health_FSA_Eligibility_Test",
+        fileName: "Health FSA Eligibility",
         pdfBlob,
         additionalData: {
           planYear,
@@ -398,7 +399,13 @@ const HealthFSAEligibilityTest = () => {
             <p className="text-lg">
               <strong className="text-gray-700">Total Employees:</strong>{" "}
               <span className="font-semibold text-black-600">
-                {result?.["Total Eligible Employees"] ?? "N/A"}
+                {result?.["Total Employees"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg">
+              <strong className="text-gray-700">Total Participants:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Participants"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
@@ -428,6 +435,38 @@ const HealthFSAEligibilityTest = () => {
               </span>
             </p>
           </div>
+
+          {/* If test fails, show corrective actions & consequences */}
+          {result?.["Test Result"]?.toLowerCase() === "failed" && (
+            <>
+              <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+  <h4 className="font-bold text-black-600">Corrective Actions:</h4>
+  <ul className="list-disc list-inside text-black-600">
+    <li>Expand eligibility for NHCEs</li>
+    <br />
+    <li>Increase NHCE participation through education and incentives</li>
+    <br />
+    <li>Adjust employer contributions to encourage NHCE participation</li>
+    <br />
+    <li>Amend the plan document to correct historical disparities</li>
+  </ul>
+</div>
+
+<div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
+  <h4 className="font-bold text-black-600">Consequences:</h4>
+  <ul className="list-disc list-inside text-black-600">
+    <li>Taxation of FSA benefits for HCEs</li>
+    <br />
+    <li>Increased IRS scrutiny and potential penalties</li>
+    <br />
+    <li>Risk of plan disqualification</li>
+    <br />
+    <li>Retroactive correction requirements</li>
+  </ul>
+</div>
+
+            </>
+          )}
 
           {/* Export & Download Buttons */}
           <div className="flex flex-col gap-2 mt-4">
