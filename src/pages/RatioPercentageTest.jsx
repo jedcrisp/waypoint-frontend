@@ -155,6 +155,9 @@ const RatioPercentageTest = () => {
     }
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
+    const totalHCEs = result["Total HCEs"] ?? "N/A";
+    const totalNHCEs = result["Total NHCEs"] ?? "N/A";
     const hceEligibility = result["HCE Eligibility (%)"] ?? "N/A";
     const nhceEligibility = result["NHCE Eligibility (%)"] ?? "N/A";
     const ratioPercentage = result["Ratio Percentage"] ?? "N/A";
@@ -164,32 +167,15 @@ const RatioPercentageTest = () => {
       ["Metric", "Value"],
       ["Plan Year", plan],
       ["Total Employees", totalEmployees],
+      ["Total Participants", totalParticipants],
       ["HCE Eligibility (%)", hceEligibility],
       ["NHCE Eligibility (%)", nhceEligibility],
-      ["Ratio Percentage", ratioPercentage],
+      ["Total HCEs", totalHCEs],
+      ["Total NHCEs", totalNHCEs],
+      ["Ratio Percentage (%)", ratioPercentage],
       ["Test Result", testRes],
     ];
 
-    if (String(testRes).toLowerCase() === "failed") {
-      const correctiveActions = [
-        "Increase NHCE participation to ensure at least 70% of HCE rate.",
-        "Adjust eligibility criteria to include more NHCEs.",
-        "Modify plan design to encourage NHCE participation.",
-        "Review and adjust contribution allocations per IRS § 410(b).",
-      ];
-      const consequences = [
-        "Mandatory employer contributions for non-key employees.",
-        "Potential loss of plan tax advantages.",
-        "Increased IRS audit risk.",
-        "Additional corrective contributions may be required.",
-      ];
-      csvRows.push(["", ""]);
-      csvRows.push(["Corrective Actions", ""]);
-      correctiveActions.forEach((action) => csvRows.push(["", action]));
-      csvRows.push(["", ""]);
-      csvRows.push(["Consequences", ""]);
-      consequences.forEach((item) => csvRows.push(["", item]));
-    }
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -213,13 +199,16 @@ const RatioPercentageTest = () => {
     let pdfBlob;
     try {
       const totalEmployees = result["Total Employees"] ?? "N/A";
+      const totalParticipants = result["Total Participants"] ?? "N/A";
       const hceEligibility = result["HCE Eligibility (%)"] !== undefined
         ? formatPercentage(result["HCE Eligibility (%)"])
         : "N/A";
       const nhceEligibility = result["NHCE Eligibility (%)"] !== undefined
         ? formatPercentage(result["NHCE Eligibility (%)"])
         : "N/A";
-      const ratioPerc = result["Ratio Percentage"] !== undefined
+      const totalHCEs = result["Total HCEs"] ?? "N/A";
+      const totalNHCEs = result["Total NHCEs"] ?? "N/A";
+      const ratioPercentage = result["Ratio Percentage"] !== undefined
         ? formatPercentage(result["Ratio Percentage"])
         : "N/A";
       const testRes = result["Test Result"] ?? "N/A";
@@ -244,9 +233,12 @@ const RatioPercentageTest = () => {
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", totalEmployees],
+          ["Total Participants", totalParticipants],
           ["HCE Eligibility (%)", hceEligibility],
           ["NHCE Eligibility (%)", nhceEligibility],
-          ["Ratio Percentage", ratioPerc],
+          ["Total HCEs", totalHCEs],
+          ["Total NHCEs", totalNHCEs],
+          ["Ratio Percentage (%)", ratioPercentage],
           ["Test Result", testRes],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
@@ -301,7 +293,7 @@ const RatioPercentageTest = () => {
       }
       try {
         await savePdfResultToFirebase({
-          fileName: "Ratio_Percentage_Test",
+          fileName: "Ratio Percentage",
           pdfBlob,
           additionalData: {
             planYear,
@@ -418,12 +410,36 @@ const RatioPercentageTest = () => {
               <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
             </p>
             <p className="text-lg mt-2">
+              <strong>Total Employees:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Employees"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong>Total Participants:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Participants"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
               <strong>HCE Eligibility:</strong>{" "}
               {formatPercentage(result["HCE Eligibility (%)"])}
             </p>
             <p className="text-lg mt-2">
               <strong>NHCE Eligibility:</strong>{" "}
               {formatPercentage(result["NHCE Eligibility (%)"])}
+            </p>
+            <p className="text-lg mt-2">
+              <strong>Total HCEs:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total HCEs"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong>Total NHCEs:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total NHCEs"] ?? "N/A"}
+              </span>
             </p>
             <p className="text-lg mt-2">
               <strong>Ratio Percentage:</strong>{" "}
