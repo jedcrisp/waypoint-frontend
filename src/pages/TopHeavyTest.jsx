@@ -15,6 +15,17 @@ const TopHeavyTest = () => {
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
 
+   // --- Formatting Helpers ---
+  const formatCurrency = (value) => {
+    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    return Number(value).toLocaleString("en-US", { style: "currency", currency: "USD" });
+  };
+
+  const formatPercentage = (value) => {
+    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    return `${Number(value).toFixed(2)}%`;
+  };
+
   // ----- 1. Drag & Drop Logic -----
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
