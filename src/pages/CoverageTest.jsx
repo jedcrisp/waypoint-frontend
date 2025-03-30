@@ -446,7 +446,7 @@ const CoverageTest = () => {
               {result["Eligible Employees"] ?? "N/A"}
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Eligibility Percentage (%):</strong>{" "}
+              <strong className="text-gray-700">Eligibility Percentage:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {result["Eligibility Percentage (%)"] !== undefined
                   ? result["Eligibility Percentage (%)"] + "%"
