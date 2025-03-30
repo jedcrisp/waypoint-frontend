@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from "react";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Firebase Storage helper
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
-import { getAuth } from "firebase/auth";
+import { getAuth } from "firebase/auth"; // Firebase Auth
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
@@ -70,7 +71,7 @@ const HRA55AverageBenefitsTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    // Make sure this value matches what your backend expects
+    // This value must match what your backend expects
     formData.append("selected_tests", "hra_55_average_benefits");
 
     try {
@@ -104,7 +105,20 @@ const HRA55AverageBenefitsTest = () => {
   // ---------- Download CSV Template ----------
   const downloadCSVTemplate = () => {
     const csvData = [
-      ["Last Name", "First Name", "Employee ID", "HRA Benefits", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
+      [
+        "Last Name",
+        "First Name",
+        "Employee ID",
+        "HRA Benefits",
+        "HCE",
+        "DOB",
+        "DOH",
+        "Employment Status",
+        "Excluded from Test",
+        "Plan Entry Date",
+        "Union Employee",
+        "Part-Time / Seasonal",
+      ],
       ["Last", "First", "001", "2500", "No", "1980-05-10", "2010-06-01", "Active", "No", "2020-01-01", "No", "No"],
       ["Last", "First", "002", "3000", "Yes", "1975-08-15", "2008-03-10", "Active", "No", "2019-01-01", "No", "No"],
       ["Last", "First", "003", "0", "No", "1990-01-01", "2021-05-01", "Active", "No", "2022-01-01", "No", "No"],
@@ -116,7 +130,6 @@ const HRA55AverageBenefitsTest = () => {
       ["Last", "First", "009", "3500", "Yes", "1982-06-22", "2011-07-07", "Active", "No", "2020-01-01", "No", "No"],
       ["Last", "First", "010", "0", "No", "2003-09-12", "2023-01-10", "Active", "No", "2022-01-01", "No", "No"],
     ];
-
     const csvTemplate = csvData.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -181,106 +194,111 @@ const HRA55AverageBenefitsTest = () => {
     document.body.removeChild(link);
   };
 
-  // ---------- Export Results to PDF ----------
-  const exportToPDF = () => {
-  if (!result) {
-    setError("❌ No results available to export.");
-    return;
-  }
+  // ---------- Export to PDF with Firebase Storage Integration ----------
+  const exportToPDF = async () => {
+    if (!result) {
+      setError("❌ No results available to export.");
+      return;
+    }
+    let pdfBlob;
+    try {
+      const testRes = result["Test Result"] ?? "N/A";
+      const failed = testRes.toLowerCase() === "failed";
+      const pdf = new jsPDF("p", "mm", "a4");
+      pdf.setFont("helvetica", "normal");
 
-  const plan = planYear || "N/A";
-  const hceAverageBenefits = formatCurrency(result["HCE Average Benefits"]);
-  const nhceAverageBenefits = formatCurrency(result["NHCE Average Benefits"]);
-  const avgBenefitRatio = formatPercentage(result["Average Benefit Ratio (%)"]);
-  const testCriterion = result["Test Criterion"] || "N/A";
-  const testResult = result["Test Result"] || "N/A";
-  const failed = testResult.toLowerCase() === "failed";
+      // Header
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("HRA 55% Average Benefits Test Results", 105, 15, { align: "center" });
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
+      const generatedTimestamp = new Date().toLocaleString();
+      pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
-  const pdf = new jsPDF("p", "mm", "a4");
-  pdf.setFont("helvetica", "normal");
+      // Results Table
+      pdf.autoTable({
+        startY: 40,
+        theme: "grid",
+        head: [["Metric", "Value"]],
+        body: [
+          ["HCE Average Benefits", formatCurrency(result["HCE Average Benefits"])],
+          ["NHCE Average Benefits", formatCurrency(result["NHCE Average Benefits"])],
+          ["Average Benefit Ratio", formatPercentage(result["Average Benefits Ratio (%)"])],
+          ["Test Criterion", result["Test Criterion"] || "N/A"],
+          ["Test Result", testRes],
+        ],
+        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+        styles: { fontSize: 12, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
 
-  // Header
-  pdf.setFontSize(18);
-  pdf.setFont("helvetica", "bold");
-  pdf.text("HRA 55% Average Benefits Test Results", 105, 15, { align: "center" });
-  pdf.setFontSize(12);
-  pdf.setFont("helvetica", "normal");
-  pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
-  pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
+      // Corrective actions & consequences (if test failed)
+      if (failed) {
+        const y = pdf.lastAutoTable.finalY + 10;
+        pdf.setFillColor(255, 230, 230);
+        pdf.setDrawColor(255, 0, 0);
+        pdf.rect(10, y, 190, 30, "FD");
+        pdf.setFontSize(12);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text("Corrective Actions:", 15, y + 7);
+        const actions = [
+          "• Review and adjust HRA contributions to meet the 55% requirement",
+          "• Increase NHCE participation or modify contribution formulas accordingly",
+          "• Reevaluate plan design to ensure compliance with IRS standards",
+        ];
+        actions.forEach((action, i) => pdf.text(action, 15, y + 14 + i * 5));
 
-  // Summary Table
-  pdf.autoTable({
-    startY: 40,
-    theme: "grid",
-    head: [["Metric", "Value"]],
-    body: [
-      ["HCE Average Benefits", hceAverageBenefits],
-      ["NHCE Average Benefits", nhceAverageBenefits],
-      ["Average Benefit Ratio", avgBenefitRatio],
-      ["Test Criterion", testCriterion],
-      ["Test Result", testResult],
-    ],
-    headStyles: {
-      fillColor: [41, 128, 185],
-      textColor: [255, 255, 255],
-    },
-    styles: {
-      fontSize: 12,
-      font: "helvetica",
-    },
-    margin: { left: 10, right: 10 },
-  });
+        const y2 = y + 40;
+        pdf.setFillColor(255, 255, 204);
+        pdf.setDrawColor(255, 204, 0);
+        pdf.rect(10, y2, 190, 30, "FD");
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(14);
+        pdf.setTextColor(204, 153, 0);
+        pdf.text("Consequences:", 15, y2 + 10);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(11);
+        pdf.setTextColor(0, 0, 0);
+        const consequences = [
+          "• Taxation of HRA benefits for key employees",
+          "• Increased IRS scrutiny and potential penalties",
+          "• Risk of plan disqualification",
+          "• Retroactive correction requirements",
+        ];
+        consequences.forEach((item, i) => pdf.text(item, 15, y2 + 18 + i * 5));
+      }
 
-  // Corrective actions & consequences (only if failed)
-  if (failed) {
-    const correctiveActions = [
-      "Increase NHCE benefits to meet or exceed 55% of the HCE average benefits.",
-      "Review eligibility criteria to expand NHCE participation.",
-      "Adjust benefit allocations to maintain compliance.",
-      "Consult IRS § 410(b) for specific compliance requirements.",
-    ];
+      // Footer
+      pdf.setFont("helvetica", "italic");
+      pdf.setFontSize(10);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
-    const consequences = [
-      "Risk of plan failing nondiscrimination testing.",
-      "Possible mandatory corrections and employer contributions.",
-      "Potential IRS scrutiny or audits.",
-      "Loss of tax-qualified status if unresolved.",
-    ];
+      // Generate PDF blob and trigger local download
+      pdfBlob = pdf.output("blob");
+      pdf.save("HRA_55_Average_Benefits_Test_Results.pdf");
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
+      return;
+    }
+    try {
+      await savePdfResultToFirebase({
+        fileName: "HRA_55_Average_Benefits_Test",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult: result["Test Result"] ?? "Unknown",
+        },
+      });
+    } catch (error) {
+      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+    }
+  };
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-  }
-
-  // =========================
-    // 4. Footer
-    // =========================
-    pdf.setFont("helvetica", "italic");
-    pdf.setFontSize(10);
-    pdf.setTextColor(100, 100, 100); // Gray text
-    pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
-
-  pdf.save("HRA_55_Average_Benefits_Test_Results.pdf");
-};
-
-
-  const handleKeyDown = (e) => {
+  // ---------- Handle Enter Key ----------
+  const handleKeyDownWrapper = (e) => {
     if (e.key === "Enter" && file && !loading) {
       e.preventDefault();
       e.stopPropagation();
@@ -291,7 +309,7 @@ const HRA55AverageBenefitsTest = () => {
   return (
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
-      onKeyDown={handleKeyDown}
+      onKeyDown={handleKeyDownWrapper}
       tabIndex="0"
     >
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
@@ -301,9 +319,7 @@ const HRA55AverageBenefitsTest = () => {
       {/* Plan Year Dropdown */}
       <div className="mb-6">
         <div className="flex items-center">
-          {planYear === "" && (
-            <span className="text-red-500 text-lg mr-2">*</span>
-          )}
+          {planYear === "" && <span className="text-red-500 text-lg mr-2">*</span>}
           <select
             id="planYear"
             value={planYear}
@@ -325,12 +341,11 @@ const HRA55AverageBenefitsTest = () => {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive
-            ? "border-green-500 bg-blue-100"
-            : "border-gray-300 bg-gray-50"
+          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
+        <input type="file" accept=".csv, .xlsx" onChange={(e) => setFile(e.target.files[0])} className="hidden" />
         {file ? (
           <p className="text-green-600 font-semibold">{file.name}</p>
         ) : isDragActive ? (
@@ -353,7 +368,7 @@ const HRA55AverageBenefitsTest = () => {
       {/* "Choose File" Button */}
       <button
         type="button"
-        onClick={open}
+        onClick={() => open()}
         className="mt-4 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
       >
         Choose File
@@ -363,9 +378,7 @@ const HRA55AverageBenefitsTest = () => {
       <button
         onClick={handleUpload}
         className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
-          !file || !planYear
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-green-500 hover:bg-green-400"
+          !file || !planYear ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
         }`}
         disabled={!file || !planYear || loading}
       >
@@ -376,47 +389,49 @@ const HRA55AverageBenefitsTest = () => {
       {error && <div className="mt-3 text-red-500">{error}</div>}
 
       {/* Display Results */}
-{result && (
-  <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
-    <h3 className="font-bold text-xl text-gray-700">
-      HRA 55% Average Benefits Test Results
-    </h3>
-    <div className="mt-4">
-      <p className="text-lg">
-        <strong>Plan Year:</strong>{" "}
-        <span className="font-semibold text-blue-600">
-          {planYear || "N/A"}
-        </span>
-      </p>
-      <p className="text-lg mt-2">
-        <strong>HCE Average Benefits:</strong>{" "}
-        {formatCurrency(result?.["HCE Average Benefits"]) || "N/A"}
-      </p>
-      <p className="text-lg mt-2">
-        <strong>NHCE Average Benefits:</strong>{" "}
-        {formatCurrency(result?.["NHCE Average Benefits"]) || "N/A"}
-      </p>
-      <p className="text-lg mt-2">
-        <strong>Average Benefit Ratio:</strong>{" "}
-        {formatPercentage(result?.["Average Benefit Ratio (%)"]) || "N/A"}
-      </p>
-      <p className="text-lg mt-2">
-        <strong>Test Criterion:</strong>{" "}
-        {result?.["Test Criterion"] || "N/A"}
-      </p>
-      <p className="text-lg mt-2">
-        <strong>Test Result:</strong>{" "}
-        <span
-          className={`px-3 py-1 rounded-md font-bold ${
-            result?.["Test Result"] === "Passed"
-              ? "bg-green-500 text-white"
-              : "bg-red-500 text-white"
-          }`}
-        >
-          {result?.["Test Result"] || "N/A"}
-        </span>
-      </p>
-    </div>
+      {result && (
+        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
+          <h3 className="font-bold text-xl text-gray-700">HRA 55% Average Benefits Test Results</h3>
+          <div className="mt-4">
+            <p className="text-lg">
+              <strong>Plan Year:</strong>{" "}
+              <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong>HCE Average Benefits:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatCurrency(result?.["HCE Average Benefits"]) || "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong>NHCE Average Benefits:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatCurrency(result?.["NHCE Average Benefits"]) || "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong>Average Benefit Ratio:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatPercentage(result?.["Average Benefits Ratio (%)"]) || "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong>Test Criterion:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Test Criterion"] || "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong>Test Result:</strong>{" "}
+              <span
+                className={`px-3 py-1 rounded-md font-bold ${
+                  result?.["Test Result"] === "Passed" ? "bg-green-500 text-white" : "bg-red-500 text-white"
+                }`}
+              >
+                {result?.["Test Result"] || "N/A"}
+              </span>
+            </p>
+          </div>
 
           {/* Export & Download Buttons */}
           <div className="flex flex-col gap-2 mt-4">
@@ -434,7 +449,6 @@ const HRA55AverageBenefitsTest = () => {
             </button>
           </div>
 
-          {/* Display Corrective Actions & Consequences if Test Failed */}
           {result?.["Test Result"]?.toLowerCase() === "failed" && (
             <>
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
@@ -457,11 +471,11 @@ const HRA55AverageBenefitsTest = () => {
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black">Consequences:</h4>
                 <ul className="list-disc list-inside text-black">
-                  <li>❌ HRA benefits for HCEs may become taxable.</li>
+                  <li>HRA benefits for HCEs may become taxable.</li>
                   <br />
-                  <li>❌ Increased IRS audit risk.</li>
+                  <li>Increased IRS audit risk.</li>
                   <br />
-                  <li>❌ Additional corrective contributions may be required.</li>
+                  <li>Additional corrective contributions may be required.</li>
                 </ul>
               </div>
             </>
@@ -473,5 +487,3 @@ const HRA55AverageBenefitsTest = () => {
 };
 
 export default HRA55AverageBenefitsTest;
-
-
