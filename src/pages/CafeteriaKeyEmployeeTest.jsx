@@ -4,10 +4,13 @@ import axios from "axios";
 import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import html2canvas from "html2canvas";
+import CafeKeyEmpChart from "../Components/CafeKeyEmpChart";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver";
 
 const CafeteriaKeyEmployeeTest = () => {
   const [file, setFile] = useState(null);
-  const [planYear, setPlanYear] = useState(""); // Plan Year dropdown
+  const [planYear, setPlanYear] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -16,7 +19,8 @@ const CafeteriaKeyEmployeeTest = () => {
 
   // ---------- Formatting Helpers ----------
   const formatCurrency = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    if (value === undefined || value === null || isNaN(Number(value)))
+      return "N/A";
     return Number(value).toLocaleString("en-US", {
       style: "currency",
       currency: "USD",
@@ -24,7 +28,8 @@ const CafeteriaKeyEmployeeTest = () => {
   };
 
   const formatPercentage = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    if (value === undefined || value === null || isNaN(Number(value)))
+      return "N/A";
     return `${Number(value).toFixed(2)}%`;
   };
 
@@ -41,29 +46,27 @@ const CafeteriaKeyEmployeeTest = () => {
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
-    accept: ".csv",
+    accept: ".csv, .xlsx",
     multiple: false,
     noClick: true,
     noKeyboard: true,
   });
 
   // =========================
-  // 2. Upload File
+  // 2. Upload File to Backend
   // =========================
   const handleUpload = async () => {
     if (!file) {
       setError("❌ Please select a file before uploading.");
       return;
     }
-
-    // Validate file type
-    const validFileTypes = ["csv"];
+    // Validate file type (CSV or Excel)
+    const validFileTypes = ["csv", "xlsx"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
-      setError("❌ Invalid file type. Please upload a CSV file.");
+      setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
     }
-
     if (!planYear) {
       setError("❌ Please select a plan year.");
       return;
@@ -81,7 +84,7 @@ const CafeteriaKeyEmployeeTest = () => {
       console.log("🚀 Uploading file to:", `${API_URL}/upload-csv/key_employee`);
       console.log("📂 File Selected:", file.name);
 
-      // 1. Get Firebase token
+      // Get Firebase token
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken(true);
       if (!token) {
@@ -90,12 +93,12 @@ const CafeteriaKeyEmployeeTest = () => {
         return;
       }
 
-      // 2. Send POST request
-      const response = await axios.post(`${API_URL}/upload-csv/key_employee`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      // Send POST request
+      const response = await axios.post(
+        `${API_URL}/upload-csv/key_employee`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
       console.log("✅ Response received:", response.data);
 
@@ -130,7 +133,6 @@ const CafeteriaKeyEmployeeTest = () => {
   ["Last", "First", "009", "45000", "2000", "No", "1997-05-27", "2023-04-15", "Active", "No", "2023-10-01", "Yes", "No"],
   ["Last", "First", "010", "77000", "4100", "Yes", "1982-08-08", "2011-11-01", "Active", "No", "2012-05-01", "No", "No"]
 ]
-
       .map((row) => row.join(","))
       .join("\n");
 
@@ -145,7 +147,7 @@ const CafeteriaKeyEmployeeTest = () => {
   };
 
   // =========================
-  // 4. Export to PDF
+  // 4. Export to PDF (with Firebase saving)
   // =========================
   const exportToPDF = async () => {
     if (!result) {
@@ -155,31 +157,32 @@ const CafeteriaKeyEmployeeTest = () => {
 
     const plan = planYear || "N/A";
     const totalEmployees = result?.["Total Employees"] ?? "N/A";
-    const totalParticipants = result?.["Total Participants"] || "N/A";
-    const keyEmployeeBenefits = result?.["Key Employee Benefits"] !== undefined
-      ? formatCurrency(result["Key Employee Benefits"])
-      : "N/A";
+    const totalParticipants = result?.["Total Participants"] ?? "N/A";
     const totalBenefits = result?.["Total Benefits"] !== undefined
       ? formatCurrency(result["Total Benefits"])
       : "N/A";
-    const keyEmployeeBenefitPercentage = result["Key Employee Benefit Percentage"] !== undefined
+    const keyEmployeeBenefits = result?.["Key Employee Benefits"] !== undefined
+      ? formatCurrency(result["Key Employee Benefits"])
+      : "N/A";
+    const keyEmployeeBenefitPercentage = result?.["Key Employee Benefit Percentage"] !== undefined
       ? formatPercentage(result["Key Employee Benefit Percentage"])
       : "N/A";
-    const testResult = result["Test Result"] || "N/A";
+    const testResult = result?.["Test Result"] || "N/A";
     const failed = testResult.toLowerCase() === "failed";
 
     const pdf = new jsPDF("p", "mm", "a4");
     pdf.setFont("helvetica", "normal");
 
+    // Add test criterion subheader
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "italic");
     pdf.setTextColor(60, 60, 60);
     pdf.text(
       "Test Criterion: HCE average benefits must not exceed 125% of NHCE average benefits",
-        105,
-        40,
-        { align: "center" }
-      );
+      105,
+      40,
+      { align: "center", maxWidth: 180 }
+    );
 
     // Header
     pdf.setFontSize(18);
@@ -187,116 +190,147 @@ const CafeteriaKeyEmployeeTest = () => {
     pdf.text("Cafeteria Key Employee Test Results", 105, 15, { align: "center" });
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "normal");
-    pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
+    pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
     pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
+    // Results Table
     pdf.autoTable({
       startY: 47,
       theme: "grid",
       head: [["Metric", "Value"]],
       body: [
-        ["Total Employees", totalEmployees],
+        ["Total Eligible Employees", result?.["Total Eligible Employees"] ?? "N/A"],
         ["Total Participants", totalParticipants],
         ["Total Benefits", totalBenefits],
         ["Key Employee Benefits", keyEmployeeBenefits],
         ["Key Employee Benefit Percentage", keyEmployeeBenefitPercentage],
         ["Test Result", testResult],
       ],
-    headStyles: {
-      fillColor: [41, 128, 185],
-      textColor: [255, 255, 255],
-    },
-    styles: {
-      fontSize: 12,
-      font: "helvetica",
-    },
-    margin: { left: 10, right: 10 },
-  });
-
-    // Corrective actions & consequences (only if failed)
-  if (failed) {
-    const correctiveActions = [
-        "Reallocate Cafeteria Plan benefits to balance distributions",
-        "Adjust classifications of key employees",
-        "Review and update contribution policies",
-    ];
-
-    const consequences = [
-        "Loss of Tax-Exempt Status for Key Employees",
-        "IRS Scrutiny and Potential Penalties",
-        "Risk of Plan Disqualification",
-    ];
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: [255, 255, 255],
+      },
+      styles: {
+        fontSize: 12,
+        font: "helvetica",
+        lineColor: [150, 150, 150],
+        lineWidth: 0.2,
+      },
       margin: { left: 10, right: 10 },
     });
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    })
-   }
+    // If the test failed, add corrective actions & consequences
+    if (failed) {
+      const correctiveActions = [
+        "Reallocate Cafeteria Plan benefits to balance distributions.",
+        "Adjust classifications of key employees.",
+        "Review and update contribution policies.",
+      ];
+      const consequences = [
+        "Loss of Tax-Exempt Status for Key Employees",
+        "IRS Scrutiny and Potential Penalties",
+        "Risk of Plan Disqualification for Non-Compliance",
+      ];
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Corrective Actions"]],
+        body: correctiveActions.map((action) => [action]),
+        headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Consequences"]],
+        body: consequences.map((consequence) => [consequence]),
+        headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+    }
 
-    // =========================
-    // 4. Footer
-    // =========================
+    // Capture the chart image from a hidden container
+    const graphElement = document.getElementById("graphContainer");
+    if (graphElement) {
+      const canvas = await html2canvas(graphElement, { scale: 2 });
+      const graphImgData = canvas.toDataURL("image/png");
+      pdf.addPage();
+      pdf.addImage(graphImgData, "PNG", 10, 30, 190, 120);
+    }
+
+    // Footer
     pdf.setFont("helvetica", "italic");
     pdf.setFontSize(10);
-    pdf.setTextColor(100, 100, 100); // Gray text
+    pdf.setTextColor(100, 100, 100);
     pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
-    pdf.save("Cafeteria_Key_Employee_Results.pdf");
+
+    let pdfBlob;
+    try {
+      pdfBlob = pdf.output("blob");
+      pdf.save("Cafeteria_Key_Employee_Test_Results.pdf");
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
+      return;
+    }
+
+    try {
+      await savePdfResultToFirebase({
+        fileName: "Cafeteria Key Employee Test",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult: testResult || "Unknown",
+        },
+      });
+    } catch (error) {
+      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+    }
   };
 
   // =========================
-// 5. Download Results as CSV
-// =========================
-const downloadResultsAsCSV = () => {
-  if (!result) {
-    setError("❌ No results to download.");
-    return;
-  }
+  // 5. Download Results as CSV
+  // =========================
+  const downloadResultsAsCSV = () => {
+    if (!result) {
+      setError("❌ No results to download.");
+      return;
+    }
 
-  const testRes = result["Test Result"] ?? "N/A";
-  const totalEmployees = result?.["Total Employees"] ?? "N/A";
-  const totalParticipants = result?.["Total Participants"] ?? "N/A";
-  const keyEmpBenefit = result?.["Key Employee Benefits"];
-  const benefitPct = result["Key Employee Benefit Percentage"] !== undefined
-    ? `${result["Key Employee Benefit Percentage"]}%`
-    : "N/A";
+    const plan = planYear || "N/A";
+    const totalEligibleEmployees = result["Total Eligible Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
+    const keyEmpBenefits =
+      result["Key Employee Benefits"] !== undefined
+        ? formatCurrency(result["Key Employee Benefits"])
+        : "N/A";
+    const benefitPct =
+      result["Key Employee Benefit Percentage"] !== undefined
+        ? result["Key Employee Benefit Percentage"] + "%"
+        : "N/A";
+    const testRes = result["Test Result"] ?? "N/A";
 
-  // Wrap values in quotes to prevent breaking on commas
-  const csvRows = [
-    ["Metric", "Value"],
-    ["Plan Year", `"${planYear}"`],
-    ["Total Employees", `"${totalEmployees}"`],
-    ["Total Participants", `"${totalParticipants}"`],
-    ["Key Employee Benefits", `"${formatCurrency(keyEmpBenefit)}"`],
-    ["Key Employee Benefit Percentage", `"${benefitPct}"`],
-    ["Test Result", `"${testRes}"`],
-  ];
+    const csvRows = [
+      ["Metric", "Value"],
+      ["Plan Year", `"${plan}"`],
+      ["Total Eligible Employees", `"${totalEligibleEmployees}"`],
+      ["Total Participants", `"${totalParticipants}"`],
+      ["Key Employee Benefits", `"${keyEmpBenefits}"`],
+      ["Key Employee Benefit Percentage", `"${benefitPct}"`],
+      ["Test Result", `"${testRes}"`],
+    ];
 
-  const csvContent = csvRows.map(row => row.join(",")).join("\n");
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.setAttribute("download", "Cafeteria_Key_Employee_Results.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
-
+    const csvContent = csvRows.map((row) => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "Cafeteria_Key_Employee_Test_Results.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // =========================
   // 6. Handle Enter Key
@@ -310,7 +344,7 @@ const downloadResultsAsCSV = () => {
   };
 
   // =========================
-  // Render
+  // RENDER
   // =========================
   return (
     <div
@@ -349,7 +383,9 @@ const downloadResultsAsCSV = () => {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
+          isDragActive
+            ? "border-green-500 bg-blue-100"
+            : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
@@ -359,7 +395,7 @@ const downloadResultsAsCSV = () => {
           <p className="text-green-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV</strong> here.
+            Drag & drop a <strong>CSV or Excel file</strong> here.
           </p>
         )}
       </div>
@@ -372,7 +408,7 @@ const downloadResultsAsCSV = () => {
         Download CSV Template
       </button>
 
-      {/* Choose File (Blue) */}
+      {/* Choose File Button */}
       <button
         type="button"
         onClick={open}
@@ -381,13 +417,15 @@ const downloadResultsAsCSV = () => {
         Choose File
       </button>
 
-      {/* Upload (Green if file, else Gray) */}
+      {/* Upload Button */}
       <button
         onClick={handleUpload}
         className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
-          !file ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
+          !file || !planYear
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-green-500 hover:bg-green-400"
         }`}
-        disabled={!file || loading}
+        disabled={!file || !planYear || loading}
       >
         {loading ? "Uploading..." : "Upload"}
       </button>
@@ -402,34 +440,34 @@ const downloadResultsAsCSV = () => {
             Cafeteria Key Employee Test Results
           </h3>
           <div className="mt-4">
-            <p className="text-lg">
+            <p className="text-lg mt-2">
               <strong className="text-gray-700">Plan Year:</strong>{" "}
               <span className="font-semibold text-blue-600">
                 {planYear || "N/A"}
               </span>
             </p>
-             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Total Employees:</strong>{" "}
-               <span className="font-semibold text-black-600">
-                 {result?.["Total Employees"] ?? "N/A"}
-
-               </span>
-
-                </p>
-             <p className="text-lg">
-            <strong className="text-gray-700">Total Participants:</strong>{" "}
-              <span className="font-semibold text-black-600">
-               {result["Total Participants"] ?? "N/A"}
-             </span>
-            </p>
             <p className="text-lg">
-            <strong className="text-gray-700">Total Benefits:</strong>{" "}
-              <span className="font-semibold text-black-600">
-               {formatCurrency(result?.["Total Benefits"] ?? "N/A")}
-             </span>
+              <strong className="text-gray-700">Total Employees:</strong>{" "}
+              <span className="font-semibold text-blue-600">
+                {result?.["Total Employees"] ?? "N/A"}
+              </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Key Employee Benefit Percentage:</strong>{" "}
+              <strong className="text-gray-700">Total Participants:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Participants"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg">
+              <strong className="text-gray-700">Total Benefits:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatCurrency(result?.["Total Benefits"])}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">
+                Key Employee Benefit Percentage:
+              </strong>{" "}
               <span className="font-semibold text-black-600">
                 {result["Key Employee Benefit Percentage"] !== undefined
                   ? result["Key Employee Benefit Percentage"] + "%"
@@ -437,72 +475,82 @@ const downloadResultsAsCSV = () => {
               </span>
             </p>
             <p className="text-lg mt-2">
-            <strong className="text-gray-700">Key Employee Benefits:</strong>{" "}
+              <strong className="text-gray-700">Key Employee Benefits:</strong>{" "}
               <span className="font-semibold text-black-600">
-              {result?.["Key Employee Benefits"] !== undefined
-              ? formatCurrency(result["Key Employee Benefits"])
-               : "N/A"}
+                {result?.["Key Employee Benefits"] !== undefined
+                  ? formatCurrency(result["Key Employee Benefits"])
+                  : "N/A"}
               </span>
-              </p>
-            
+            </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
-                  result["Test Result"] === "Passed"
+                  result?.["Test Result"] === "Passed"
                     ? "bg-green-500 text-white"
                     : "bg-red-500 text-white"
                 }`}
               >
-                {result["Test Result"] ?? "N/A"}
+                {result?.["Test Result"] ?? "N/A"}
               </span>
             </p>
-
-            {/* Export & Download Buttons */}
-            <div className="flex flex-col gap-2 mt-4">
-              <button
-                onClick={exportToPDF}
-                className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
-              >
-                Export PDF Report
-              </button>
-              <button
-                onClick={downloadResultsAsCSV}
-                className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
-              >
-                Download CSV Report
-              </button>
-            </div>
-
-            {/* Corrective Actions & Consequences if Failed */}
-            {result["Test Result"]?.toLowerCase() === "failed" && (
-              <>
-                <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
-                  <h4 className="font-bold text-black-600">Corrective Actions:</h4>
-                  <ul className="list-disc list-inside text-black-600">
-                    <li>Reallocate Cafeteria Plan benefits to balance distributions.</li>
-                    <br />
-                    <li>Adjust classifications of key employees.</li>
-                    <br />
-                    <li>Review and update contribution policies.</li>
-                  </ul>
-                </div>
-
-                <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
-                  <h4 className="font-bold text-black-600">Consequences:</h4>
-                  <ul className="list-disc list-inside text-black-600">
-                    <li>Loss of Tax-Exempt Status for Key Employees</li>
-                    <br />
-                    <li>IRS Scrutiny and Potential Penalties</li>
-                    <br />
-                    <li>Risk of Plan Disqualification for Non-Compliance</li>
-                  </ul>
-                </div>
-              </>
-            )}
           </div>
+
+          {/* Export & Download Buttons */}
+          <div className="flex flex-col gap-2 mt-4">
+            <button
+              onClick={exportToPDF}
+              className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+            >
+              Export PDF Report
+            </button>
+            <button
+              onClick={downloadResultsAsCSV}
+              className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
+            >
+              Download CSV Report
+            </button>
+          </div>
+
+          {/* Graph Container for PDF capture */}
+          <div id="graphContainer" style={{ position: "absolute", left: "-9999px", top: 0 }}>
+            <CafeKeyEmpChart result={result} />
+          </div>
+
+          {/* Corrective Actions & Consequences if Failed */}
+          {result["Test Result"]?.toLowerCase() === "failed" && (
+            <>
+              <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+                <h4 className="font-bold text-black-600">Corrective Actions:</h4>
+                <ul className="list-disc list-inside text-black-600">
+                  <li>
+                    Reallocate Cafeteria Plan benefits to balance distributions.
+                  </li>
+                  <br />
+                  <li>Adjust classifications of key employees.</li>
+                  <br />
+                  <li>Review and update contribution policies.</li>
+                </ul>
+              </div>
+
+              <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
+                <h4 className="font-bold text-black-600">Consequences:</h4>
+                <ul className="list-disc list-inside text-black-600">
+                  <li>Loss of Tax-Exempt Status for Key Employees</li>
+                  <br />
+                  <li>IRS Scrutiny and Potential Penalties</li>
+                  <br />
+                  <li>Plan Disqualification Risks</li>
+                  <br />
+                  <li>Employee Discontent & Reduced Participation</li>
+                  <br />
+                  <li>Reputational and Legal Risks</li>
+                </ul>
+              </div>
+            </>
+          )}
         </div>
-            )}
+      )}
     </div>
   );
 };
