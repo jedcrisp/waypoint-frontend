@@ -6,7 +6,7 @@ import { getAuth } from "firebase/auth"; // Firebase Auth
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
-const HRA55AverageBenefitsTest = () => {
+const HRABenefitsTest = () => {
   const [file, setFile] = useState(null);
   const [planYear, setPlanYear] = useState("");
   const [loading, setLoading] = useState(false);
@@ -72,7 +72,7 @@ const HRA55AverageBenefitsTest = () => {
     const formData = new FormData();
     formData.append("file", file);
     // Ensure this value matches what your backend expects
-    formData.append("selected_tests", "hra_55_average_benefits");
+    formData.append("selected_tests", "hra_benefits");
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/hra_55_average_benefits`);
@@ -85,7 +85,7 @@ const HRA55AverageBenefitsTest = () => {
       }
       console.log("Firebase Token:", token);
 
-      const response = await axios.post(`${API_URL}/upload-csv/hra_55_average_benefits`, formData, {
+      const response = await axios.post(`${API_URL}/upload-csv/hra_benefits`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -93,7 +93,7 @@ const HRA55AverageBenefitsTest = () => {
       });
 
       console.log("✅ API Response:", response.data);
-      setResult(response.data?.["Test Results"]?.["hra_55_average_benefits"] || {});
+      setResult(response.data?.["Test Results"]?.["hra_benefits"] || {});
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError("❌ Failed to upload file. Please check the format and try again.");
@@ -136,7 +136,6 @@ const HRA55AverageBenefitsTest = () => {
     }
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
-    const totalParticipants = result["Total Participants"] ?? "N/A";
     const hceAvg = result["HCE Average Benefits"] ?? "N/A";
     const nhceAvg = result["NHCE Average Benefits"] ?? "N/A";
     const benefitRatio = result["Average Benefits Ratio (%)"] ?? "N/A";
@@ -146,7 +145,6 @@ const HRA55AverageBenefitsTest = () => {
       ["Metric", "Value"],
       ["Plan Year", plan],
       ["Total Employees", totalEmployees],
-      ["Total Participants", totalParticipants],
       ["HCE Average Benefits", hceAvg],
       ["NHCE Average Benefits", nhceAvg],
       ["Average Benefits Ratio (%)", benefitRatio],
@@ -178,7 +176,7 @@ const HRA55AverageBenefitsTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "HRA_55_Average_Benefits_Results.csv");
+    link.setAttribute("download", "HRA_Benefits_Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -195,6 +193,9 @@ const HRA55AverageBenefitsTest = () => {
       const testRes = result["Test Result"] ?? "N/A";
       const totalEmployees = result["Total Employees"] ?? "N/A";
       const totalParticipants = result["Total Participants"] ?? "N/A";
+      const hceAvg = result["HCE Average Benefits"] ?? "N/A";
+      const nhceAvg = result["NHCE Average Benefits"] ?? "N/A";
+      const benefitRatio = result["Average Benefits Ratio (%)"] ?? "N/A";
       const failed = testRes.toLowerCase() === "failed";
       const pdf = new jsPDF("p", "mm", "a4");
       pdf.setFont("helvetica", "normal");
@@ -269,14 +270,14 @@ const HRA55AverageBenefitsTest = () => {
 
       // Generate PDF blob and trigger local download
       pdfBlob = pdf.output("blob");
-      pdf.save("HRA_55_Average_Benefits_Test_Results.pdf");
+      pdf.save("HRA_Benefits_Test_Results.pdf");
     } catch (error) {
       setError(`❌ Error exporting PDF: ${error.message}`);
       return;
     }
     try {
       await savePdfResultToFirebase({
-        fileName: "HRA_55_Average_Benefits_Test",
+        fileName: "HRA_Benefits_Test",
         pdfBlob,
         additionalData: {
           planYear,
@@ -387,15 +388,15 @@ const HRA55AverageBenefitsTest = () => {
               <strong>Plan Year:</strong>{" "}
               <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
             </p>
-            <p className="text-lg">
-              <strong className="text-gray-700">Total Employees:</strong>{" "}
-              <span className="font-semibold text-black-800">
+            <p className="text-lg mt-2">
+              <strong>Total Employees:</strong>{" "}
+              <span className="font-semibold text-black-600">
                 {result?.["Total Employees"] ?? "N/A"}
               </span>
             </p>
-            <p className="text-lg">
-              <strong className="text-gray-700">Total Participants:</strong>{" "}
-              <span className="font-semibold text-black-800">
+            <p className="text-lg mt-2">
+              <strong>Total Participants:</strong>{" "}
+              <span className="font-semibold text-black-600">
                 {result?.["Total Participants"] ?? "N/A"}
               </span>
             </p>
@@ -490,4 +491,4 @@ const HRA55AverageBenefitsTest = () => {
   );
 };
 
-export default HRA55AverageBenefitsTest;
+export default HRABenefitsTest;
