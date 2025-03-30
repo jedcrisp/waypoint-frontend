@@ -90,18 +90,7 @@ const ADPSafeHarborSlidingTest = () => {
           },
         }
       );
-      // Expected response structure:
-      // {
-      //   "Test Results": {
-      //     "adp_safe_harbor_sliding": {
-      //       "Total Employees": 120,
-      //       "HCE ADP (%)": 55,
-      //       "IRS Safe Harbor Limit": 75,
-      //       "NHCE ADP (%)": 45,
-      //       "Test Result": "Passed" // or "Failed"
-      //     }
-      //   }
-      // }
+    
       const safeHarborResults =
         response.data?.["Test Results"]?.["adp_safe_harbor_sliding"];
       if (!safeHarborResults) {
@@ -166,6 +155,7 @@ const ADPSafeHarborSlidingTest = () => {
     }
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
     const hceADP = result["HCE ADP (%)"] ?? "N/A";
     const nhceADP = result["NHCE ADP (%)"] ?? "N/A";
     const safeHarborLimit = result["IRS Safe Harbor Limit"] ?? "N/A";
@@ -175,6 +165,7 @@ const ADPSafeHarborSlidingTest = () => {
       ["Metric", "Value"],
       ["Plan Year", plan],
       ["Total Employees", totalEmployees],
+      ["Total Participants", totalParticipants],
       ["HCE ADP (%)", hceADP],
       ["NHCE ADP (%)", nhceADP],
       ["IRS Safe Harbor Limit (%)", safeHarborLimit],
@@ -220,9 +211,13 @@ const ADPSafeHarborSlidingTest = () => {
     }
     let pdfBlob;
     try {
-      const testResult = result["Test Result"] ?? "N/A";
-      const failed = testResult.toLowerCase() === "failed";
+      const plan = planYear || "N/A";
       const totalEmployees = result["Total Employees"] ?? "N/A";
+      const totalParticipants = result["Total Participants"] ?? "N/A";
+      const hceADP = result["HCE ADP (%)"] ?? "N/A";
+      const nhceADP = result["NHCE ADP (%)"] ?? "N/A";
+      const safeHarborLimit = result["IRS Safe Harbor Limit"] ?? "N/A";
+      const testResult = result["Test Result"] ?? "N/A";
       const pdf = new jsPDF("p", "mm", "a4");
       pdf.setFont("helvetica", "normal");
 
@@ -243,6 +238,7 @@ const ADPSafeHarborSlidingTest = () => {
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", totalEmployees],
+          ["Total Participants", totalParticipants],
           ["HCE ADP (%)", formatPercentage(result?.["HCE ADP (%)"])],
           ["NHCE ADP (%)", formatPercentage(result?.["NHCE ADP (%)"])],
           ["IRS Safe Harbor Limit (%)", formatPercentage(result?.["IRS Safe Harbor Limit"])],
@@ -431,20 +427,24 @@ const ADPSafeHarborSlidingTest = () => {
               <strong className="text-gray-700">Total Employees:</strong>{" "}
               {result["Total Employees"] ?? "N/A"}
             </p>
+            <p className="text-lg">
+              <strong className="text-gray-700">Total Participants:</strong>{" "}
+              {result["Total Participants"] ?? "N/A"}
+            </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">HCE ADP:</strong>{" "}
+              <strong className="text-gray-700">HCE ADP (%):</strong>{" "}
               <span className="font-semibold text-black-600">
                 {formatPercentage(result?.["HCE ADP (%)"])}
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">NHCE ADP:</strong>{" "}
+              <strong className="text-gray-700">NHCE ADP (%):</strong>{" "}
               <span className="font-semibold text-black-600">
                 {formatPercentage(result?.["NHCE ADP (%)"])}
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">IRS Safe Harbor Limit:</strong>{" "}
+              <strong className="text-gray-700">IRS Safe Harbor Limit (%):</strong>{" "}
               <span className="font-semibold text-black-600">
                 {formatPercentage(result?.["IRS Safe Harbor Limit"])}
               </span>
