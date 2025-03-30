@@ -367,7 +367,7 @@ const CoverageTest = () => {
       tabIndex="0"
     >
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
-        📂 Upload ADP Safe Harbor Coverage File
+        📂 Upload Coverage File
       </h2>
 
       {/* Plan Year Dropdown */}
