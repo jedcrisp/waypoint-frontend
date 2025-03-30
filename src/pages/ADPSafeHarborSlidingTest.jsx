@@ -323,15 +323,6 @@ const ADPSafeHarborSlidingTest = () => {
     }
   };
 
-  // ----- RENDER -----
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && file && !loading) {
-      e.preventDefault();
-      e.stopPropagation();
-      handleUpload();
-    }
-  };
-
   return (
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
