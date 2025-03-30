@@ -4,6 +4,7 @@ import axios from "axios";
 import { getAuth } from "firebase/auth"; // Import Firebase Auth
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Integrated from DCAP Contributions
 
 const ACPTest = () => {
   const [file, setFile] = useState(null);
@@ -16,7 +17,8 @@ const ACPTest = () => {
 
   // ---------- Formatting Helpers ----------
   const formatCurrency = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    if (value === undefined || value === null || isNaN(Number(value)))
+      return "N/A";
     return Number(value).toLocaleString("en-US", {
       style: "currency",
       currency: "USD",
@@ -24,7 +26,8 @@ const ACPTest = () => {
   };
 
   const formatPercentage = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    if (value === undefined || value === null || isNaN(Number(value)))
+      return "N/A";
     return `${Number(value).toFixed(2)}%`;
   };
 
@@ -76,7 +79,7 @@ const ACPTest = () => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("selected_tests", "acp");
-    // If your backend needs planYear, uncomment:
+    // If your backend needs planYear, uncomment the following line:
     // formData.append("plan_year", planYear);
 
     try {
@@ -106,9 +109,10 @@ const ACPTest = () => {
       // {
       //   "Test Results": {
       //     "acp": {
-      //       "HCE_Average_Contribution (%)": 12.6,
-      //       "NHCE_Average_Contribution (%)": 0.83,
-      //       "ACP_Test_Result": "Failed"
+      //       "HCE ACP (%)": 12.6,
+      //       "NHCE ACP (%)": 0.83,
+      //       "ACP Test Result": "Failed",
+      //       "Total Participants": 123
       //     }
       //   }
       // }
@@ -162,27 +166,24 @@ const ACPTest = () => {
       return;
     }
 
-    const totalParticipants = result["Total Participants"] ?? "N/A"; 
+    const totalParticipants = result["Total Participants"] ?? "N/A";
     const hceAvg = result["HCE ACP (%)"];
     const nhceAvg = result["NHCE ACP (%)"];
     const testResult = result["ACP Test Result"] ?? "N/A";
 
-// Use helpers if available:
-    const formatPercentage = (val) => 
-    val !== undefined && val !== null && !isNaN(val) 
-    ? `${Number(val).toFixed(2)}%` 
-    : "N/A";
+    const formatPct = (val) =>
+      val !== undefined && val !== null && !isNaN(val)
+        ? `${Number(val).toFixed(2)}%`
+        : "N/A";
 
-// Format and prepare CSV rows
-const csvRows = [
-  ["Metric", "Value"],
-  ["Total Participants", totalParticipants],
-  ["HCE ACP (%)", formatPercentage(hceAvg)],
-  ["NHCE ACP (%)", formatPercentage(nhceAvg)],
-  ["ACP Test Result", testResult],
-];
+    const csvRows = [
+      ["Metric", "Value"],
+      ["Total Participants", totalParticipants],
+      ["HCE ACP (%)", formatPct(hceAvg)],
+      ["NHCE ACP (%)", formatPct(nhceAvg)],
+      ["ACP Test Result", testResult],
+    ];
 
-    // If failed, add corrective actions + consequences
     if (testResult.toLowerCase() === "failed") {
       const correctiveActions = [
         "Refund Excess Contributions to HCEs by March 15 to avoid penalties.",
@@ -198,27 +199,19 @@ const csvRows = [
         "Employee Dissatisfaction & Legal Risks",
       ];
 
-      // Add a blank row for spacing
       csvRows.push(["", ""]);
       csvRows.push(["Corrective Actions", ""]);
-
       correctiveActions.forEach((action) => {
         csvRows.push(["", action]);
       });
-
-      // Another blank row
       csvRows.push(["", ""]);
       csvRows.push(["Consequences", ""]);
-
       consequences.forEach((item) => {
         csvRows.push(["", item]);
       });
     }
 
-    // Convert array to CSV
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
-
-    // Create and download the CSV file
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
 
@@ -231,100 +224,123 @@ const csvRows = [
   };
 
   // =========================
-  // 5. Export Results to PDF (Including Consequences)
+  // 5. Export Results to PDF (Including Consequences and Firebase saving)
   // =========================
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
 
-    // Extract data from the result object
-    const totalParticipants = result?.["Total Participants"] || "N/A";
-    const hceAvg = result?.["HCE ACP (%)"] !== undefined ? `${result["HCE ACP (%)"]}%`: "N/A";
-    const nhceAvg = result?.["NHCE ACP (%)"] !== undefined ? `${result["NHCE ACP (%)"]}%`: "N/A";
-    const testResult = result?.["ACP Test Result"] || "N/A";
+    let pdfBlob;
+    try {
+      // Extract data from the result object
+      const totalParticipants = result?.["Total Participants"] || "N/A";
+      const hceAvg =
+        result?.["HCE ACP (%)"] !== undefined
+          ? `${result["HCE ACP (%)"]}%`
+          : "N/A";
+      const nhceAvg =
+        result?.["NHCE ACP (%)"] !== undefined
+          ? `${result["NHCE ACP (%)"]}%`
+          : "N/A";
+      const testResult = result?.["ACP Test Result"] || "N/A";
+      const failed = testResult.toLowerCase() === "failed";
 
-    const pdf = new jsPDF("p", "mm", "a4");
+      const pdf = new jsPDF("p", "mm", "a4");
 
-    // Header
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(18);
-    pdf.text("Test Results", 105, 15, { align: "center" });
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(12);
-    pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
-    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
+      // Header
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(18);
+      pdf.text("ACP Test Results", 105, 15, { align: "center" });
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(12);
+      pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
+      pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
-    // Results Table
-    pdf.autoTable({
-      startY: 40,
-      theme: "grid",
-      head: [["Metric", "Value"]],
-      body: [
-        ["Total Participants", totalParticipants],
-        ["HCE ACP", hceAvg],
-        ["NHCE ACP", nhceAvg],
-        ["Test Result", testResult],
-      ],
-      headStyles: {
-        fillColor: [41, 128, 185], // Blue header
-        textColor: [255, 255, 255], // White text
-      },
-      styles: {
-        fontSize: 12,
-        font: "helvetica",
-      },
-      margin: { left: 10, right: 10 },
-    });
+      // Results Table
+      pdf.autoTable({
+        startY: 40,
+        theme: "grid",
+        head: [["Metric", "Value"]],
+        body: [
+          ["Total Participants", totalParticipants],
+          ["HCE ACP (%)", hceAvg],
+          ["NHCE ACP (%)", nhceAvg],
+          ["ACP Test Result", testResult],
+        ],
+        headStyles: {
+          fillColor: [41, 128, 185],
+          textColor: [255, 255, 255],
+        },
+        styles: {
+          fontSize: 12,
+          font: "helvetica",
+        },
+        margin: { left: 10, right: 10 },
+      });
 
-    const nextY = pdf.lastAutoTable.finalY + 10;
-    const failed = testResult.toLowerCase() === "failed";
+      if (failed) {
+        const correctiveActions = [
+          "Refund Excess Contributions to HCEs by March 15 to avoid penalties.",
+          "Make Additional Contributions to NHCEs via QNEC or QMAC.",
+          "Recharacterize Excess HCE Contributions as Employee Contributions.",
+        ];
 
-    // Corrective actions & consequences (only if failed)
-  if (failed) {
-    const correctiveActions = [
-        "Refund Excess Contributions to HCEs by March 15 to avoid penalties.",
-        "Make Additional Contributions to NHCEs via QNEC or QMAC.",
-        "Recharacterize Excess HCE Contributions as Employee Contributions.",
-    ];
+        const consequences = [
+          "Excess Contributions Must Be Refunded",
+          "IRS Penalties and Compliance Risks",
+          "Loss of Tax Benefits for HCEs",
+          "Plan Disqualification Risk",
+          "Employee Dissatisfaction & Legal Risks",
+        ];
 
-    const consequences = [
-        "Excess Contributions Must Be Refunded",
-        "IRS Penalties and Compliance Risks",
-        "Loss of Tax Benefits for HCEs",
-        "Plan Disqualification Risk",
-        "Employee Dissatisfaction & Legal Risks",
-    ];
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Corrective Actions"]],
+          body: correctiveActions.map((action) => [action]),
+          headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Consequences"]],
+          body: consequences.map((consequence) => [consequence]),
+          headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+      }
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-  }
+      // Footer
+      pdf.setFont("helvetica", "italic");
+      pdf.setFontSize(10);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("Generated by ACP Test Tool", 10, 290);
 
-    // Footer
-    pdf.setFont("helvetica", "italic");
-    pdf.setFontSize(10);
-    pdf.setTextColor(100, 100, 100);
-    pdf.text("Generated by ACP Test Tool", 10, 290);
+      pdfBlob = pdf.output("blob");
+      pdf.save("ACP_Test_Results.pdf");
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
+      return;
+    }
 
-    pdf.save("ACP_Test_Results.pdf");
+    try {
+      await savePdfResultToFirebase({
+        fileName: "ACP Test",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult: result["ACP Test Result"] || "Unknown",
+        },
+      });
+    } catch (error) {
+      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+    }
   };
 
   // =========================
@@ -378,7 +394,9 @@ const csvRows = [
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
+          isDragActive
+            ? "border-green-500 bg-blue-100"
+            : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
@@ -431,24 +449,26 @@ const csvRows = [
         <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
           <h3 className="font-bold text-xl text-gray-700 flex items-center">
             ACP Test Results
-           </h3>
-    <div className="mt-4">
-      <p className="text-lg">
-        <strong>Plan Year:</strong>{" "}
-        <span className="font-semibold text-blue-600">
-          {planYear || "N/A"}
-        </span>
-      </p>
-      <p className="text-lg mt-2">
-    <strong>Total Participants:</strong>{" "}
-    <span className="font-semibold text-black-600">
-      {result?.["Total Participants"] ?? "N/A"}
-    </span>
-  </p>
-</div>
+          </h3>
           <div className="mt-4">
             <p className="text-lg">
-              <strong className="text-gray-700">HCE Average Contribution:</strong>{" "}
+              <strong>Plan Year:</strong>{" "}
+              <span className="font-semibold text-blue-600">
+                {planYear || "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong>Total Participants:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Participants"] ?? "N/A"}
+              </span>
+            </p>
+          </div>
+          <div className="mt-4">
+            <p className="text-lg">
+              <strong className="text-gray-700">
+                HCE Average Contribution:
+              </strong>{" "}
               <span className="font-semibold text-black-600">
                 {result["HCE ACP (%)"] !== undefined
                   ? `${result["HCE ACP (%)"]}%`
@@ -456,7 +476,9 @@ const csvRows = [
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">NHCE Average Contribution:</strong>{" "}
+              <strong className="text-gray-700">
+                NHCE Average Contribution:
+              </strong>{" "}
               <span className="font-semibold text-black-600">
                 {result["NHCE ACP (%)"] !== undefined
                   ? `${result["NHCE ACP (%)"]}%`
@@ -464,46 +486,63 @@ const csvRows = [
               </span>
             </p>
             <p className="text-lg mt-2">
-  <strong>Test Result:</strong>{" "}
-  <span className={`px-3 py-1 rounded-md font-bold ${
-    result?.["ACP Test Result"] === "Passed"
-      ? "bg-green-500 text-white"
-      : "bg-red-500 text-white"
-  }`}>
-    {result?.["ACP Test Result"] ?? "N/A"}
-  </span>
-</p>
+              <strong>Test Result:</strong>{" "}
+              <span
+                className={`px-3 py-1 rounded-md font-bold ${
+                  result?.["ACP Test Result"] === "Passed"
+                    ? "bg-green-500 text-white"
+                    : "bg-red-500 text-white"
+                }`}
+              >
+                {result?.["ACP Test Result"] ?? "N/A"}
+              </span>
+            </p>
 
             {/* If failed, show corrective actions + consequences in the UI as well */}
-            {result["Test Result"] === "Failed" && (
-              <>
-                <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
-                  <h4 className="font-bold text-black-600">Corrective Actions:</h4>
-                  <ul className="list-disc list-inside text-black-600">
-                    <li>Refund Excess Contributions to HCEs by March 15 to avoid penalties.</li>
-                    <br />
-                    <li>Make Additional Contributions to NHCEs via QNEC or QMAC.</li>
-                    <br />
-                    <li>Recharacterize Excess HCE Contributions as Employee Contributions.</li>
-                  </ul>
-                </div>
+            {result["ACP Test Result"] &&
+              result["ACP Test Result"].toLowerCase() === "failed" && (
+                <>
+                  <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+                    <h4 className="font-bold text-black-600">
+                      Corrective Actions:
+                    </h4>
+                    <ul className="list-disc list-inside text-black-600">
+                      <li>
+                        Refund Excess Contributions to HCEs by March 15 to avoid
+                        penalties.
+                      </li>
+                      <br />
+                      <li>
+                        Make Additional Contributions to NHCEs via QNEC or QMAC.
+                      </li>
+                      <br />
+                      <li>
+                        Recharacterize Excess HCE Contributions as Employee
+                        Contributions.
+                      </li>
+                    </ul>
+                  </div>
 
-                <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
-                  <h4 className="font-bold text-black-600">Consequences:</h4>
-                  <ul className="list-disc list-inside text-black-600">
-                    <li>❌ Excess Contributions Must Be Refunded</li>
-                    <br />
-                    <li>❌ IRS Penalties and Compliance Risks</li>
-                    <br />
-                    <li>❌ Loss of Tax Benefits for HCEs</li>
-                    <br />
-                    <li>❌ Plan Disqualification Risk</li>
-                    <br />
-                    <li>❌ Employee Dissatisfaction & Legal Risks</li>
-                  </ul>
-                </div>
-              </>
-            )}
+                  <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
+                    <h4 className="font-bold text-black-600">
+                      Consequences:
+                    </h4>
+                    <ul className="list-disc list-inside text-black-600">
+                      <li>Excess Contributions Must Be Refunded</li>
+                      <br />
+                      <li>IRS Penalties and Compliance Risks</li>
+                      <br />
+                      <li>Loss of Tax Benefits for HCEs</li>
+                      <br />
+                      <li>Plan Disqualification Risk</li>
+                      <br />
+                      <li>
+                        Employee Dissatisfaction &amp; Legal Risks
+                      </li>
+                    </ul>
+                  </div>
+                </>
+              )}
           </div>
 
           {/* Export & Download Buttons */}
