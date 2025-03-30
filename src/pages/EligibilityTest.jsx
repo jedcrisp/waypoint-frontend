@@ -480,11 +480,6 @@ const EligibilityTest = () => {
             </button>
           </div>
 
-          {/* Graph Container (moved off-screen for PDF capture) */}
-          <div id="graphContainer" style={{ position: "absolute", left: "-9999px", top: 0 }}>
-            <CafeEligibilityChart result={result} />
-          </div>
-
           {/* If test fails, show corrective actions & consequences */}
           {result["Test Result"]?.toLowerCase() === "failed" && (
             <>
