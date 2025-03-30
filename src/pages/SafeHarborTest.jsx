@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from "react";
 import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Firebase PDF saver
 import { useDropzone } from "react-dropzone";
@@ -146,8 +147,17 @@ const SafeHarborTest = () => {
     }
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
-    const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
-    const eligibilityPct =
+    const totalParticipants = result["Total Participants"] ?? "N/A";
+    const hceBenefits = result["HCE Benefits (Avg)"] !== undefined
+      ? formatCurrency(result["HCE Benefits (Avg)"])
+      : "N/A";
+    const nhceBenefits = result["NHCE Benefits (Avg)"] !== undefined
+      ? formatCurrency(result["NHCE Benefits (Avg)"])
+      : "N/A";
+      const benefitRatio = result["Benefit Ratio (%)"] !== undefined
+      ? formatPercentage(result["Benefit Ratio (%)"])
+      : "N/A";
+    const eligibilityPercentage =
       result["Eligibility Percentage (%)"] !== undefined
         ? formatPercentage(result["Eligibility Percentage (%)"])
         : "N/A";
@@ -161,32 +171,14 @@ const SafeHarborTest = () => {
       ["Metric", "Value"],
       ["Plan Year", plan],
       ["Total Employees", totalEmployees],
-      ["Eligible Employees", eligibleEmployees],
+      ["Total Participants", totalParticipants],
+      ["HCE Benefits (Avg)", hceBenefits],
+      ["NHCE Benefits (Avg)", nhceBenefits],
+      ["Benefit Ratio (%)", benefitRatio],
       ["Eligibility Percentage (%)", eligibilityPct],
       ["Avg Employer Contribution", avgEmployerContribution],
       ["Test Result", testRes],
     ];
-
-    if (String(testRes).toLowerCase() === "failed") {
-      const correctiveActions = [
-        "Increase NHCE participation to ensure at least 70% of HCE rate.",
-        "Adjust eligibility criteria to include more NHCEs.",
-        "Modify plan design to encourage NHCE participation.",
-        "Review and adjust contribution allocations per IRS § 410(b).",
-      ];
-      const consequences = [
-        "Mandatory employer contributions for non-key employees.",
-        "Potential loss of plan tax advantages.",
-        "Increased IRS audit risk.",
-        "Additional corrective contributions may be required.",
-      ];
-      csvRows.push(["", ""]);
-      csvRows.push(["Corrective Actions", ""]);
-      correctiveActions.forEach((action) => csvRows.push(["", action]));
-      csvRows.push(["", ""]);
-      csvRows.push(["Consequences", ""]);
-      consequences.forEach((item) => csvRows.push(["", item]));
-    }
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -209,14 +201,22 @@ const SafeHarborTest = () => {
     try {
       // Retrieve metrics from result and format them
       const totalEmployees = result["Total Employees"] ?? "N/A";
-      const hceEligibility = result["HCE Eligibility (%)"] !== undefined
-        ? formatPercentage(result["HCE Eligibility (%)"])
+      const totalParticipants = result["Total Participants"] ?? "N/A";
+
+      const eligibilityPercentage = result["Eligibility Percentage (%)"] !== undefined
+        ? formatPercentage(result["Eligibility Percentage (%)"])
         : "N/A";
-      const nhceEligibility = result["NHCE Eligibility (%)"] !== undefined
-        ? formatPercentage(result["NHCE Eligibility (%)"])
+      const averageEmployerContribution = result["Average Employer Contribution (%)"] !== undefined
+        ? formatPercentage(result["Average Employer Contribution (%)"])
         : "N/A";
-      const ratioPerc = result["Ratio Percentage"] !== undefined
-        ? formatPercentage(result["Ratio Percentage"])
+      const benefitRatio = result["Benefit Ratio (%)"] !== undefined
+        ? formatPercentage(result["Benefit Ratio (%)"])
+        : "N/A";
+        const hceBenefits = result["HCE Benefits (Avg)"] !== undefined
+        ? formatCurrency(result["HCE Benefits (Avg)"])
+        : "N/A";
+        const nhceBenefits = result["NHCE Benefits (Avg)"] !== undefined
+        ? formatCurrency(result["NHCE Benefits (Avg)"])
         : "N/A";
       const testRes = result["Test Result"] ?? "N/A";
       const failed = testRes.toLowerCase() === "failed";
@@ -240,9 +240,13 @@ const SafeHarborTest = () => {
         startY: 40,
         head: [["Metric", "Value"]],
         body: [
-          ["HCE Eligibility (%)", hceEligibility],
-          ["NHCE Eligibility (%)", nhceEligibility],
-          ["Ratio Percentage", ratioPerc],
+          ["Total Employees", totalEmployees],
+          ["Total Participants", totalParticipants],
+          ["Eligibility Percentage (%)", eligibilityPercentage],
+          ["Average Employer Contribution (%)", averageEmployerContribution],
+          ["Benefit Ratio (%)", benefitRatio],
+          ["HCE Benefits (Avg)", hceBenefits],
+          ["NHCE Benefits (Avg)", nhceBenefits],
           ["Test Result", testRes],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
@@ -290,14 +294,14 @@ const SafeHarborTest = () => {
 
       try {
         pdfBlob = pdf.output("blob");
-        pdf.save("Ratio_Percentage_Test_Results.pdf");
+        pdf.save("ADP_Safe_Harbor_Test_Results.pdf");
       } catch (error) {
         setError(`❌ Error exporting PDF: ${error.message}`);
         return;
       }
       try {
         await savePdfResultToFirebase({
-          fileName: "Ratio_Percentage_Test",
+          fileName: "ADP Safe Harbor",
           pdfBlob,
           additionalData: {
             planYear,
@@ -403,23 +407,43 @@ const SafeHarborTest = () => {
       {/* Display Results */}
       {result && (
         <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-md">
-          <h3 className="font-bold text-xl text-gray-700">Ratio Percentage Test Results</h3>
+          <h3 className="font-bold text-xl text-gray-700">ADP Safe Harbor Test Results</h3>
           <div className="mt-4">
             <p className="text-lg">
               <strong>Plan Year:</strong>{" "}
               <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
             </p>
             <p className="text-lg mt-2">
-              <strong>HCE Eligibility:</strong>{" "}
-              {formatPercentage(result["HCE Eligibility (%)"])}
+              <strong>Total Employees:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Employees"] ?? "N/A"}
+              </span>
             </p>
             <p className="text-lg mt-2">
-              <strong>NHCE Eligibility:</strong>{" "}
-              {formatPercentage(result["NHCE Eligibility (%)"])}
+              <strong>Total Participants:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Participants"] ?? "N/A"}
+              </span>
             </p>
             <p className="text-lg mt-2">
-              <strong>Ratio Percentage:</strong>{" "}
-              {formatPercentage(result["Ratio Percentage"])}
+              <strong>Eligibility Percentage:</strong>{" "}
+              {formatPercentage(result["Eligibility Percentage (%)"])}
+            </p>
+            <p className="text-lg mt-2">
+              <strong>Average Employer Contribution:</strong>{" "}
+              {formatPercentage(result["Average Employer Contribution (%)"])}
+            </p>
+            <p className="text-lg mt-2">
+                <strong>HCE Benefits (Avg):</strong>{" "}
+                {formatCurrency(result["HCE Benefits (Avg)"])}
+            </p>
+            <p className="text-lg mt-2">
+                <strong>NHCE Benefits (Avg):</strong>{" "}
+                {formatCurrency(result["NHCE Benefits (Avg)"])}
+              </p>
+            <p className="text-lg mt-2">
+              <strong>Benefit Ratio:</strong>{" "}
+              {formatPercentage(result["Benefit Ratio (%)"])}
             </p>
             <p className="text-lg mt-2">
               <strong>Test Result:</strong>{" "}
