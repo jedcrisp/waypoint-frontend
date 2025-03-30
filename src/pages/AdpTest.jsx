@@ -4,6 +4,7 @@ import axios from "axios";
 import { getAuth } from "firebase/auth"; // Firebase Auth
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Firebase PDF saver
 
 function AdpTest() {
   const [file, setFile] = useState(null);
@@ -115,18 +116,18 @@ function AdpTest() {
   // --------- 4. Download CSV Template ---------
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-  ["Last Name", "First Name", "Employee ID", "Compensation", "Employee Deferral", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
-  ["Last", "First", "001", "85000", "5000", "Yes", "1982-04-12", "2010-06-01", "Active", "No", "2011-01-01", "No", "No"],
-  ["Last", "First", "002", "62000", "3500", "No", "1988-11-23", "2015-08-10", "Active", "No", "2016-01-01", "No", "No"],
-  ["Last", "First", "003", "47000", "2500", "No", "1993-07-14", "2020-02-20", "Active", "No", "2020-03-01", "No", "Yes"],
-  ["Last", "First", "004", "91000", "5500", "Yes", "1980-01-30", "2008-11-01", "Active", "No", "2009-01-01", "No", "No"],
-  ["Last", "First", "005", "51000", "3000", "No", "1991-03-22", "2016-04-15", "Active", "No", "2016-05-01", "No", "No"],
-  ["Last", "First", "006", "97000", "6000", "Yes", "1975-10-08", "2005-01-20", "Active", "No", "2005-02-01", "Yes", "No"],
-  ["Last", "First", "007", "45000", "2000", "No", "1995-06-18", "2021-07-01", "Active", "No", "2021-08-01", "No", "Yes"],
-  ["Last", "First", "008", "88000", "5200", "Yes", "1983-12-03", "2011-03-12", "Active", "No", "2011-04-01", "No", "No"],
-  ["Last", "First", "009", "53000", "2800", "No", "1990-09-17", "2018-10-10", "Active", "No", "2018-11-01", "No", "No"],
-  ["Last", "First", "010", "66000", "3700", "No", "1987-02-05", "2013-05-05", "Active", "No", "2013-06-01", "No", "No"]
-]
+      ["Last Name", "First Name", "Employee ID", "Compensation", "Employee Deferral", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
+      ["Last", "First", "001", "85000", "5000", "Yes", "1982-04-12", "2010-06-01", "Active", "No", "2011-01-01", "No", "No"],
+      ["Last", "First", "002", "62000", "3500", "No", "1988-11-23", "2015-08-10", "Active", "No", "2016-01-01", "No", "No"],
+      ["Last", "First", "003", "47000", "2500", "No", "1993-07-14", "2020-02-20", "Active", "No", "2020-03-01", "No", "Yes"],
+      ["Last", "First", "004", "91000", "5500", "Yes", "1980-01-30", "2008-11-01", "Active", "No", "2009-01-01", "No", "No"],
+      ["Last", "First", "005", "51000", "3000", "No", "1991-03-22", "2016-04-15", "Active", "No", "2016-05-01", "No", "No"],
+      ["Last", "First", "006", "97000", "6000", "Yes", "1975-10-08", "2005-01-20", "Active", "No", "2005-02-01", "Yes", "No"],
+      ["Last", "First", "007", "45000", "2000", "No", "1995-06-18", "2021-07-01", "Active", "No", "2021-08-01", "No", "Yes"],
+      ["Last", "First", "008", "88000", "5200", "Yes", "1983-12-03", "2011-03-12", "Active", "No", "2011-04-01", "No", "No"],
+      ["Last", "First", "009", "53000", "2800", "No", "1990-09-17", "2018-10-10", "Active", "No", "2018-11-01", "No", "No"],
+      ["Last", "First", "010", "66000", "3700", "No", "1987-02-05", "2013-05-05", "Active", "No", "2013-06-01", "No", "No"]
+    ]
       .map((row) => row.join(","))
       .join("\n");
 
@@ -149,7 +150,6 @@ function AdpTest() {
     }
 
     const plan = planYear || "N/A";
-    // Use the keys from your backend response
     const totalEmployees = result["Total Employees"] !== undefined ? result["Total Employees"] : "N/A";
     const hceAdp = result["HCE ADP (%)"] !== undefined ? result["HCE ADP (%)"] : "N/A";
     const nhceAdp = result["NHCE ADP (%)"] !== undefined ? result["NHCE ADP (%)"] : "N/A";
@@ -158,7 +158,7 @@ function AdpTest() {
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", plan],
-      ["Total Employees", result["Total Employees"] !== undefined ? result["Total Employees"] : "N/A"],
+      ["Total Employees", totalEmployees],
       ["HCE ADP (%)", hceAdp],
       ["NHCE ADP (%)", nhceAdp],
       ["Test Result", testRes],
@@ -202,8 +202,8 @@ function AdpTest() {
     document.body.removeChild(link);
   };
 
-  // --------- 6. Export to PDF (Using the ACP-style Layout) ---------
-  const exportToPDF = () => {
+  // --------- 6. Export to PDF (Using the ACP-style Layout with Firebase saving) ---------
+  const exportToPDF = async () => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
@@ -213,20 +213,17 @@ function AdpTest() {
     console.log("Result Object:", result);
 
     // Extract data from the result object
-    const totalEmployees = result["Total Employees"] !== undefined
-    const hceAvg = result["HCE ADP (%)"] !== undefined
-      ? `${result["HCE ADP (%)"]}%`
-      : "N/A";
-    const nhceAvg = result["NHCE ADP (%)"] !== undefined
-      ? `${result["NHCE ADP (%)"]}%`
-      : "N/A";
+    const totalEmployees = result["Total Employees"] !== undefined ? result["Total Employees"] : "N/A";
+    const hceAvg = result["HCE ADP (%)"] !== undefined ? `${result["HCE ADP (%)"]}%` : "N/A";
+    const nhceAvg = result["NHCE ADP (%)"] !== undefined ? `${result["NHCE ADP (%)"]}%` : "N/A";
     const testResult = result["Test Result"] || "N/A";
 
-    // Define the `failed` variable
+    // Determine if the test failed
     const failed = testResult.toLowerCase() === "failed";
 
     // Create jsPDF instance
     const pdf = new jsPDF("p", "mm", "a4");
+    pdf.setFont("helvetica", "normal");
 
     // =========================
     // 1. PDF Header
@@ -248,13 +245,13 @@ function AdpTest() {
       head: [["Metric", "Value"]],
       body: [
         ["Total Employees", totalEmployees],
-        ["HCE ADP)", hceAvg],
+        ["HCE ADP", hceAvg],
         ["NHCE ADP", nhceAvg],
         ["Test Result", testResult],
       ],
       headStyles: {
-        fillColor: [41, 128, 185], // A blue header
-        textColor: [255, 255, 255], // White text
+        fillColor: [41, 128, 185],
+        textColor: [255, 255, 255],
       },
       styles: {
         fontSize: 12,
@@ -263,47 +260,40 @@ function AdpTest() {
       margin: { left: 10, right: 10 },
     });
 
-    const nextY = pdf.lastAutoTable.finalY + 10;
-
     // =========================
     // 3. Corrective Actions (Only if Failed)
     // =========================
-
-    // Corrective actions & consequences (only if failed)
-  if (failed) {
-    const correctiveActions = [
+    if (failed) {
+      const correctiveActions = [
         "Refund Excess Contributions to HCEs by March 15 to avoid penalties.",
         "Make Additional Contributions to NHCEs via QNEC or QMAC.",
         "Recharacterize Excess HCE Contributions as Employee Contributions.",
       ];
-
-    const consequences = [
+      const consequences = [
         "Excess Contributions Must Be Refunded",
         "IRS Penalties and Compliance Risks",
         "Loss of Tax Benefits for HCEs",
         "Plan Disqualification Risk",
         "Employee Dissatisfaction & Legal Risks",
       ];
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Corrective Actions"]],
+        body: correctiveActions.map((action) => [action]),
+        headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Consequences"]],
+        body: consequences.map((consequence) => [consequence]),
+        headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
     }
 
     // =========================
@@ -311,11 +301,32 @@ function AdpTest() {
     // =========================
     pdf.setFont("helvetica", "italic");
     pdf.setFontSize(10);
-    pdf.setTextColor(100, 100, 100); // Gray text
+    pdf.setTextColor(100, 100, 100);
     pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
-    // Save PDF
-    pdf.save("ADP_Test_Results.pdf");
+    // Output PDF as a blob and save locally
+    let pdfBlob;
+    try {
+      pdfBlob = pdf.output("blob");
+      pdf.save("ADP_Test_Results.pdf");
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
+      return;
+    }
+
+    // Save PDF to Firebase using the helper function
+    try {
+      await savePdfResultToFirebase({
+        fileName: "ADP Test",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult: testResult || "Unknown",
+        },
+      });
+    } catch (error) {
+      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+    }
   };
 
   // --------- RENDER ---------
@@ -420,25 +431,23 @@ function AdpTest() {
               </span>
             </p>
             <p className="text-lg">
-  <strong className="text-gray-700">Total Employees:</strong>{" "}
-  <span className="font-semibold text-blue-600">
-    {result?.["Total Employees"] ?? "N/A"}
-  </span>
-</p>
-
-<p className="text-lg mt-2">
-  <strong className="text-gray-700">HCE ACP:</strong>{" "}
-  <span className="font-semibold text-black-600">
-    {formatPercentage(result?.["HCE ADP (%)"])}
-  </span>
-</p>
-
-<p className="text-lg mt-2">
-  <strong className="text-gray-700">NHCE ACP:</strong>{" "}
-  <span className="font-semibold text-black-600">
-    {formatPercentage(result?.["NHCE ADP (%)"])}
-  </span>
-</p>
+              <strong className="text-gray-700">Total Employees:</strong>{" "}
+              <span className="font-semibold text-blue-600">
+                {result?.["Total Employees"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">HCE ACP:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatPercentage(result?.["HCE ADP (%)"])}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">NHCE ACP:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatPercentage(result?.["NHCE ADP (%)"])}
+              </span>
+            </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
@@ -451,61 +460,59 @@ function AdpTest() {
                 {result["Test Result"] ?? "N/A"}
               </span>
             </p>
+          </div>
 
-            {/* Export & Download Buttons */}
-            <div className="flex flex-col gap-2 mt-4">
-              <button
-                onClick={exportToPDF}
-                className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
-              >
-                Export PDF Results
-              </button>
-              <button
-                onClick={downloadResultsAsCSV}
-                className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
-              >
-                Download CSV Results
-              </button>
-            </div>
+           {/* Conditionally render corrective actions & consequences */}
+          {result["Test Result"].toLowerCase() === "failed" && (
+            <>
+              <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+                <h4 className="font-bold text-black-600">Corrective Actions:</h4>
+                <ul className="list-disc list-inside text-black-600">
+                  <li>
+                    Refund Excess Contributions to HCEs by March 15 to avoid penalties.
+                  </li>
+                  <br />
+                  <li>
+                    Make Additional Contributions to NHCEs via QNEC or QMAC.
+                  </li>
+                  <br />
+                  <li>
+                    Recharacterize Excess HCE Contributions as Employee Contributions.
+                  </li>
+                </ul>
+              </div>
 
-            {/* If test fails, show corrective actions & consequences in the UI */}
-            {result["Test Result"]?.toLowerCase() === "failed" && (
-              <>
-                <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
-                  <h4 className="font-bold text-black-600">Corrective Actions:</h4>
-                  <ul className="list-disc list-inside text-black-600">
-                    <li>
-                      Refund Excess Contributions to HCEs by March 15 to avoid
-                      penalties.
-                    </li>
-                    <br />
-                    <li>
-                      Make Additional Contributions to NHCEs via QNEC or QMAC.
-                    </li>
-                    <br />
-                    <li>
-                      Recharacterize Excess HCE Contributions as Employee
-                      Contributions.
-                    </li>
-                  </ul>
-                </div>
+              <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
+                <h4 className="font-bold text-black-600">Consequences:</h4>
+                <ul className="list-disc list-inside text-black-600">
+                  <li>Excess Contributions Must Be Refunded</li>
+                  <br />
+                  <li>IRS Penalties and Compliance Risks</li>
+                  <br />
+                  <li>Loss of Tax Benefits for HCEs</li>
+                  <br />
+                  <li>Plan Disqualification Risk</li>
+                  <br />
+                  <li>Employee Dissatisfaction & Legal Risks</li>
+                </ul>
+              </div>
+            </>
+          )}
 
-                <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
-                  <h4 className="font-bold text-black-600">Consequences:</h4>
-                  <ul className="list-disc list-inside text-black-600">
-                    <li>❌ Excess Contributions Must Be Refunded</li>
-                    <br />
-                    <li>❌ IRS Penalties and Compliance Risks</li>
-                    <br />
-                    <li>❌ Loss of Tax Benefits for HCEs</li>
-                    <br />
-                    <li>❌ Plan Disqualification Risk</li>
-                    <br />
-                    <li>❌ Employee Dissatisfaction & Legal Risks</li>
-                  </ul>
-                </div>
-              </>
-            )}
+          {/* Export & Download Buttons */}
+          <div className="flex flex-col gap-2 mt-4">
+            <button
+              onClick={exportToPDF}
+              className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+            >
+              Export PDF Results
+            </button>
+            <button
+              onClick={downloadResultsAsCSV}
+              className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
+            >
+              Download CSV Results
+            </button>
           </div>
         </div>
       )}
