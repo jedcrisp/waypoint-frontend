@@ -419,12 +419,6 @@ const HRABenefitsTest = () => {
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong>Test Criterion:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {result?.["Test Criterion"] || "N/A"}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
               <strong>Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
