@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, collection, getDocs } from "firebase/firestore";
-import { ref, getDownloadURL } from "firebase/storage";
-import { storage } from "../firebase";
+import { getAuth } from "firebase/auth";
+import { ref, getDownloadURL, listAll, getMetadata } from "firebase/storage";
+import { storage } from "../firebase"; // ✅ Firebase config
 
 const TestHistory = () => {
   const [tests, setTests] = useState([]);
@@ -11,43 +10,50 @@ const TestHistory = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchTestHistory = async (user) => {
+    const fetchTestsFromStorage = async () => {
+      const auth = getAuth();
+      const user = auth.currentUser;
+
       if (!user) {
-        console.warn("⚠️ No user found. User may not be logged in.");
+        console.warn("⚠️ No authenticated user.");
         return;
       }
 
       try {
-        console.log("👤 Fetching test history for user:", user.uid);
-        const db = getFirestore();
-        const testCollection = collection(db, `users/${user.uid}/tests`);
-        const testDocs = await getDocs(testCollection);
-
-        if (testDocs.empty) {
-          console.log("📂 No tests found in Firestore.");
-        }
+        const basePath = `users/${user.uid}/pdfResults`;
+        const baseRef = ref(storage, basePath);
+        const folders = await listAll(baseRef);
 
         const testData = await Promise.all(
-          testDocs.docs.map(async (doc) => {
-            const data = doc.data();
-            console.log("📄 Test doc data:", data);
+          folders.prefixes.map(async (folderRef) => {
+            const folderName = folderRef.name;
+            const fileNameParts = folderName.split("-");
+            const testName = fileNameParts.slice(0, -1).join(" ");
+            const timestamp = Number(fileNameParts.slice(-1)[0]);
 
-            let csvUrl = null;
-            let pdfUrl = null;
+            let pdfUrl = "";
+            let planYear = "N/A";
+            let testResult = "Unknown";
 
             try {
-              csvUrl = await getDownloadURL(ref(storage, data.csvPath));
-              pdfUrl = await getDownloadURL(ref(storage, data.pdfPath));
+              const resultPdfRef = ref(storage, `${basePath}/${folderName}/result.pdf`);
+              const metadata = await getMetadata(resultPdfRef);
+              pdfUrl = await getDownloadURL(resultPdfRef);
+
+              if (metadata.customMetadata) {
+                planYear = metadata.customMetadata["planYear"] || "N/A";
+                testResult = metadata.customMetadata["testResult"] || "Unknown";
+              }
             } catch (err) {
-              console.error("❌ Error fetching file URLs:", err.message);
+              console.warn("⚠️ Could not retrieve PDF metadata or URL:", err);
             }
 
             return {
-              id: doc.id,
-              name: data.testName || "Unnamed Test",
-              year: data.planYear || "Unknown Year",
-              result: data.testResult || "Unknown",
-              csvUrl,
+              id: folderName,
+              name: testName,
+              year: planYear,
+              result: testResult,
+              timestamp: new Date(timestamp),
               pdfUrl,
             };
           })
@@ -55,19 +61,14 @@ const TestHistory = () => {
 
         setTests(testData);
         setFilteredTests(testData);
+        setLoading(false);
       } catch (err) {
-        console.error("🔥 Error fetching test history:", err.message);
-      } finally {
+        console.error("🔥 Error fetching test data from Storage:", err);
         setLoading(false);
       }
     };
 
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      fetchTestHistory(user);
-    });
-
-    return () => unsubscribe();
+    fetchTestsFromStorage();
   }, []);
 
   const handleSearch = (e) => {
@@ -106,6 +107,7 @@ const TestHistory = () => {
                 <th className="py-2 px-4 border-b">Test Name</th>
                 <th className="py-2 px-4 border-b">Plan Year</th>
                 <th className="py-2 px-4 border-b">Test Result</th>
+                <th className="py-2 px-4 border-b">Date/Time</th>
                 <th className="py-2 px-4 border-b">Actions</th>
               </tr>
             </thead>
@@ -114,40 +116,30 @@ const TestHistory = () => {
                 <tr key={test.id}>
                   <td className="py-2 px-4 border-b">{test.name}</td>
                   <td className="py-2 px-4 border-b">{test.year}</td>
-                  <td
-                    className={`py-2 px-4 border-b font-semibold ${
-                      test.result === "Passed"
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
+                  <td className={`py-2 px-4 border-b font-semibold ${test.result === "Passed" ? "text-green-600" : "text-red-600"}`}>
                     {test.result}
                   </td>
+                  <td className="py-2 px-4 border-b">
+                    {test.timestamp instanceof Date && !isNaN(test.timestamp)
+                      ? test.timestamp.toLocaleString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                          hour: "numeric",
+                          minute: "numeric",
+                          second: "numeric",
+                        })
+                      : "N/A"}
+                  </td>
                   <td className="py-2 px-4 border-b space-x-2">
-                    {test.csvUrl ? (
-                      <a
-                        href={test.csvUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 hover:underline"
-                      >
-                        Download CSV
-                      </a>
-                    ) : (
-                      <span className="text-gray-400">No CSV</span>
-                    )}
-                    {test.pdfUrl ? (
-                      <a
-                        href={test.pdfUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 hover:underline"
-                      >
-                        Download PDF
-                      </a>
-                    ) : (
-                      <span className="text-gray-400">No PDF</span>
-                    )}
+                    <a
+                      href={test.pdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      View PDF
+                    </a>
                   </td>
                 </tr>
               ))}
