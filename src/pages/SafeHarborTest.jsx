@@ -476,13 +476,13 @@ const SafeHarborTest = () => {
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black">Consequences:</h4>
                 <ul className="list-disc list-inside text-black">
-                  <li>❌ Plan may lose tax-qualified status.</li>
+                  <li>Plan may lose tax-qualified status.</li>
                   <br />
-                  <li>❌ IRS penalties and plan disqualification risk.</li>
+                  <li>IRS penalties and plan disqualification risk.</li>
                   <br />
-                  <li>❌ Additional corrective contributions may be required.</li>
+                  <li>Additional corrective contributions may be required.</li>
                   <br />
-                  <li>❌ Employee dissatisfaction and legal risks.</li>
+                  <li>Employee dissatisfaction and legal risks.</li>
                 </ul>
               </div>
             </>
