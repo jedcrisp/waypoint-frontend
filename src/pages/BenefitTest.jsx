@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
-import { getAuth } from "firebase/auth"; // Import Firebase Auth
+import { getAuth } from "firebase/auth"; // Firebase Auth
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Firebase PDF saver
 
 const BenefitTest = () => {
   const [file, setFile] = useState(null);
@@ -52,7 +53,7 @@ const BenefitTest = () => {
   // 2. Download CSV Template
   // =========================
   const downloadCSVTemplate = () => {
-    // Example CSV template for this "Benefit" test
+    // Example CSV template for the "Benefit" test
     const csvTemplate = [
   ["Last Name", "First Name", "Employee ID", "Cafeteria Plan Benefits", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Part-Time / Seasonal", "Union Employee"],
   ["Last", "First", "E001", "1500", "Yes", "1980-04-12", "2015-06-01", "Active", "No", "2016-01-01", "No", "No"],
@@ -66,7 +67,6 @@ const BenefitTest = () => {
   ["Last", "First", "E009", "0", "No", "2000-12-11", "2023-06-01", "Terminated", "No", "2023-06-01", "Yes", "No"],
   ["Last", "First", "E010", "1550", "No", "1991-11-05", "2020-05-10", "Active", "No", "2020-06-01", "No", "No"]
 ]
-
       .map((row) => row.join(","))
       .join("\n");
 
@@ -94,7 +94,7 @@ const BenefitTest = () => {
       return;
     }
 
-    // Validate file type
+    // Validate file type (only CSV is allowed)
     const validFileTypes = ["csv"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
@@ -115,7 +115,7 @@ const BenefitTest = () => {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/benefit`);
       console.log("📂 File Selected:", file.name);
 
-      // 1. Get Firebase token
+      // Get Firebase token
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken(true);
       if (!token) {
@@ -124,7 +124,7 @@ const BenefitTest = () => {
         return;
       }
 
-      // 2. Send POST request
+      // Send POST request to backend
       const response = await axios.post(`${API_URL}/upload-csv/benefit`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -143,9 +143,9 @@ const BenefitTest = () => {
   };
 
   // =========================
-  // 4. Export to PDF
+  // 4. Export to PDF (with Firebase saving)
   // =========================
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
@@ -158,6 +158,20 @@ const BenefitTest = () => {
     const testResult = result["Test Result"] || "N/A";
     const failed = testResult.toLowerCase() === "failed";
 
+    // Create jsPDF instance
+    const pdf = new jsPDF("p", "mm", "a4");
+    pdf.setFont("helvetica", "normal");
+
+    // PDF Header
+    pdf.setFontSize(18);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Cafeteria Benefit Test Results", 105, 15, { align: "center" });
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
+    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
+    
+    // Add a subheader for the test criterion
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "italic");
     pdf.setTextColor(60, 60, 60); // Gray text
@@ -168,22 +182,10 @@ const BenefitTest = () => {
       { align: "center", maxWidth: 180 }
     );
 
-
-    const pdf = new jsPDF("p", "mm", "a4");
-    pdf.setFont("helvetica", "normal");
-
-    // Header
-    pdf.setFontSize(18);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Cafeteria Benefit Test Results", 105, 15, { align: "center" });
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
-    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
-
-    // Table
+    // Results Table
     pdf.autoTable({
       startY: 40,
+      theme: "grid",
       head: [["Metric", "Value"]],
       body: [
         ["Total Eligible Employees", totalEligibleEmployees],
@@ -191,63 +193,84 @@ const BenefitTest = () => {
         ["HCE Percentage", hcePct],
         ["Test Result", testResult],
       ],
-    headStyles: {
-      fillColor: [41, 128, 185],
-      textColor: [255, 255, 255],
-    },
-    styles: {
-      fontSize: 12,
-      font: "helvetica",
-      lineColor: [150, 150, 150],  // Medium gray
-      lineWidth: 0.2         // Thicker grid lines
-    },
-    margin: { left: 10, right: 10 },
-  });
-  
-    // Corrective actions & consequences (only if failed)
-  if (failed) {
-    const correctiveActions = [
-        "Refund Excess Contributions to Highly Compensated Employees (HCEs)",
-        "Make Additional Contributions to Non-HCEs",
-        "Recharacterize Excess Contributions",
-    ];
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: [255, 255, 255],
+      },
+      styles: {
+        fontSize: 12,
+        font: "helvetica",
+        lineColor: [150, 150, 150],
+        lineWidth: 0.2,
+      },
+      margin: { left: 10, right: 10 },
+    });
 
-    const consequences = [
+    // If the test failed, add corrective actions & consequences tables
+    if (failed) {
+      const correctiveActions = [
+        "Refund Excess Contributions to Highly Compensated Employees (HCEs).",
+        "Make Additional Contributions to Non-HCEs.",
+        "Recharacterize Excess Contributions.",
+      ];
+      const consequences = [
         "Loss of Tax-Exempt Status for Key Employees",
         "IRS Scrutiny and Potential Penalties",
         "Plan Disqualification Risks",
         "Employee Discontent & Reduced Participation",
         "Reputational and Legal Risks",
-    ];
+      ];
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Corrective Actions"]],
+        body: correctiveActions.map((action) => [action]),
+        headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-  }
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Consequences"]],
+        body: consequences.map((consequence) => [consequence]),
+        headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+    }
 
     // Footer
-    pdf.setFontSize(10);
     pdf.setFont("helvetica", "italic");
+    pdf.setFontSize(10);
     pdf.setTextColor(100, 100, 100);
     pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
-    pdf.save("Cafeteria_Benefit_Test_Results.pdf");
+    // Output PDF as a blob and save locally
+    let pdfBlob;
+    try {
+      pdfBlob = pdf.output("blob");
+      pdf.save("Cafeteria_Benefit_Test_Results.pdf");
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
+      return;
+    }
+
+    // Save PDF to Firebase using the helper function
+    try {
+      await savePdfResultToFirebase({
+        fileName: "Benefit Test",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult: testResult || "Unknown",
+        },
+      });
+    } catch (error) {
+      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+    }
   };
 
   // =========================
@@ -259,24 +282,51 @@ const BenefitTest = () => {
       return;
     }
 
-    const totalEligibleEmployees = result["Total ELigible Employees"] ?? "N/A";
+    const plan = planYear || "N/A";
+    const totalEligibleEmployees = result["Total Eligible Employees"] ?? "N/A";
     const hceCount = result["HCE Count"] ?? "N/A";
     const hcePct = result["HCE Percentage (%)"] !== undefined
       ? result["HCE Percentage (%)"] + "%"
       : "N/A";
-    const testResult = result["Test Result"] ?? "N/A";
-    const failed = testResult.toLowerCase() === "failed";
+    const testRes = result["Test Result"] ?? "N/A";
 
     const csvRows = [
       ["Metric", "Value"],
-      ["Plan Year", planYear],
+      ["Plan Year", plan],
       ["Total Eligible Employees", totalEligibleEmployees],
       ["HCE Count", hceCount],
       ["HCE Percentage (%)", hcePct],
       ["Test Result", testRes],
     ];
 
-    const csvContent = csvRows.map(row => row.join(",")).join("\n");
+    if (testRes.toLowerCase() === "failed") {
+      const correctiveActions = [
+        "Refund Excess Contributions to Highly Compensated Employees (HCEs).",
+        "Make Additional Contributions to Non-HCEs.",
+        "Recharacterize Excess Contributions.",
+      ];
+      const consequences = [
+        "Loss of Tax-Exempt Status for Key Employees",
+        "IRS Scrutiny and Potential Penalties",
+        "Plan Disqualification Risks",
+        "Employee Discontent & Reduced Participation",
+        "Reputational and Legal Risks",
+      ];
+
+      csvRows.push(["", ""]);
+      csvRows.push(["Corrective Actions", ""]);
+      correctiveActions.forEach((action) => {
+        csvRows.push(["", action]);
+      });
+
+      csvRows.push(["", ""]);
+      csvRows.push(["Consequences", ""]);
+      consequences.forEach((item) => {
+        csvRows.push(["", item]);
+      });
+    }
+
+    const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -314,7 +364,9 @@ const BenefitTest = () => {
       {/* Plan Year Dropdown */}
       <div className="mb-6">
         <div className="flex items-center">
-          {planYear === "" && <span className="text-red-500 text-lg mr-2">*</span>}
+          {planYear === "" && (
+            <span className="text-red-500 text-lg mr-2">*</span>
+          )}
           <select
             id="planYear"
             value={planYear}
@@ -336,7 +388,9 @@ const BenefitTest = () => {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
+          isDragActive
+            ? "border-green-500 bg-blue-100"
+            : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
@@ -359,7 +413,7 @@ const BenefitTest = () => {
         Download CSV Template
       </button>
 
-      {/* Choose File (Blue) */}
+      {/* Choose File Button */}
       <button
         type="button"
         onClick={open}
@@ -368,7 +422,7 @@ const BenefitTest = () => {
         Choose File
       </button>
 
-      {/* Upload (Green if valid, else Gray) */}
+      {/* Upload Button */}
       <button
         onClick={handleUpload}
         className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
@@ -390,42 +444,41 @@ const BenefitTest = () => {
           <h3 className="font-bold text-xl text-gray-700">Cafeteria Benefit Test Results</h3>
           <div className="mt-4">
             <p className="text-lg mt-2">
-            <strong className="text-gray-700">Plan Year:</strong>{" "}
-            <span className="font-semibold text-blue-600">
-              {planYear || "N/A"}
-            </span>
-          </p>
-          <p className="text-lg mt-2">
-          <strong className="text-gray-700">Total Employees:</strong>{" "}
-            <span className="font-semibold text-black-600">
-            {result?.["Total Eligible Employees"] ?? "N/A"}
-          </span>
-          </p>
-          <p className="text-lg mt-2">
-          <strong className="text-gray-700">HCE Count:</strong>{" "}
-            <span className="font-semibold text-black-600">
-            {result?.["HCE Count"] ?? "N/A"}
-          </span>
-          </p>
-          <p className="text-lg mt-2">
-          <strong className="text-gray-700">HCE Percentage:</strong>{" "}
-          <span className="font-semibold text-black-600">
-            {formatPercentage(result?.["HCE Percentage (%)"]) || "N/A"}
-          </span>
-          </p>
+              <strong className="text-gray-700">Plan Year:</strong>{" "}
+              <span className="font-semibold text-blue-600">
+                {planYear || "N/A"}
+              </span>
+            </p>
+            <p className="text-lg">
+              <strong className="text-gray-700">Total Eligible Employees:</strong>{" "}
+              <span className="font-semibold text-blue-600">
+                {result?.["Total Eligible Employees"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">HCE Count:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["HCE Count"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">HCE Percentage:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatPercentage(result?.["HCE Percentage (%)"]) || "N/A"}
+              </span>
+            </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Test Result:</strong>{" "}
-            <span
-              className={`px-3 py-1 rounded-md font-bold ${
-                result?.["Test Result"] === "Passed"
-                  ? "bg-green-500 text-white"
-                  : "bg-red-500 text-white"
-          }`}
-             >
-              {result?.["Test Result"] ?? "N/A"}
-            </span>
+              <span
+                className={`px-3 py-1 rounded-md font-bold ${
+                  result?.["Test Result"] === "Passed"
+                    ? "bg-green-500 text-white"
+                    : "bg-red-500 text-white"
+                }`}
+              >
+                {result?.["Test Result"] ?? "N/A"}
+              </span>
             </p>
-
           </div>
 
           {/* Export & Download Buttons */}
