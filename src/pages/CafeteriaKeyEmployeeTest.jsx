@@ -5,7 +5,6 @@ import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import html2canvas from "html2canvas";
-import CafeKeyEmpChart from "../Components/CafeKeyEmpChart";
 import { savePdfResultToFirebase } from "../utils/firebaseTestSaver";
 
 const CafeteriaKeyEmployeeTest = () => {
@@ -504,11 +503,6 @@ const CafeteriaKeyEmployeeTest = () => {
             >
               Download CSV Report
             </button>
-          </div>
-
-          {/* Graph Container for PDF capture */}
-          <div id="graphContainer" style={{ position: "absolute", left: "-9999px", top: 0 }}>
-            <CafeKeyEmpChart result={result} />
           </div>
 
           {/* Corrective Actions & Consequences if Failed */}
