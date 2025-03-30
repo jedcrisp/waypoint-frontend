@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from "react";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Firebase Storage export helper
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import { getAuth } from "firebase/auth"; // Import Firebase Auth
 import jsPDF from "jspdf";
-import "jspdf-autotable"; // For table generation
+import "jspdf-autotable";
 
 const HRA25OwnerRuleTest = () => {
   const [file, setFile] = useState(null);
@@ -12,13 +13,32 @@ const HRA25OwnerRuleTest = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  const API_URL = import.meta.env.VITE_BACKEND_URL;
+  const API_URL = import.meta.env.VITE_BACKEND_URL || "https://waypoint-app.up.railway.app";
 
+  // Format Helpers
+  const formatCurrency = (amount) =>
+    !amount || isNaN(amount)
+      ? "N/A"
+      : `$${parseFloat(amount).toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`;
 
+  const formatPercentage = (value) =>
+    !value || isNaN(value) ? "N/A" : `${parseFloat(value).toFixed(2)}%`;
 
-  // ----- 1. Drag & Drop Logic -----
+  // Handle Enter key for upload
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && file && !loading) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleUpload();
+    }
+  };
+
+  // Drag & Drop Logic
   const onDrop = useCallback((acceptedFiles) => {
-    if (acceptedFiles && acceptedFiles.length > 0) {
+    if (acceptedFiles?.length > 0) {
       setFile(acceptedFiles[0]);
       setResult(null);
       setError(null);
@@ -27,29 +47,26 @@ const HRA25OwnerRuleTest = () => {
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
-    accept: ".csv, .xlsx",
+    accept: { "text/csv": [".csv"], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"] },
     multiple: false,
     noClick: true,
     noKeyboard: true,
   });
 
-  // ----- 2. Upload File to Backend -----
+  // Upload Handler
   const handleUpload = async () => {
     if (!file) {
       setError("❌ Please select a file before uploading.");
       return;
     }
-
-    // Validate file type
+    if (!planYear) {
+      setError("❌ Please select a plan year.");
+      return;
+    }
     const validFileTypes = ["csv", "xlsx"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
-      return;
-    }
-
-    if (!planYear) {
-      setError("❌ Please select a plan year.");
       return;
     }
 
@@ -62,8 +79,6 @@ const HRA25OwnerRuleTest = () => {
     formData.append("selected_tests", "hra_25_owner_rule");
 
     try {
-      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/hra_25_owner_rule`);
-      // 1. Get Firebase token
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken(true);
       if (!token) {
@@ -71,40 +86,51 @@ const HRA25OwnerRuleTest = () => {
         setLoading(false);
         return;
       }
-      console.log("Firebase Token:", token);
-
-      // 2. Send POST request with Bearer token
-      const response = await axios.post(`${API_URL}/upload-csv/hra_25_owner_rule`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      console.log("✅ API Response:", response.data);
+      const response = await axios.post(
+        `${API_URL}/upload-csv/hra_25_owner_rule`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
       setResult(response.data?.["Test Results"]?.["hra_25_owner_rule"] || {});
     } catch (err) {
-      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
-      setError("❌ Failed to upload file. Please check the format and try again.");
+      console.error("❌ Upload error:", err.response?.data || err.message);
+      if (err.response?.status === 405) {
+        setError("❌ Server rejected the request (405 Method Not Allowed). Check the endpoint and HTTP method.");
+      } else {
+        setError("❌ Failed to upload file. Please check the format and try again.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // ----- 4. Download CSV Template -----
+  // CSV Template Download
   const downloadCSVTemplate = () => {
     const csvData = [
-      ["Last Name", "First Name", "Employee ID", "HRA Benefits", "Owner-Attributed Benefits", "DOB", "DOH", "Ownership %", "Family Member", "Employment Status", "Excluded from Test", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
+      [
+        "Last Name",
+        "First Name",
+        "Employee ID",
+        "HRA Benefits",
+        "Owner-Attributed Benefits",
+        "DOB",
+        "DOH",
+        "Ownership %",
+        "Family Member",
+        "Employment Status",
+        "Excluded from Test",
+        "Plan Entry Date",
+        "Union Employee",
+        "Part-Time / Seasonal",
+      ],
       ["Last", "First", "001", "2500", "600", "1980-05-10", "2010-06-01", "Active", "No", "2020-01-01", "No", "No"],
       ["Last", "First", "002", "3000", "800", "1975-08-15", "2008-03-10", "Active", "No", "2019-05-01", "No", "No"],
-      ["Last", "First", "003", "0", "0", "1990-01-01", "2021-05-01", "Active", "No", "2022-01-01", "No", "No"],
-      ["Last", "First", "004", "4000", "1000", "1985-10-30", "2005-07-12", "Active", "No", "2020-01-01", "No", "No"],
-      ["Last", "First", "005", "0", "0", "2000-12-01", "2022-08-20", "Terminated", "No", "2022-01-01", "No", "No"],
-      ["Last", "First", "006", "3200", "900", "1992-05-14", "2018-11-11", "Active", "Yes", "2020-01-01", "No", "No"],
-      ["Last", "First", "007", "2800", "700", "2002-01-05", "2023-09-10", "Active", "No", "2022-01-01", "No", "No"],
-      ["Last", "First", "008", "0", "0", "1980-03-25", "2015-11-01", "Active", "No", "2020-01-01", "No", "No"],
-      ["Last", "First", "009", "3500", "1100", "1982-06-22", "2011-07-07", "Active", "No", "2020-01-01", "No", "No"],
-      ["Last", "First", "010", "0", "0", "2003-09-12", "2023-01-10", "Active", "No", "2022-01-01", "No", "No"],
+      // ... more rows as needed
     ];
     const csvTemplate = csvData.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
@@ -117,7 +143,7 @@ const HRA25OwnerRuleTest = () => {
     document.body.removeChild(link);
   };
 
-  // ----- 5. Download Results as CSV -----
+  // CSV Results Download
   const downloadResultsAsCSV = () => {
     if (!result) {
       setError("❌ No results to download.");
@@ -149,12 +175,8 @@ const HRA25OwnerRuleTest = () => {
         "Employer may face IRS penalties and additional corrective measures.",
         "Increased administrative and compliance burdens.",
       ];
-      csvRows.push(["", ""]);
-      csvRows.push(["Corrective Actions", ""]);
-      correctiveActions.forEach((action) => csvRows.push(["", action]));
-      csvRows.push(["", ""]);
-      csvRows.push(["Consequences", ""]);
-      consequences.forEach((item) => csvRows.push(["", item]));
+      csvRows.push([], ["Corrective Actions"], ...correctiveActions.map(action => ["", action]));
+      csvRows.push([], ["Consequences"], ...consequences.map(item => ["", item]));
     }
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
@@ -168,105 +190,105 @@ const HRA25OwnerRuleTest = () => {
     document.body.removeChild(link);
   };
 
-  // ----- 6. Export to PDF -----
-  const formatCurrency = (amount) => {
-    if (amount === "N/A") return "N/A";
-    return `$${parseFloat(amount).toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
-
-  const formatPercentage = (percent) => {
-    if (percent === "N/A") return "N/A";
-    return `${parseFloat(percent).toFixed(2)}%`;
-  };
-
-  const exportToPDF = () => {
+  // PDF Export with Firebase Storage Integration
+  const exportToPDF = async () => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
-    const plan = planYear || "N/A";
-    const totalHraBenefits = result["Total HRA Benefits"] ?? "N/A";
-    const ownerAttributedBenefits = result["Owner-Attributed Benefits"] ?? "N/A";
-    const ownerRulePercentage = result["Owner Rule Percentage"] ?? "N/A";
-    const testRes = result["Test Result"] ?? "N/A";
-    const failed = testRes.toLowerCase() === "failed";
+    let pdfBlob;
+    try {
+      const testRes = result["Test Result"] ?? "N/A";
+      const failed = testRes.toLowerCase() === "failed";
+      const pdf = new jsPDF("p", "mm", "a4");
+      pdf.setFont("helvetica", "normal");
 
-    const pdf = new jsPDF("p", "mm", "a4");
-    pdf.setFont("helvetica", "normal");
+      // Header
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("HRA 25% Owner Rule Test Results", 105, 15, { align: "center" });
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
+      const generatedTimestamp = new Date().toLocaleString();
+      pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
-    // Header
-    pdf.setFontSize(18);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("HRA 25% Owner Rule Test Results", 105, 15, { align: "center" });
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
-    const generatedTimestamp = new Date().toLocaleString();
-    pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
+      // Results Table
+      pdf.autoTable({
+        startY: 40,
+        theme: "grid",
+        head: [["Metric", "Value"]],
+        body: [
+          ["Total HRA Benefits", formatCurrency(result["Total HRA Benefits"])],
+          ["Owner-Attributed Benefits", formatCurrency(result["Owner-Attributed Benefits"])],
+          ["Owner Rule Percentage", formatPercentage(result["Owner Rule Percentage"])],
+          ["Test Result", testRes],
+        ],
+        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+        styles: { fontSize: 12 },
+        margin: { left: 10, right: 10 },
+      });
 
-    // Results Table
-    pdf.autoTable({
-      startY: 40,
-      theme: "grid",
-      head: [["Metric", "Value"]],
-      body: [
-        ["Total HRA Benefits", totalHraBenefits],
-        ["Owner-Attributed Benefits", ownerAttributedBenefits],
-        ["Owner Rule Percentage", `${ownerRulePercentage}%`],
-        ["Test Result", testRes],
-      ],
-      headStyles: {
-        fillColor: [41, 128, 185],
-        textColor: [255, 255, 255],
-      },
-      styles: { fontSize: 12 },
-      margin: { left: 10, right: 10 },
-    });
+      // Corrective Actions & Consequences (if test failed)
+      if (failed) {
+        const y = pdf.lastAutoTable.finalY + 10;
+        pdf.setFillColor(255, 230, 230);
+        pdf.setDrawColor(255, 0, 0);
+        pdf.rect(10, y, 190, 30, "FD");
+        pdf.setFontSize(12);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text("Corrective Actions:", 15, y + 7);
+        const actions = [
+          "• Review owner-related benefit allocations to ensure compliance with the 25% rule",
+          "• Adjust plan design to lower the proportion of benefits going to owners",
+          "• Consider additional corrective contributions if necessary",
+        ];
+        actions.forEach((action, i) => pdf.text(action, 15, y + 14 + i * 5));
 
-    // Corrective actions & consequences (only if failed)
-  if (failed) {
-    const correctiveActions = [
-        "Review owner-related benefit allocations to ensure compliance with the 25% rule.",
-        "Adjust plan design to lower the proportion of benefits going to owners.",
-        "Consider additional corrective contributions if necessary.",
-      ];
+        const y2 = y + 40;
+        pdf.setFillColor(255, 255, 204);
+        pdf.setDrawColor(255, 204, 0);
+        pdf.rect(10, y2, 190, 30, "FD");
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(14);
+        pdf.setTextColor(204, 153, 0);
+        pdf.text("Consequences:", 15, y2 + 10);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(11);
+        pdf.setTextColor(0, 0, 0);
+        const consequences = [
+          "• Taxation of FSA benefits for key employees",
+          "• Increased IRS scrutiny and potential penalties",
+          "• Risk of plan disqualification",
+          "• Retroactive correction requirements",
+        ];
+        consequences.forEach((item, i) => pdf.text(item, 15, y2 + 18 + i * 5));
+      }
 
-    const consequences = [
-        "Owner-attributed benefits may become taxable.",
-        "Employer may face IRS penalties and additional corrective measures.",
-        "Increased administrative and compliance burdens.",
-      ];
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-  }
-
-   // const nextY = pdf.lastAutoTable.finalY + 10;
-   
-    pdf.save("HRA_25_Owner_Rule_Results.pdf");
+      // Generate PDF blob and trigger local download
+      pdfBlob = pdf.output("blob");
+      pdf.save("HRA_25_Owner_Rule_Results.pdf");
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
+      return;
+    }
+    try {
+      // Upload PDF blob to Firebase Storage
+      await savePdfResultToFirebase({
+        fileName: "HRA_25_Owner_Rule_Test",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult: result["Test Result"] ?? "Unknown",
+        },
+      });
+    } catch (error) {
+      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+    }
   };
 
-  const handleKeyDown = (e) => {
+  // Handle Enter key
+  const handleKeyDownWrapper = (e) => {
     if (e.key === "Enter" && file && !loading) {
       e.preventDefault();
       e.stopPropagation();
@@ -277,7 +299,7 @@ const HRA25OwnerRuleTest = () => {
   return (
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
-      onKeyDown={(e) => handleKeyDown(e)}
+      onKeyDown={handleKeyDownWrapper}
       tabIndex="0"
     >
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
@@ -317,6 +339,12 @@ const HRA25OwnerRuleTest = () => {
         }`}
       >
         <input {...getInputProps()} />
+        <input
+          type="file"
+          accept=".csv, .xlsx"
+          onChange={(e) => setFile(e.target.files[0])}
+          className="hidden"
+        />
         {file ? (
           <p className="text-green-600 font-semibold">{file.name}</p>
         ) : isDragActive ? (
@@ -339,7 +367,7 @@ const HRA25OwnerRuleTest = () => {
       {/* "Choose File" Button */}
       <button
         type="button"
-        onClick={open}
+        onClick={() => open()}
         className="mt-4 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
       >
         Choose File
@@ -349,9 +377,7 @@ const HRA25OwnerRuleTest = () => {
       <button
         onClick={handleUpload}
         className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
-          !file || !planYear
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-green-500 hover:bg-green-400"
+          !file || !planYear ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
         }`}
         disabled={!file || !planYear || loading}
       >
@@ -368,33 +394,44 @@ const HRA25OwnerRuleTest = () => {
             HRA 25% Owner Rule Test Results
           </h3>
           <div className="mt-4">
-            <p className="text-lg mt-2">
-              <strong>Total HRA Benefits:</strong>{" "}
-              {formatCurrency(result?.["HCE Average Benefit"]) || "N/A"}
+            <p className="text-lg">
+              <strong className="text-gray-700">Plan Year:</strong>{" "}
+              <span className="font-semibold text-blue-600">
+                {planYear || "N/A"}
+              </span>
+            </p>
+            <p className="text-lg">
+              <strong className="text-gray-700">Total HRA Benefits:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatCurrency(result["Total HRA Benefits"])}
+              </span>
             </p>
             <p className="text-lg mt-2">
-              <strong>Owner-Attributed Benefits:</strong>{" "}
-              {formatCurrency(result?.["HCE Average Benefit"]) || "N/A"}
+              <strong className="text-gray-700">Key Employee Benefits:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatCurrency(result["Key Employee Benefits"])}
+              </span>
             </p>
             <p className="text-lg mt-2">
-              <strong>Owner Rule Percentage:</strong>{" "}
-              {formatPercentage(result?.["Average Benefits Ratio (%)"]) || "N/A"}%
+              <strong className="text-gray-700">Key Employee Benefit Percentage:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatPercentage(result["Key Employee Benefit Percentage"])}
+              </span>
             </p>
             <p className="text-lg mt-2">
-              <strong>Test Result:</strong>{" "}
+              <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
-                  result?.["Test Result"] === "Passed"
+                  result["Test Result"] === "Passed"
                     ? "bg-green-500 text-white"
                     : "bg-red-500 text-white"
                 }`}
               >
-                {result?.["Test Result"] ?? "N/A"}
+                {result["Test Result"] ?? "N/A"}
               </span>
             </p>
           </div>
 
-          {/* Export & Download Buttons */}
           <div className="flex flex-col gap-2 mt-4">
             <button
               onClick={exportToPDF}
@@ -410,7 +447,7 @@ const HRA25OwnerRuleTest = () => {
             </button>
           </div>
 
-          {/* Display Corrective Actions & Consequences if Test Failed */}
+         {/* Display Corrective Actions & Consequences if Test Failed */}
           {result?.["Test Result"]?.toLowerCase() === "failed" && (
             <>
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
@@ -441,7 +478,6 @@ const HRA25OwnerRuleTest = () => {
                 </ul>
               </div>
             </>
-          )}
         </div>
       )}
     </div>
