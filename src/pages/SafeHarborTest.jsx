@@ -320,7 +320,7 @@ const SafeHarborTest = () => {
       tabIndex="0"
     >
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
-        📂 Upload Ratio Percentage File
+        📂 Upload ADp Safe Harbor File
       </h2>
 
       {/* Plan Year Dropdown */}
