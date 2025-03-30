@@ -1,16 +1,17 @@
 import React, { useState, useCallback } from "react";
+import { getAuth } from "firebase/auth";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
-import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver";
 
 const DCAPEligibilityTest = () => {
   const [file, setFile] = useState(null);
+  const [planYear, setPlanYear] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [planYear, setPlanYear] = useState("");
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -75,9 +76,6 @@ const DCAPEligibilityTest = () => {
 
     try {
       console.log("Uploading file to API:", `${API_URL}/upload-csv/dcap_eligibility`);
-      console.log("File Selected:", file.name);
-
-      // 1. Get Firebase token
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken(true);
       if (!token) {
@@ -85,17 +83,19 @@ const DCAPEligibilityTest = () => {
         setLoading(false);
         return;
       }
-
-      // 2. Send POST request with Bearer token
       const response = await axios.post(`${API_URL}/upload-csv/dcap_eligibility`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       });
-
       console.log("API Response:", response.data);
-      setResult(response.data["Test Results"]["dcap_eligibility"]);
+      const eligibilityResults = response.data?.["Test Results"]?.["dcap_eligibility"];
+      if (!eligibilityResults) {
+        setError("❌ No DCAP Eligibility test results found in response.");
+      } else {
+        setResult(eligibilityResults);
+      }
     } catch (err) {
       console.error("Upload error:", err.response ? err.response.data : err.message);
       setError("❌ Failed to upload file. Please check the format and try again.");
@@ -111,8 +111,8 @@ const DCAPEligibilityTest = () => {
         "Last Name",
         "First Name",
         "Employee ID",
-        "HCE",
         "Eligible for DCAP",
+        "HCE",
         "DOB",
         "DOH",
         "Employment Status",
@@ -121,23 +121,20 @@ const DCAPEligibilityTest = () => {
         "Part-Time / Seasonal",
         "Plan Entry Date",
       ],
-      ["Last", "First", "001", "Yes", "Yes", "1980-05-10", "2010-06-01", "Active", "No", "No", "No", "2011-01-01"],
-      ["Last", "First", "002", "No", "Yes", "1985-08-15", "2012-03-10", "Active", "No", "No", "No", "2013-01-01"],
-      ["Last", "First", "003", "Yes", "No", "1975-01-20", "2005-05-05", "Active", "No", "No", "No", "2006-01-01"],
-      ["Last", "First", "004", "No", "Yes", "1990-12-01", "2020-08-20", "Active", "No", "Yes", "No", "2021-01-01"],
-      ["Last", "First", "005", "No", "No", "1995-07-19", "2021-04-10", "Leave", "Yes", "No", "Yes", "2022-01-01"],
-      ["Last", "First", "006", "Yes", "Yes", "1982-11-03", "2009-11-01", "Active", "No", "No", "No", "2010-01-01"],
-      ["Last", "First", "007", "No", "Yes", "2001-04-25", "2022-09-15", "Active", "No", "No", "No", "2023-01-01"],
-      ["Last", "First", "008", "Yes", "No", "1978-02-14", "2000-01-01", "Terminated", "No", "No", "Yes", "2001-01-01"],
-      ["Last", "First", "009", "No", "Yes", "1999-06-30", "2019-03-05", "Active", "No", "No", "No", "2020-01-01"],
-      ["Last", "First", "010", "No", "No", "2003-09-12", "2023-01-10", "Active", "No", "No", "No", "2023-07-01"],
-    ]
-      .map((row) => row.join(","))
-      .join("\n");
-
-    const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
+      ["Last", "First", "E001", "Yes", "No", "1985-04-12", "2015-01-01", "Active", "No", "No", "No", "2016-01-01"],
+      ["Last", "First", "E002", "Yes", "Yes", "1990-06-15", "2018-03-10", "Active", "No", "No", "No", "2019-01-01"],
+      ["Last", "First", "E003", "No", "No", "1992-09-22", "2020-07-20", "Active", "No", "No", "No", "2021-01-01"],
+      ["Last", "First", "E004", "Yes", "Yes", "1988-12-05", "2012-11-30", "Active", "No", "No", "No", "2013-01-01"],
+      ["Last", "First", "E005", "Yes", "No", "1983-02-18", "2010-05-25", "Active", "No", "No", "No", "2011-01-01"],
+      ["Last", "First", "E006", "No", "No", "2000-07-10", "2023-03-01", "Active", "No", "No", "No", "2023-03-01"],
+      ["Last", "First", "E007", "Yes", "No", "1995-11-03", "2016-09-15", "Active", "No", "No", "No", "2017-01-01"],
+      ["Last", "First", "E008", "Yes", "Yes", "1987-01-28", "2011-06-14", "Active", "No", "No", "No", "2012-01-01"],
+      ["Last", "First", "E009", "No", "No", "1999-05-09", "2022-08-20", "Active", "No", "Yes", "Yes", "2023-01-01"],
+      ["Last", "First", "E010", "Yes", "No", "2003-09-12", "2023-01-10", "Active", "No", "No", "No", "2023-07-01"],
+    ];
+    const csvContent = csvTemplate.map((row) => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-
     const link = document.createElement("a");
     link.href = url;
     link.setAttribute("download", "DCAP_Eligibility_Template.csv");
@@ -146,13 +143,12 @@ const DCAPEligibilityTest = () => {
     document.body.removeChild(link);
   };
 
-  // ---------- Download Results as CSV (with corrective actions & consequences if failed) ----------
+  // ---------- Download Results as CSV ----------
   const downloadResultsAsCSV = () => {
     if (!result) {
       setError("❌ No results to download.");
       return;
     }
-
     const totalEmployees = result["Total Employees"] ?? "N/A";
     const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
     const dcapEligibilityPercentage = result["DCAP Eligibility Percentage (%)"] ?? "N/A";
@@ -162,17 +158,13 @@ const DCAPEligibilityTest = () => {
       ["Metric", "Value"],
       ["Total Employees", totalEmployees],
       ["Eligible Employees", eligibleEmployees],
-      ["DCAP Eligibility Percentage (%)", dcapEligibilityPercentage],
+      ["DCAP Eligibility Percentage (%)", formatPercentage(dcapEligibilityPercentage)],
       ["Test Result", testRes],
     ];
 
-    const failed = testRes.toLowerCase() === "failed";
-
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
-
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-
     const link = document.createElement("a");
     link.href = url;
     link.setAttribute("download", "DCAP_Eligibility_Results.csv");
@@ -181,103 +173,119 @@ const DCAPEligibilityTest = () => {
     document.body.removeChild(link);
   };
 
-  // ---------- Export Results to PDF (Including Consequences) ----------
-  const exportToPDF = () => {
+  // ---------- Export Results to PDF (with Firebase saving) ----------
+  const exportToPDF = async () => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
 
-    const totalEmployees = result["Total Employees"] ?? "N/A";
-    const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
-    const dcapEligibilityPercentage = result["DCAP Eligibility Percentage (%)"] ?? "N/A";
-    const testResult = result["Test Result"] ?? "N/A";
-    const failed = testResult.toLowerCase() === "failed";
+    let pdfBlob;
+    try {
+      const pdf = new jsPDF("p", "mm", "a4");
+      pdf.setFont("helvetica", "normal");
 
-    const pdf = new jsPDF("p", "mm", "a4");
+      const totalEmployees = result["Total Employees"] ?? "N/A";
+      const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
+      const dcapEligibilityPercentage = result["DCAP Eligibility Percentage (%)"] ?? "N/A";
+      const testRes = result["Test Result"] ?? "N/A";
+      const failed = testRes.toLowerCase() === "failed";
 
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "italic");
-    pdf.setTextColor(60, 60, 60); // Gray text
-    pdf.text(
-     "Test Criterion: At least 50% of eligible employees must be eligible for DCAP",
-      105,
-      38,
-      { align: "center", maxWidth: 180 }
-    );
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(
+        "Test Criterion: At least 50% of eligible employees must be eligible for DCAP",
+        105,
+        38,
+        { align: "center", maxWidth: 180 }
+      );
 
-    // Header
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(18);
-    pdf.text("DCAP Eligibility Test Results", 105, 15, { align: "center" });
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(12);
-    pdf.text(`Plan Year: ${planYear || "N/A"}`, 105, 25, { align: "center" });
-    const generatedTimestamp = new Date().toLocaleString();
-   pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("DCAP Eligibility Test Results", 105, 15, { align: "center" });
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
+      pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
-    // Results Table
-    pdf.autoTable({
-      startY: 43,
-      theme: "grid",
-      head: [["Metric", "Value"]],
-      body: [
-        ["Total Employees", totalEmployees],
-        ["Eligible Employees", eligibleEmployees],
-        ["DCAP Eligibility Percentage", formatPercentage(dcapEligibilityPercentage)],
-        ["Test Result", testResult],
-      ],
-      headStyles: {
-        fillColor: [41, 128, 185],
-        textColor: [255, 255, 255],
-      },
-      styles: {
-        fontSize: 12,
-        font: "helvetica",
-      },
-      margin: { left: 10, right: 10 },
-    });
+      pdf.autoTable({
+        startY: 43,
+        theme: "grid",
+        head: [["Metric", "Value"]],
+        body: [
+          ["Total Employees", totalEmployees],
+          ["Eligible Employees", eligibleEmployees],
+          [
+            "DCAP Eligibility Percentage",
+            dcapEligibilityPercentage !== "N/A" ? formatPercentage(dcapEligibilityPercentage) : "N/A",
+          ],
+          ["Test Result", testRes],
+        ],
+        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+        styles: { fontSize: 12, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
 
-    const nextY = pdf.lastAutoTable.finalY + 10;
+      if (failed) {
+        const correctiveActions = [
+          "Expand eligibility criteria to include more non-HCEs.",
+          "Enhance employee outreach to increase participation.",
+          "Adjust benefit allocation to meet compliance requirements.",
+          "Amend plan documents to align with IRS nondiscrimination rules.",
+        ];
 
-     // Corrective actions & consequences (only if failed)
-  if (failed) {
-    const correctiveActions = [
-       "Expand Eligibility for NHCEs: Remove restrictive criteria that exclude NHCEs from participating in DCAP.",
-        "Increase NHCE Participation: Improve education and awareness, offer enrollment incentives, and simplify the sign-up process.",
-        "Adjust Employer Contributions: Ensure employer contributions are evenly distributed among HCEs and NHCEs.",
-        "Amend the Plan Document: Modify eligibility and contribution rules to align with IRS nondiscrimination requirements.",
-      ];
+        const consequences = [
+          "IRS penalties and potential plan disqualification.",
+          "Loss of tax-advantaged status for contributions.",
+          "Increased administrative costs due to corrective actions.",
+        ];
 
-    const consequences = [
-        "Potential IRS penalties or plan disqualification.",
-        "Potential disqualification of the Health FSA plan.",
-        "Loss of tax-free DCAP benefits for employees."
-    ];
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Corrective Actions"]],
+          body: correctiveActions.map((action) => [action]),
+          headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Consequences"]],
+          body: consequences.map((consequence) => [consequence]),
+          headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+      }
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-  }
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
+      pdfBlob = pdf.output("blob");
+      pdf.save("DCAP_Eligibility_Test_Results.pdf");
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
+      return;
+    }
 
-    pdf.save("DCAP_Eligibility_Test_Results.pdf");
+    try {
+      await savePdfResultToFirebase({
+        fileName: "DCAP Eligibility Test",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult: result["Test Result"] ?? "Unknown",
+        },
+      });
+    } catch (error) {
+      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+    }
   };
 
   // ---------- Handle Enter Key ----------
@@ -303,9 +311,7 @@ const DCAPEligibilityTest = () => {
       {/* Plan Year Dropdown */}
       <div className="mb-6">
         <div className="flex items-center">
-          {planYear === "" && (
-            <span className="text-red-500 text-lg mr-2">*</span>
-          )}
+          {planYear === "" && <span className="text-red-500 text-lg mr-2">*</span>}
           <select
             id="planYear"
             value={planYear}
@@ -375,8 +381,8 @@ const DCAPEligibilityTest = () => {
 
       {/* Display Results */}
       {result && (
-        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
-          <h3 className="font-bold text-xl text-gray-700 flex items-center">
+        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-md">
+          <h3 className="font-bold text-xl text-gray-700">
             DCAP Eligibility Test Results
           </h3>
           <div className="mt-4">
@@ -392,16 +398,14 @@ const DCAPEligibilityTest = () => {
                 {result?.["Total Employees"] ?? "N/A"}
               </span>
             </p>
-            <p className="text-lg">
+            <p className="text-lg mt-2">
               <strong className="text-gray-700">Eligible Employees:</strong>{" "}
               <span className="font-semibold text-black-800">
                 {result?.["Eligible Employees"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">
-                DCAP Eligibility Percentage:
-              </strong>{" "}
+              <strong className="text-gray-700">DCAP Eligibility Percentage:</strong>{" "}
               <span className="font-semibold text-black-800">
                 {formatPercentage(result?.["DCAP Eligibility Percentage (%)"])}
               </span>
