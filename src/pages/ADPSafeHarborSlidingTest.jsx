@@ -4,6 +4,7 @@ import axios from "axios";
 import { getAuth } from "firebase/auth"; // Firebase Auth
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Firebase PDF saver
 
 const ADPSafeHarborSlidingTest = () => {
   const [file, setFile] = useState(null);
@@ -16,7 +17,8 @@ const ADPSafeHarborSlidingTest = () => {
 
   // ---------- Formatting Helpers ----------
   const formatCurrency = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    if (value === undefined || value === null || isNaN(Number(value)))
+      return "N/A";
     return Number(value).toLocaleString("en-US", {
       style: "currency",
       currency: "USD",
@@ -24,7 +26,8 @@ const ADPSafeHarborSlidingTest = () => {
   };
 
   const formatPercentage = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    if (value === undefined || value === null || isNaN(Number(value)))
+      return "N/A";
     return `${Number(value).toFixed(2)}%`;
   };
 
@@ -92,22 +95,28 @@ const ADPSafeHarborSlidingTest = () => {
       //   "Test Results": {
       //     "adp_safe_harbor_sliding": {
       //       "Total Employees": 120,
-      //       "Eligible Employees": 90,
+      //       "HCE ADP (%)": 55,
       //       "IRS Safe Harbor Limit": 75,
-      //       "Average Employer Contribution (%)": 4.5,
+      //       "NHCE ADP (%)": 45,
       //       "Test Result": "Passed" // or "Failed"
       //     }
       //   }
       // }
-      const safeHarborResults = response.data?.["Test Results"]?.["adp_safe_harbor_sliding"];
+      const safeHarborResults =
+        response.data?.["Test Results"]?.["adp_safe_harbor_sliding"];
       if (!safeHarborResults) {
-        setError("❌ No Safe Harbor Sliding Scale test results found in response.");
+        setError(
+          "❌ No Safe Harbor Sliding Scale test results found in response."
+        );
       } else {
         console.log("Received Safe Harbor Sliding Scale result:", safeHarborResults);
         setResult(safeHarborResults);
       }
     } catch (err) {
-      console.error("❌ Upload error:", err.response ? err.response.data : err);
+      console.error(
+        "❌ Upload error:",
+        err.response ? err.response.data : err
+      );
       setError("❌ Failed to upload file. Please check the format and try again.");
     } finally {
       setLoading(false);
@@ -160,8 +169,8 @@ const ADPSafeHarborSlidingTest = () => {
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
     const hceADP = result["HCE ADP (%)"] ?? "N/A";
-    const safeHarborLimit = result["IRS Safe Harbor Limit"] ?? "N/A";
     const nhceADP = result["NHCE ADP (%)"] ?? "N/A";
+    const safeHarborLimit = result["IRS Safe Harbor Limit"] ?? "N/A";
     const testResult = result["Test Result"] ?? "N/A";
 
     const csvRows = [
@@ -194,7 +203,6 @@ const ADPSafeHarborSlidingTest = () => {
       csvRows.push(["Consequences", ""]);
       consequences.forEach((item) => csvRows.push(["", item]));
     }
-
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -207,7 +215,7 @@ const ADPSafeHarborSlidingTest = () => {
   };
 
   // ----- 6. Export to PDF (ACP-style layout for Safe Harbor Sliding Scale Test) -----
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
@@ -216,8 +224,8 @@ const ADPSafeHarborSlidingTest = () => {
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
     const hceADP = result["HCE ADP (%)"] ?? "N/A";
-    const safeHarborLimit = result["IRS Safe Harbor Limit"] ?? "N/A";
     const nhceADP = result["NHCE ADP (%)"] ?? "N/A";
+    const safeHarborLimit = result["IRS Safe Harbor Limit"] ?? "N/A";
     const testResult = result["Test Result"] ?? "N/A";
     const failed = testResult.toLowerCase() === "failed";
 
@@ -231,7 +239,6 @@ const ADPSafeHarborSlidingTest = () => {
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "normal");
     pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
-    pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
     pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
     // Section 1: Basic Results Table
@@ -240,83 +247,56 @@ const ADPSafeHarborSlidingTest = () => {
       theme: "grid",
       head: [["Metric", "Value"]],
       body: [
-    ["Total Employees", result["Total Employees"] ?? "N/A"],
-    ["HCE ADP", formatPercentage(result?.["HCE ADP (%)"])],
-    ["NHCE ADP", formatPercentage(result?.["NHCE ADP (%)"])],
-    ["IRS Safe Harbor Limit", formatPercentage(result?.["IRS Safe Harbor Limit"])],
-    ["Test Result", result["Test Result"] ?? "N/A"],
-  ],
-    headStyles: {
-      fillColor: [41, 128, 185],
-      textColor: [255, 255, 255],
-    },
-    styles: {
-      fontSize: 12,
-      font: "helvetica",
-    },
-    margin: { left: 10, right: 10 },
-  });
+        ["Total Employees", totalEmployees],
+        ["HCE ADP (%)", formatPercentage(result?.["HCE ADP (%)"])],
+        ["NHCE ADP (%)", formatPercentage(result?.["NHCE ADP (%)"])],
+        ["IRS Safe Harbor Limit (%)", formatPercentage(result?.["IRS Safe Harbor Limit"])],
+        ["Test Result", testResult],
+      ],
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: [255, 255, 255],
+      },
+      styles: {
+        fontSize: 12,
+        font: "helvetica",
+      },
+      margin: { left: 10, right: 10 },
+    });
 
-    // Section 2: Summary Box
-    const summaryStartY = pdf.lastAutoTable.finalY + 10;
-    const boxWidth = 0;
-    let boxHeight = 0;
-    pdf.setDrawColor(0, 0, 0);
-    pdf.setLineWidth(0.5);
-    pdf.rect(10, summaryStartY, boxWidth, boxHeight, "S");
-
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "bold");
+    // If test failed, add corrective actions & consequences
     if (failed) {
-      pdf.text("", 12, summaryStartY + 8);
-    } else {
-      pdf.text("", 12, summaryStartY + 8);
-    }
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(
-      "",
-      12,
-      summaryStartY + 14,
-      { maxWidth: 186 }
-    );
-
-    // Corrective actions & consequences (only if failed)
-  if (failed) {
-    const correctiveActions = [
+      const correctiveActions = [
         "Refund Excess Contributions by the required deadline.",
         "Make Additional Contributions as required.",
         "Recharacterize excess contributions appropriately.",
-    ];
-
-    const consequences = [
+      ];
+      const consequences = [
         "Excess Contributions Must Be Refunded",
         "IRS Penalties and Compliance Risks",
         "Loss of Tax Benefits",
         "Plan Disqualification Risk",
         "Employee Dissatisfaction & Legal Risks",
-    ];
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-  }
+      ];
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Corrective Actions"]],
+        body: correctiveActions.map((action) => [action]),
+        headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Consequences"]],
+        body: consequences.map((consequence) => [consequence]),
+        headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+    }
 
     // Footer
     pdf.setFontSize(10);
@@ -324,8 +304,26 @@ const ADPSafeHarborSlidingTest = () => {
     pdf.setTextColor(100, 100, 100);
     pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
-    console.log("Reached end of PDF function");
-    pdf.save("Safe_Harbor_Sliding_Test_Results.pdf");
+    let pdfBlob;
+    try {
+      pdfBlob = pdf.output("blob");
+      pdf.save("Safe_Harbor_Sliding_Test_Results.pdf");
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
+      return;
+    }
+    try {
+      await savePdfResultToFirebase({
+        fileName: "ADP Safe Harbor Sliding Test",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult: testResult || "Unknown",
+        },
+      });
+    } catch (error) {
+      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+    }
   };
 
   // ----- RENDER -----
@@ -432,23 +430,23 @@ const ADPSafeHarborSlidingTest = () => {
               {result["Total Employees"] ?? "N/A"}
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">HCE ADP:</strong>{" "}
+              <strong className="text-gray-700">HCE ADP (%):</strong>{" "}
               <span className="font-semibold text-black-600">
-              {formatPercentage(result?.["HCE ADP (%)"])}
+                {formatPercentage(result?.["HCE ADP (%)"])}
               </span>
             </p>
             <p className="text-lg mt-2">
-            <strong className="text-gray-700">NHCE ADP (%):</strong>{" "}
-            <span className="font-semibold text-black-600">
-            {formatPercentage(result?.["NHCE ADP (%)"])}
-            </span>
+              <strong className="text-gray-700">NHCE ADP (%):</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatPercentage(result?.["NHCE ADP (%)"])}
+              </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">IRS Safe Harbor Limit:</strong>{" "}
+              <strong className="text-gray-700">IRS Safe Harbor Limit (%):</strong>{" "}
               <span className="font-semibold text-black-600">
-             {formatPercentage(result?.["IRS Safe Harbor Limit"])}
+                {formatPercentage(result?.["IRS Safe Harbor Limit"])}
               </span>
-              </p>
+            </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
@@ -463,6 +461,53 @@ const ADPSafeHarborSlidingTest = () => {
             </p>
           </div>
 
+        {/* If failed, show corrective actions + consequences in the UI as well */}
+            {result["ADP Safe Harbor Sliding Test Result"] &&
+              result["ADP Safe Harbor Sliding Test Result"].toLowerCase() === "failed" && (
+                <>
+                  <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+                    <h4 className="font-bold text-black-600">
+                      Corrective Actions:
+                    </h4>
+                    <ul className="list-disc list-inside text-black-600">
+                      <li>
+                        Refund Excess Contributions to HCEs by March 15 to avoid
+                        penalties.
+                      </li>
+                      <br />
+                      <li>
+                        Make Additional Contributions to NHCEs via QNEC or QMAC.
+                      </li>
+                      <br />
+                      <li>
+                        Recharacterize Excess HCE Contributions as Employee
+                        Contributions.
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
+                    <h4 className="font-bold text-black-600">
+                      Consequences:
+                    </h4>
+                    <ul className="list-disc list-inside text-black-600">
+                      <li>Excess Contributions Must Be Refunded</li>
+                      <br />
+                      <li>IRS Penalties and Compliance Risks</li>
+                      <br />
+                      <li>Loss of Tax Benefits for HCEs</li>
+                      <br />
+                      <li>Plan Disqualification Risk</li>
+                      <br />
+                      <li>
+                       Employee Dissatisfaction & Legal Risks
+                      </li>
+                    </ul>
+                  </div>
+                </>
+              )}
+          </div>
+          
           {/* Export & Download Buttons */}
           <div className="flex flex-col gap-2 mt-4">
             <button
