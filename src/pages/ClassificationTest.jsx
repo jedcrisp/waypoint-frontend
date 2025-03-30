@@ -117,7 +117,19 @@ const ClassificationTest = () => {
   // =========================
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-      ["Last Name", "First Name", "Employee ID", "Eligible for Cafeteria Plan", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
+      [
+        "Last Name",
+        "First Name",
+        "Employee ID",
+        "Eligible for Cafeteria Plan",
+        "DOB",
+        "DOH",
+        "Employment Status",
+        "Excluded from Test",
+        "Plan Entry Date",
+        "Union Employee",
+        "Part-Time / Seasonal",
+      ],
       ["Last", "First", "E001", "Yes", "1985-04-12", "2015-01-01", "Active", "No", "2016-01-01", "No", "No"],
       ["Last", "First", "E002", "Yes", "1990-06-15", "2018-03-10", "Active", "No", "2019-01-01", "No", "No"],
       ["Last", "First", "E003", "No", "1992-09-22", "2020-07-20", "Active", "No", "2021-01-01", "No", "No"],
@@ -413,27 +425,29 @@ const ClassificationTest = () => {
           </h3>
           <div className="mt-4">
             <p className="text-lg">
-              <strong>Plan Year:</strong>{" "}
-              <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
+              <strong className="text-gray-700">Plan Year:</strong>{" "}
+              <span className="font-semibold text-blue-600">
+                {planYear || "N/A"}
+              </span>
             </p>
-          <div>
+          </div>
           <div className="mt-4">
             <p className="text-lg">
               <strong className="text-gray-700">Total Employees:</strong>{" "}
               <span className="font-semibold text-black-600">
-                {result["Total Employees"] ?? "N/A"}
+                {result?.["Total Employees"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Total Participants:</strong>{" "}
               <span className="font-semibold text-black-600">
-                {result["Total Participants"] ?? "N/A"}
+                {result?.["Total Participants"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Eligible for Cafeteria Plan:</strong>{" "}
               <span className="font-semibold text-black-600">
-                {result["Eligible for Cafeteria Plan"] ?? "N/A"}
+                {result?.["Eligible for Cafeteria Plan"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
@@ -441,7 +455,7 @@ const ClassificationTest = () => {
                 Eligibility Percentage (%):
               </strong>{" "}
               <span className="font-semibold text-black-600">
-                {result["Eligibility Percentage (%)"] !== undefined
+                {result?.["Eligibility Percentage (%)"] !== undefined
                   ? result["Eligibility Percentage (%)"] + "%"
                   : "N/A"}
               </span>
@@ -459,7 +473,7 @@ const ClassificationTest = () => {
               </span>
             </p>
           </div>
-
+  
           {/* Export & Download Buttons */}
           <div className="flex flex-col gap-2 mt-4">
             <button
@@ -475,33 +489,41 @@ const ClassificationTest = () => {
               Download CSV Report
             </button>
           </div>
-
-          {/* Corrective Actions & Consequences if Test Failed */}
+  
+          {/* If test fails, show corrective actions & consequences in the UI */}
           {result["Test Result"]?.toLowerCase() === "failed" && (
             <>
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>Review and verify employee classifications.</li>
+                  <li>
+                    Review and verify employee classifications.
+                  </li>
                   <br />
-                  <li>Recalculate benefit allocations to ensure compliance.</li>
+                  <li>
+                    Recalculate benefit allocations to ensure compliance.
+                  </li>
                   <br />
-                  <li>Amend plan documents to clarify classification rules.</li>
+                  <li>
+                    Amend plan documents to clarify classification rules.
+                  </li>
                   <br />
-                  <li>Consult with legal or tax advisors for corrections.</li>
+                  <li>
+                    Consult with legal or tax advisors for corrections.
+                  </li>
                 </ul>
               </div>
-
+  
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>Loss of tax-exempt status for key employees.</li>
+                  <li>Mandatory employer contributions (3% of pay) for non-key employees.</li>
                   <br />
-                  <li>IRS compliance violations and penalties.</li>
+                  <li>Loss of plan tax advantages if not corrected.</li>
                   <br />
-                  <li>Plan disqualification risks.</li>
+                  <li>Increased IRS audit risk due to noncompliance.</li>
                   <br />
-                  <li>Employee dissatisfaction and legal risks.</li>
+                  <li>Additional corrective contributions may be required.</li>
                 </ul>
               </div>
             </>
