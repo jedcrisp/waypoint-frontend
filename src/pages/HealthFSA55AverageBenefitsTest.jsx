@@ -410,11 +410,15 @@ const HealthFSA55AverageBenefitsTest = () => {
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">NHCE Average Benefit:</strong>{" "}
-              <span className="font-semibold text-gray-800">
-                {result?.["NHCE Average Benefit"] !== undefined
-                  ? formatCurrency(result["NHCE Average Benefit"])
-                  : "N/A"}
+              <strong className="text-gray-700">Total Employees:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Employees"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Total Participants:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Participants"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
@@ -426,7 +430,15 @@ const HealthFSA55AverageBenefitsTest = () => {
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Average Benefit Ratio (%):</strong>{" "}
+              <strong className="text-gray-700">NHCE Average Benefit:</strong>{" "}
+              <span className="font-semibold text-gray-800">
+                {result?.["NHCE Average Benefit"] !== undefined
+                  ? formatCurrency(result["NHCE Average Benefit"])
+                  : "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Average Benefit Ratio:</strong>{" "}
               <span className="font-semibold text-gray-800">
                 {result?.["Average Benefit Ratio (%)"] !== undefined
                   ? formatPercentage(result["Average Benefit Ratio (%)"])
