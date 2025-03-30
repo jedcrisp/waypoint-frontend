@@ -250,15 +250,6 @@ const CafeteriaKeyEmployeeTest = () => {
       });
     }
 
-    // Capture the chart image from a hidden container
-    const graphElement = document.getElementById("graphContainer");
-    if (graphElement) {
-      const canvas = await html2canvas(graphElement, { scale: 2 });
-      const graphImgData = canvas.toDataURL("image/png");
-      pdf.addPage();
-      pdf.addImage(graphImgData, "PNG", 10, 30, 190, 120);
-    }
-
     // Footer
     pdf.setFont("helvetica", "italic");
     pdf.setFontSize(10);
@@ -509,11 +500,6 @@ const CafeteriaKeyEmployeeTest = () => {
             >
               Download CSV Report
             </button>
-          </div>
-
-          {/* Graph Container for PDF capture */}
-          <div id="graphContainer" style={{ position: "absolute", left: "-9999px", top: 0 }}>
-            <CafeKeyEmpChart result={result} />
           </div>
 
           {/* Corrective Actions & Consequences if Failed */}
