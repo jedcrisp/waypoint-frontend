@@ -390,7 +390,7 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
             </p>
             <p className="text-lg mt-2">
               <strong>Total Employees:</strong>{" "}
-              <span className="font-semibold text-blue-600">
+              <span className="font-semibold text-black-600">
                 {result?.["Total Employees"] ?? "N/A"}
               </span>
             </p>
