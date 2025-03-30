@@ -311,7 +311,7 @@ const DCAPKeyEmployeeConcentrationTest = () => {
     try {
       // Assuming savePdfResultToFirebase is defined elsewhere
       await savePdfResultToFirebase({
-        fileName: "DCAP Key Employee Concentration Test",
+        fileName: "DCAP Key Employee Concentration",
         pdfBlob,
         additionalData: {
           planYear,
