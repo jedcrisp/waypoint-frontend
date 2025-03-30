@@ -6,7 +6,6 @@ import { getAuth } from "firebase/auth";
 import { getStorage, ref, uploadBytes } from "firebase/storage"; // Firebase Storage import (if needed elsewhere)
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import CafeEligibilityChart from "../Components/CafeEligibilityChart";
 import html2canvas from "html2canvas";
 
 const EligibilityTest = () => {
