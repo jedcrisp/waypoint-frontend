@@ -145,15 +145,13 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
     let pdfBlob;
     try {
       const totalEmployees = result["Total Employees"] ?? "N/A";
-      const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
+      const totalParticipants = result["Total Participants"] ?? "N/A";
+      const hoursRequirementMet = result["Hours Requirement Met"] ?? "N/A";
+      const earningsRequirementMet = result["Earnings Requirement Met"] ?? "N/A";
       const eligibilityPct = result["Eligibility Percentage (%)"] !== undefined
         ? formatPercentage(result["Eligibility Percentage (%)"])
         : "N/A";
-      const hoursWorked = result["Hours Worked"] ?? "N/A";
-      const earnings = result["Earnings"] !== undefined
-        ? formatCurrency(result["Earnings"])
-        : "N/A";
-      const testRes = result["Test Result"] ?? "N/A";
+      const testResult = result["Test Result"] ?? "N/A";
       const failed = testRes.toLowerCase() === "failed";
 
       const pdf = new jsPDF("p", "mm", "a4");
@@ -174,11 +172,11 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", totalEmployees],
-          ["Eligible Employees", eligibleEmployees],
+          ["Total Participants", totalParticipants],
+          ["Hours Requirement Met", hoursRequirementMet],
+          ["Earnings Requirement Met", earningsRequirementMet],
           ["Eligibility Percentage (%)", eligibilityPct],
-          ["Hours Worked", hoursWorked],
-          ["Earnings", earnings],
-          ["Test Result", testRes],
+          ["Test Result", testResult],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
         styles: { fontSize: 12, font: "helvetica" },
@@ -230,11 +228,9 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
         setError(`❌ Error exporting PDF: ${error.message}`);
         return;
       }
-      // If you have Firebase integration, call your helper here.
-      // For example:
       try {
         await savePdfResultToFirebase({
-          fileName: "Simple_Cafeteria_Plan_Eligibility_Test",
+          fileName: "Simple Cafeteria Plan Eligibility",
           pdfBlob,
           additionalData: {
             planYear,
@@ -249,7 +245,7 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
     }
   };
 
-  // --- 6. Download Results as CSV ---
+  // --- 5. Download Results as CSV ---
   const downloadResultsAsCSV = () => {
     if (!result) {
       setError("❌ No results to download.");
@@ -257,48 +253,26 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
     }
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
-    const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
+    const hoursRequirementMet = result["Hours Requirement Met"] ?? "N/A";
+    const earningsRequirementMet = result["Earnings Requirement Met"] ?? "N/A";
     const eligibilityPct = result["Eligibility Percentage (%)"] !== undefined
       ? formatPercentage(result["Eligibility Percentage (%)"])
       : "N/A";
-    const hoursWorked = result["Hours Worked"] ?? "N/A";
-    const earnings = result["Earnings"] !== undefined
-      ? formatCurrency(result["Earnings"])
-      : "N/A";
-    const testRes = result["Test Result"] ?? "N/A";
+    const testResult = result["Test Result"] ?? "N/A";
     const failed = testRes.toLowerCase() === "failed";
 
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", plan],
       ["Total Employees", totalEmployees],
+      ["Total Participants", totalParticipants],
+      ["Hours Requirement Met", hoursRequirementMet],
+      ["Earnings Requirement Met", earningsRequirementMet],
       ["Eligible Employees", eligibleEmployees],
       ["Eligibility Percentage (%)", eligibilityPct],
-      ["Hours Worked", hoursWorked],
-      ["Earnings", earnings],
-      ["Test Result", testRes],
+      ["Test Result", testResult],
     ];
-
-    if (failed) {
-      const correctiveActions = [
-        "Review employee eligibility criteria.",
-        "Recalculate benefit allocations for compliance.",
-        "Amend plan documents to clarify classification rules.",
-        "Consult with legal or tax advisors for corrections.",
-      ];
-      const consequences = [
-        "Loss of tax-exempt status for key employees.",
-        "IRS compliance violations and penalties.",
-        "Plan disqualification risks.",
-        "Employee dissatisfaction and legal risks.",
-      ];
-      csvRows.push(["", ""]);
-      csvRows.push(["Corrective Actions", ""]);
-      correctiveActions.forEach((action) => csvRows.push(["", action]));
-      csvRows.push(["", ""]);
-      csvRows.push(["Consequences", ""]);
-      consequences.forEach((item) => csvRows.push(["", item]));
-    }
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -311,7 +285,7 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
     document.body.removeChild(link);
   };
 
-  // --- 7. Handle Enter Key ---
+  // --- 6. Handle Enter Key ---
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && file && !loading) {
       e.preventDefault();
@@ -320,7 +294,7 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
     }
   };
 
-  // --- 8. Render ---
+  // --- 7. Render ---
   return (
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
@@ -415,21 +389,27 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
               <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
             </p>
             <p className="text-lg mt-2">
-              <strong>Eligible Employees:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {result?.["Eligible Employees"] ?? "N/A"}
+              <strong>Total Employees:</strong>{" "}
+              <span className="font-semibold text-blue-600">
+                {result?.["Total Employees"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong>Employee Count Threshold:</strong>{" "}
+              <strong>Total Participants:</strong>{" "}
               <span className="font-semibold text-black-600">
-                {result?.["Employee Count Threshold"] ?? "N/A"}
+                {result?.["Total Participants"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
               <strong>Hours Requirement Met:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {result?.["Hours Requirement Met"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong>Earnings Requirement Met:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Earnings Requirement Met"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
@@ -441,20 +421,12 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong>Total Employees:</strong>{" "}
-              <span className="font-semibold text-blue-600">
-                {result?.["Total Employees"] ?? "N/A"}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong>Test Criterion:</strong>{" "}
-              At least 70% eligibility with Hours Worked ≥ 1000 and Earnings ≥ 5000
-            </p>
-            <p className="text-lg mt-2">
               <strong>Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
-                  result?.["Test Result"] === "Passed" ? "bg-green-500 text-white" : "bg-red-500 text-white"
+                  result?.["Test Result"] === "Passed"
+                    ? "bg-green-500 text-white"
+                    : "bg-red-500 text-white"
                 }`}
               >
                 {result?.["Test Result"] ?? "N/A"}
@@ -484,21 +456,13 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>
-                    Review and verify employee classifications.
-                  </li>
+                  <li>Review and verify employee classifications.</li>
                   <br />
-                  <li>
-                    Recalculate benefit allocations for compliance.
-                  </li>
+                  <li>Recalculate benefit allocations for compliance.</li>
                   <br />
-                  <li>
-                    Amend plan documents to clarify classification rules.
-                  </li>
+                  <li>Amend plan documents to clarify classification rules.</li>
                   <br />
-                  <li>
-                    Consult with legal or tax advisors for corrections.
-                  </li>
+                  <li>Consult with legal or tax advisors for corrections.</li>
                 </ul>
               </div>
 
