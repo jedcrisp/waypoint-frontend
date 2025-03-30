@@ -140,7 +140,7 @@ const ACPTest = () => {
 
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "ACP_CSV_Template.csv");
+    link.setAttribute("download", "ACP_Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
