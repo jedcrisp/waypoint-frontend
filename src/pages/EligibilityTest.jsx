@@ -1,9 +1,13 @@
 import React, { useState, useCallback } from "react";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Use the external helper
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
+import { getStorage, ref, uploadBytes } from "firebase/storage"; // Firebase Storage import (if needed elsewhere)
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import CafeEligibilityChart from "../Components/CafeEligibilityChart";
+import html2canvas from "html2canvas";
 
 const EligibilityTest = () => {
   const [file, setFile] = useState(null);
@@ -41,7 +45,7 @@ const EligibilityTest = () => {
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
-    accept: ".csv",
+    accept: ".csv, .xlsx",
     multiple: false,
     noClick: true,
     noKeyboard: true,
@@ -55,10 +59,10 @@ const EligibilityTest = () => {
       setError("❌ Please select a file before uploading.");
       return;
     }
-    const validFileTypes = ["csv"];
+    const validFileTypes = ["csv", "xlsx"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
-      setError("❌ Invalid file type. Please upload a CSV file.");
+      setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
     }
     if (!planYear) {
@@ -118,23 +122,33 @@ const EligibilityTest = () => {
   // =========================
   // 4. Download CSV Template
   // =========================
-  // If you have a custom CSV template, you can define it here or rely on <CsvTemplateDownloader />
   const downloadCSVTemplate = () => {
-    // Example CSV content
     const csvTemplate = [
-  ["Last Name", "First Name", "Employee ID", "HCE", "DOB", "DOH", "Eligible for Plan", "Employment Status", "Excluded from Test", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
-  ["Last", "First", "001", "No", "1980-01-10", "2010-05-01", "Yes", "Active", "No", "2011-01-01", "No", "No"],
-  ["Last", "First", "002", "Yes", "1975-03-15", "2005-07-12", "Yes", "Active", "No", "2006-01-01", "No", "No"],
-  ["Last", "First", "003", "No", "1992-06-20", "2020-08-10", "Yes", "Active", "No", "2021-01-01", "No", "No"],
-  ["Last", "First", "004", "Yes", "1983-11-30", "2008-02-25", "Yes", "Active", "No", "2009-01-01", "No", "No"],
-  ["Last", "First", "005", "No", "2000-12-18", "2022-04-15", "No", "Terminated", "No", "2023-01-01", "No", "No"],
-  ["Last", "First", "006", "Yes", "1988-09-05", "2015-06-01", "Yes", "Active", "No", "2016-01-01", "No", "No"],
-  ["Last", "First", "007", "No", "2001-04-22", "2023-05-01", "Yes", "Active", "No", "2023-07-01", "No", "Yes"],
-  ["Last", "First", "008", "Yes", "1979-07-10", "2006-09-20", "Yes", "Active", "No", "2007-01-01", "No", "No"],
-  ["Last", "First", "009", "No", "1995-10-01", "2018-03-15", "Yes", "Leave", "No", "2019-01-01", "No", "No"],
-  ["Last", "First", "010", "No", "2002-08-12", "2022-11-10", "No", "Active", "No", "2023-01-01", "No", "No"],
-]
-
+      [
+        "Last Name",
+        "First Name",
+        "Employee ID",
+        "HCE",
+        "DOB",
+        "DOH",
+        "Eligible for Plan",
+        "Employment Status",
+        "Excluded from Test",
+        "Plan Entry Date",
+        "Union Employee",
+        "Part-Time / Seasonal"
+      ],
+      ["Last", "First", "001", "No", "1980-01-10", "2010-05-01", "Yes", "Active", "No", "2011-01-01", "No", "No"],
+      ["Last", "First", "002", "Yes", "1975-03-15", "2005-07-12", "Yes", "Active", "No", "2006-01-01", "No", "No"],
+      ["Last", "First", "003", "No", "1992-06-20", "2020-08-10", "Yes", "Active", "No", "2021-01-01", "No", "No"],
+      ["Last", "First", "004", "Yes", "1983-11-30", "2008-02-25", "Yes", "Active", "No", "2009-01-01", "No", "No"],
+      ["Last", "First", "005", "No", "2000-12-18", "2022-04-15", "No", "Terminated", "No", "2023-01-01", "No", "No"],
+      ["Last", "First", "006", "Yes", "1988-09-05", "2015-06-01", "Yes", "Active", "No", "2016-01-01", "No", "No"],
+      ["Last", "First", "007", "No", "2001-04-22", "2023-05-01", "Yes", "Active", "No", "2023-07-01", "No", "Yes"],
+      ["Last", "First", "008", "Yes", "1979-07-10", "2006-09-20", "Yes", "Active", "No", "2007-01-01", "No", "No"],
+      ["Last", "First", "009", "No", "1995-10-01", "2018-03-15", "Yes", "Leave", "No", "2019-01-01", "No", "No"],
+      ["Last", "First", "010", "No", "2002-08-12", "2022-11-10", "No", "Active", "No", "2023-01-01", "No", "No"],
+    ]
       .map((row) => row.join(","))
       .join("\n");
 
@@ -164,7 +178,10 @@ const EligibilityTest = () => {
       ["Total Employees", result["Total Employees"] ?? "N/A"],
       ["Total Participants", result["Total Participants"] ?? "N/A"],
       ["HCE Count", result["HCE Count"] ?? "N/A"],
-      ["HCE Percentage", result["HCE Percentage (%)"] !== undefined ? result["HCE Percentage (%)"] + "%" : "N/A"],
+      [
+        "HCE Percentage",
+        result["HCE Percentage (%)"] !== undefined ? result["HCE Percentage (%)"] + "%" : "N/A"
+      ],
       ["Test Result", result["Test Result"] ?? "N/A"],
     ];
 
@@ -180,7 +197,7 @@ const EligibilityTest = () => {
   };
 
   // =========================
-  // 6. Export to PDF
+  // 6. Export to PDF with Firebase Save
   // =========================
   const exportToPDF = async () => {
     if (!result) {
@@ -188,101 +205,129 @@ const EligibilityTest = () => {
       return;
     }
 
-     const failed = result["Test Result"]?.toLowerCase() === "failed";
-    const pdf = new jsPDF("p", "mm", "a4");
-    pdf.setFont("helvetica", "normal");
+    const failed = result["Test Result"]?.toLowerCase() === "failed";
+    let pdfBlob;
+    try {
+      const pdf = new jsPDF("p", "mm", "a4");
+      pdf.setFont("helvetica", "normal");
 
-    // Header
-    pdf.setFontSize(18);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Cafeteria Eligibility Test Results", 105, 15, { align: "center" });
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
-    const generatedTimestamp = new Date().toLocaleString();
-    pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
+      // Header
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Cafeteria Eligibility Test Results", 105, 15, { align: "center" });
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
+      const generatedTimestamp = new Date().toLocaleString();
+      pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
-    const totalEmployees = result["Total Employees"] ?? "N/A";
-    const totalParticipants = result["Total Participants"] ?? "N/A";
-    const hceCount = result["HCE Count"] ?? "N/A";
-    const hcePercentage = result["HCE Percentage (%)"] !== undefined ? `${result["HCE Percentage (%)"]}%` : "N/A";
-    const testResult = result["Test Result"] ?? "N/A";
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(
+        "Test Criterion: HCE average benefits must not exceed 125% of NHCE average benefits",
+        105,
+        38,
+        { align: "center", maxWidth: 180 }
+      );
 
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "italic");
-    pdf.setTextColor(60, 60, 60); // Gray text
-    pdf.text(
-      "Test Criterion: HCE average benefits must not exceed 125% of NHCE average benefits",
-      105,
-      38,
-      { align: "center", maxWidth: 180 }
-    );
+      // Table with Results
+      pdf.autoTable({
+        startY: 44,
+        theme: "grid",
+        head: [["Metric", "Value"]],
+        body: [
+          ["Total Employees", result["Total Employees"] ?? "N/A"],
+          ["Total Participants", result["Total Participants"] ?? "N/A"],
+          ["HCE Count", result["HCE Count"] ?? "N/A"],
+          ["HCE Percentage", result["HCE Percentage (%)"] !== undefined ? result["HCE Percentage (%)"] + "%" : "N/A"],
+          ["Test Result", result["Test Result"] ?? "N/A"],
+        ],
+        headStyles: {
+          fillColor: [41, 128, 185],
+          textColor: [255, 255, 255],
+        },
+        styles: {
+          fontSize: 12,
+          font: "helvetica",
+        },
+        margin: { left: 10, right: 10 },
+      });
 
-    // Table
-     pdf.autoTable({
-    startY: 44,
-    theme: "grid",
-    head: [["Metric", "Value"]],
-    body: [
-      ["Total Employees", result["Total Employees"] ?? "N/A"],
-      ["Total Participants", result["Total Participants"] ?? "N/A"],
-      ["HCE Count", result["HCE Count"] ?? "N/A"],
-      ["HCE Percentage", result["HCE Percentage (%)"] !== undefined ? result["HCE Percentage (%)"] + "%": "N/A"],
-      ["Test Result", result["Test Result"] ?? "N/A"],
-    ],
-      headStyles: {
-        fillColor: [41, 128, 185],
-        textColor: [255, 255, 255],
-      },
-      styles: {
-        fontSize: 12,
-        font: "helvetica",
-      },
-      margin: { left: 10, right: 10 },
-    });
+      // Corrective actions & consequences (only if failed)
+      if (failed) {
+        const correctiveActions = [
+          "Reallocate benefits to balance distributions",
+          "Adjust classifications of key employees",
+          "Update contribution policies",
+        ];
 
-    // Corrective actions & consequences (only if failed)
-  if (failed) {
-    const correctiveActions = [
-        "Reallocate benefits to balance distributions",
-        "Adjust classifications of key employees",
-        "Update contribution policies",
-    ];
+        const consequences = [
+          "Loss of tax-exempt status for key employees",
+          "IRS penalties and fines",
+          "Risk of plan disqualification",
+        ];
 
-    const consequences = [
-        "Loss of tax-exempt status for key employees",
-        "IRS penalties and fines",
-        "Risk of plan disqualification",
-    ];
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Corrective Actions"]],
+          body: correctiveActions.map(action => [action]),
+          headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Consequences"]],
+          body: consequences.map(consequence => [consequence]),
+          headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+      }
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-  }
+      // Add Graphs after Corrective Actions
+      const graphElement = document.getElementById("graphContainer");
+      if (graphElement) {
+        try {
+          const canvas = await html2canvas(graphElement, { scale: 2 });
+          const graphImgData = canvas.toDataURL("image/png");
+          pdf.addPage();
+          pdf.setFontSize(14);
+          pdf.addImage(graphImgData, "PNG", 10, 30, 190, 100);
+        } catch (err) {
+          console.error("❌ Graph export failed:", err);
+        }
+      }
 
-    // Footer
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "italic");
-    pdf.setTextColor(100, 100, 100);
-    pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
+      // Footer
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
-    pdf.save("Cafeteria_Eligibility_Results.pdf");
+      // Generate blob and save locally
+      pdfBlob = pdf.output("blob");
+      pdf.save("Cafeteria_Eligibility_Results.pdf");
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
+      return;
+    }
+    try {
+      await savePdfResultToFirebase({
+        fileName: "Cafeteria_Eligibility_Test",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult: result["Test Result"] ?? "Unknown",
+        },
+      });
+    } catch (error) {
+      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+    }
   };
 
   // =========================
@@ -323,9 +368,7 @@ const EligibilityTest = () => {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive
-            ? "border-green-500 bg-blue-100"
-            : "border-gray-300 bg-gray-50"
+          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
@@ -335,7 +378,7 @@ const EligibilityTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV</strong> here.
+            Drag & drop a <strong>CSV or Excel file</strong> here.
           </p>
         )}
       </div>
@@ -385,29 +428,29 @@ const EligibilityTest = () => {
               </span>
             </p>
             <p className="text-lg mt-2">
-               <strong className="text-gray-700">Total Employees:</strong>{" "}
-                <span className="font-semibold text-black-600">
+              <strong className="text-gray-700">Total Employees:</strong>{" "}
+              <span className="font-semibold text-black-600">
                 {result?.["Total Employees"] ?? "N/A"}
               </span>
-              </p>
-              <p className="text-lg mt-2">
-               <strong className="text-gray-700">Total Participants:</strong>{" "}
-                <span className="font-semibold text-black-600">
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Total Participants:</strong>{" "}
+              <span className="font-semibold text-black-600">
                 {result?.["Total Participants"] ?? "N/A"}
               </span>
-              </p>
+            </p>
             <p className="text-lg mt-2">
-               <strong className="text-gray-700">HCE Count:</strong>{" "}
-                <span className="font-semibold text-black-600">
+              <strong className="text-gray-700">HCE Count:</strong>{" "}
+              <span className="font-semibold text-black-600">
                 {result?.["HCE Count"] ?? "N/A"}
               </span>
-              </p>
-           <p className="text-lg">
-            <strong className="text-gray-700">HCE Percentage:</strong>{" "}
-               <span className="font-semibold text-black-600">
+            </p>
+            <p className="text-lg">
+              <strong className="text-gray-700">HCE Percentage:</strong>{" "}
+              <span className="font-semibold text-black-600">
                 {formatPercentage(result?.["HCE Percentage (%)"])}
               </span>
-              </p>
+            </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
@@ -438,7 +481,12 @@ const EligibilityTest = () => {
             </button>
           </div>
 
-          {/* If test fails, show corrective actions & consequences in the UI */}
+          {/* Graph Container (moved off-screen for PDF capture) */}
+          <div id="graphContainer" style={{ position: "absolute", left: "-9999px", top: 0 }}>
+            <CafeEligibilityChart result={result} />
+          </div>
+
+          {/* If test fails, show corrective actions & consequences */}
           {result["Test Result"]?.toLowerCase() === "failed" && (
             <>
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
