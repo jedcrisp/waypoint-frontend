@@ -330,7 +330,7 @@ const DCAPContributionsTest = () => {
       tabIndex="0"
     >
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
-        📂 Upload DCAP 55% Benefits File
+        📂 Upload DCAP Contributions File
       </h2>
 
       {/* Plan Year Dropdown */}
