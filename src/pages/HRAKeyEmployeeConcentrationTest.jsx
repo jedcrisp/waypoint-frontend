@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from "react";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Firebase PDF saver
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
@@ -7,21 +8,16 @@ import "jspdf-autotable";
 
 const HRAKeyEmployeeConcentrationTest = () => {
   const [file, setFile] = useState(null);
+  const [planYear, setPlanYear] = useState(""); // Plan year state
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [planYear, setPlanYear] = useState(""); // Plan year state
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
 
-  // =========================
-  // 1. Helpers for Formatting
-  // =========================
+  // ---------- Formatting Helpers ----------
   const formatCurrency = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) {
-      return "N/A";
-    }
-    // Example: "$12,345.67"
+    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
     return Number(value).toLocaleString("en-US", {
       style: "currency",
       currency: "USD",
@@ -29,13 +25,11 @@ const HRAKeyEmployeeConcentrationTest = () => {
   };
 
   const formatPercentage = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) {
-      return "N/A";
-    }
-    // Example: "65.43%"
+    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
     return `${Number(value).toFixed(2)}%`;
   };
 
+  // ----- 1. Drag & Drop Logic -----
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles?.length > 0) {
       setFile(acceptedFiles[0]);
@@ -52,7 +46,7 @@ const HRAKeyEmployeeConcentrationTest = () => {
     noKeyboard: true,
   });
 
-  // Trigger upload on Enter key
+  // ----- 2. Handle Enter Key -----
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && file && !loading) {
       e.preventDefault();
@@ -61,25 +55,22 @@ const HRAKeyEmployeeConcentrationTest = () => {
     }
   };
 
+  // ----- 3. Upload File to Backend -----
   const handleUpload = async () => {
     if (!file) {
       setError("❌ Please select a file before uploading.");
       return;
     }
-
-    // Validate file type
+    if (!planYear) {
+      setError("❌ Please select a plan year.");
+      return;
+    }
     const validFileTypes = ["csv", "xlsx"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
     }
-
-    if (!planYear) {
-      setError("❌ Please select a plan year.");
-      return;
-    }
-
     setLoading(true);
     setError(null);
     setResult(null);
@@ -90,8 +81,6 @@ const HRAKeyEmployeeConcentrationTest = () => {
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/hra_key_employee_concentration`);
-
-      // 1. Get Firebase token
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken(true);
       if (!token) {
@@ -99,10 +88,8 @@ const HRAKeyEmployeeConcentrationTest = () => {
         setLoading(false);
         return;
       }
-
       console.log("Firebase Token:", token);
 
-      // 2. Send POST request with Bearer token
       const response = await axios.post(
         `${API_URL}/upload-csv/hra_key_employee_concentration`,
         formData,
@@ -113,7 +100,6 @@ const HRAKeyEmployeeConcentrationTest = () => {
           },
         }
       );
-
       console.log("✅ API Response:", response.data);
       setResult(response.data?.["Test Results"]?.["hra_key_employee_concentration"] || {});
     } catch (err) {
@@ -124,28 +110,67 @@ const HRAKeyEmployeeConcentrationTest = () => {
     }
   };
 
-  // Download results as CSV
+  // ----- 4. Download CSV Template -----
+  const downloadCSVTemplate = () => {
+    const csvTemplate = [
+      [
+        "Last Name",
+        "First Name",
+        "Employee ID",
+        "HRA Benefits",
+        "Key Employee",
+        "DOB",
+        "DOH",
+        "Employment Status",
+        "Excluded from Test",
+        "Union Employee",
+        "Part-Time / Seasonal",
+        "Plan Entry Date",
+      ],
+      ["Last", "First", "001", "2500", "No", "1980-05-10", "2010-06-01", "Active", "No", "No", "No", "2010-01-01"],
+      ["Last", "First", "002", "3000", "Yes", "1975-08-15", "2008-03-15", "Active", "No", "No", "No", "2008-01-01"],
+      ["Last", "First", "003", "0", "No", "1990-12-01", "2022-01-10", "Active", "No", "No", "No", "2022-01-01"],
+      ["Last", "First", "004", "4000", "Yes", "1985-03-22", "2015-09-01", "Active", "No", "No", "No", "2015-01-01"],
+      ["Last", "First", "005", "0", "No", "2000-07-07", "2023-01-15", "Terminated", "Yes", "No", "No", "2023-01-01"],
+      ["Last", "First", "006", "3200", "Yes", "1988-10-10", "2018-11-11", "Active", "No", "No", "No", "2018-01-01"],
+      ["Last", "First", "007", "2800", "No", "1995-04-04", "2020-07-07", "Active", "No", "No", "No", "2020-01-01"],
+      ["Last", "First", "008", "0", "No", "1992-06-18", "2019-12-12", "Active", "No", "No", "No", "2019-01-01"],
+      ["Last", "First", "009", "3500", "Yes", "1982-09-09", "2012-02-02", "Active", "No", "No", "No", "2012-01-01"],
+      ["Last", "First", "010", "0", "No", "2000-11-11", "2023-03-03", "Active", "No", "No", "No", "2023-01-01"],
+    ].map((row) => row.join(",")).join("\n");
+
+    const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "HRA_Key_Emp_Con_Template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // ----- 5. Download Results as CSV -----
   const downloadResultsAsCSV = () => {
     if (!result) {
       setError("❌ No results to download.");
       return;
     }
     const plan = planYear || "N/A";
-    const totalHraBenefits = result["Total HRA Benefits"] ?? "N/A";
+    const totalEmployees = result["Total Employees"] ?? "N/A";
     const keyEmployeeBenefits = result["Key Employee Benefits"] ?? "N/A";
     const keyEmployeeBenefitPercentage = result["Key Employee Benefit Percentage"] ?? "N/A";
-    const testResult = result["Test Result"] ?? "N/A";
+    const testRes = result["Test Result"] ?? "N/A";
 
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", plan],
-      ["Total HRA Benefits", totalHraBenefits],
+      ["Total Employees", totalEmployees],
       ["Key Employee Benefits", keyEmployeeBenefits],
       ["Key Employee Benefit Percentage", keyEmployeeBenefitPercentage],
-      ["Test Result", testResult],
+      ["Test Result", testRes],
     ];
 
-    if (testResult.toLowerCase() === "failed") {
+    if (String(testRes).toLowerCase() === "failed") {
       const correctiveActions = [
         "Review and adjust the allocation of HRA benefits for key employees.",
         "Modify plan design to lower the concentration among key employees.",
@@ -163,153 +188,129 @@ const HRAKeyEmployeeConcentrationTest = () => {
       csvRows.push(["Consequences", ""]);
       consequences.forEach((item) => csvRows.push(["", item]));
     }
-
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "HRA_Key_Employee_concentration_Results.csv");
+    link.setAttribute("download", "HRA_Key_Employee_Concentration_Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // Export results to PDF
-  const exportToPDF = () => {
+  // ----- 6. Export to PDF with Firebase Storage Integration -----
+  const exportToPDF = async () => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
+    let pdfBlob;
+    try {
+      const totalEmployees = result["Total Employees"] ?? "N/A";
+      const keyEmployeeBenefits = formatCurrency(result["Key Employee Benefits"]) || "N/A";
+      const keyEmployeeBenefitPercentage = formatPercentage(result["Key Employee Benefit Percentage"]) || "N/A";
+      const testRes = result["Test Result"] ?? "N/A";
+      const failed = testRes.toLowerCase() === "failed";
 
-    const plan = planYear || "N/A";
-    const totalHraBenefits = formatCurrency(result["Total HRA Benefits"]) ?? "N/A";
-    const keyEmployeeBenefits = formatCurrency(result["Key Employee Benefits"]) ?? "N/A";
-    const keyEmployeeBenefitPercentage = formatPercentage(result["Key Employee Benefit Percentage"]) ?? "N/A";
-    const testResult = result["Test Result"] ?? "N/A";
+      const pdf = new jsPDF("p", "mm", "a4");
+      pdf.setFont("helvetica", "normal");
 
-    const failed = testResult.toLowerCase() === "failed";
+      // Header
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("HRA Key Employee Concentration Test Results", 105, 15, { align: "center" });
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Plan Year: ${planYear || "N/A"}`, 105, 25, { align: "center" });
+      const generatedTimestamp = new Date().toLocaleString();
+      pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
-    const pdf = new jsPDF("p", "mm", "a4");
-    pdf.setFont("helvetica", "normal");
+      // Results Table
+      pdf.autoTable({
+        startY: 40,
+        head: [["Metric", "Value"]],
+        body: [
+          ["Total Employees", totalEmployees],
+          ["Key Employee Benefits", keyEmployeeBenefits],
+          ["Key Employee Benefit Percentage", keyEmployeeBenefitPercentage],
+          ["Test Result", testRes],
+        ],
+        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+        styles: { fontSize: 12, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
 
-    // Header
-    pdf.setFontSize(18);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("HRA Key Employee Concentration Test Results", 105, 15, { align: "center" });
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
-    const generatedTimestamp = new Date().toLocaleString();
-    pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
+      // If test failed, add corrective actions & consequences
+      if (failed) {
+        const correctiveActions = [
+          "Review and adjust the allocation of HRA benefits for key employees.",
+          "Modify plan design to lower the concentration among key employees.",
+          "Reevaluate eligibility criteria to ensure compliance.",
+        ];
+        const consequences = [
+          "Benefits for key employees may be reclassified as taxable.",
+          "Employer may need to make corrective contributions.",
+          "Increased IRS scrutiny and potential penalties.",
+        ];
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          head: [["Corrective Actions"]],
+          body: correctiveActions.map((action) => [action]),
+          headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          head: [["Consequences"]],
+          body: consequences.map((item) => [item]),
+          headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+      }
 
-    // Section 1: Basic Results Table
-    pdf.autoTable({
-      startY: 40,
-      theme: "grid",
-      head: [["Metric", "Value"]],
-      body: [
-        ["Total HRA Benefits", totalHraBenefits],
-        ["Key Employee Benefits", keyEmployeeBenefits],
-        ["Key Employee Benefit Percentage", `${keyEmployeeBenefitPercentage}`],
-        ["Test Result", testResult],
-      ],
-      styles: {
-        fontSize: 12,
-        textColor: [0, 0, 0],
-        halign: "right",
-      },
-      columnStyles: {
-        0: { halign: "left", fontStyle: "bold" },
-        1: { halign: "left" },
-      },
-      headStyles: {
-        fillColor: [41, 128, 185],
-        textColor: [255, 255, 255],
-        fontSize: 12,
-        fontStyle: "helvetica",
-        halign: "left",
-      },
-      margin: { left: 10, right: 10 },
-    });
+      // Footer
+      pdf.setFont("helvetica", "italic");
+      pdf.setFontSize(10);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
-    const summaryStartY = pdf.lastAutoTable.finalY + 10;
-
-    // Corrective actions & consequences (only if failed)
-  if (failed) {
-    const correctiveActions = [
-        "Review and adjust the allocation of HRA benefits for key employees.",
-        "Modify plan design to lower the concentration among key employees.",
-        "Reevaluate eligibility criteria to ensure compliance.",
-      ];
-
-    const consequences = [
-        "Benefits for key employees may be reclassified as taxable.",
-        "Employer may need to make corrective contributions.",
-        "Increased IRS scrutiny and potential penalties.",
-    ];
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
+      try {
+        pdfBlob = pdf.output("blob");
+        pdf.save("HRA_Key_Employee_Concentration_Results.pdf");
+      } catch (error) {
+        setError(`❌ Error exporting PDF: ${error.message}`);
+        return;
+      }
+      try {
+        await savePdfResultToFirebase({
+          fileName: "HRA_Key_Employee_Concentration_Test",
+          pdfBlob,
+          additionalData: {
+            planYear,
+            testResult: testRes || "Unknown",
+          },
+        });
+      } catch (error) {
+        setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+      }
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
     }
-
-    // Footer
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "italic");
-    pdf.setTextColor(100, 100, 100);
-    pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
-
-    pdf.save("HRA_Key_Employee_Concentration_Results.pdf");
   };
 
-   // =========================
-  // 6. Download CSV Template
-  // =========================
-  const downloadCSVTemplate = () => {
-    const csvTemplate = [
-    ["Last Name", "First Name", "Employee ID", "HRA Benefits", "Key Employee", "DOB", "DOH", "Employment Status", "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "Plan Entry Date"],
-    ["Last", "First", "001", "2500", "No", "1980-05-10", "2010-06-01", "Active", "No", "No", "No", "2010-01-01"],
-    ["Last", "First", "002", "3000", "Yes", "1975-08-15", "2008-03-15", "Active", "No", "No", "No", "2008-01-01"],
-    ["Last", "First", "003", "0", "No", "1990-12-01", "2022-01-10", "Active", "No", "No", "No", "2022-01-01"],
-    ["Last", "First", "004", "4000", "Yes", "1985-03-22", "2015-09-01", "Active", "No", "No", "No", "2015-01-01"],
-    ["Last", "First", "005", "0", "No", "2000-07-07", "2023-01-15", "Terminated", "Yes", "No", "No", "2023-01-01"],
-    ["Last", "First", "006", "3200", "Yes", "1988-10-10", "2018-11-11", "Active", "No", "No", "No", "2018-01-01"],
-    ["Last", "First", "007", "2800", "No", "1995-04-04", "2020-07-07", "Active", "No", "No", "No", "2020-01-01"],
-    ["Last", "First", "008", "0", "No", "1992-06-18", "2019-12-12", "Active", "No", "No", "No", "2019-01-01"],
-    ["Last", "First", "009", "3500", "Yes", "1982-09-09", "2012-02-02", "Active", "No", "No", "No", "2012-01-01"],
-    ["Last", "First", "010", "0", "No", "2000-11-11", "2023-03-03", "Active", "No", "No", "No", "2023-01-01"],
-]
-      .map((row) => row.join(","))
-      .join("\n");
-
-    const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "HRA_Key_Emp_Con_Template.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // ----- 7. Handle Enter Key -----
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && file && !loading) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleUpload();
+    }
   };
 
+  // ----- 8. Render -----
   return (
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
@@ -345,10 +346,13 @@ const HRAKeyEmployeeConcentrationTest = () => {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
+          isDragActive
+            ? "border-green-500 bg-blue-100"
+            : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
+        <input type="file" accept=".csv, .xlsx" onChange={(e) => setFile(e.target.files[0])} className="hidden" />
         {file ? (
           <p className="text-green-600 font-semibold">{file.name}</p>
         ) : isDragActive ? (
@@ -371,7 +375,7 @@ const HRAKeyEmployeeConcentrationTest = () => {
       {/* Choose File Button */}
       <button
         type="button"
-        onClick={open}
+        onClick={() => open()}
         className="mt-4 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
       >
         Choose File
@@ -393,36 +397,36 @@ const HRAKeyEmployeeConcentrationTest = () => {
 
       {/* Display Results */}
       {result && (
-        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
+        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-md">
           <h3 className="font-bold text-xl text-gray-700">HRA Key Employee Concentration Test Results</h3>
           <div className="mt-4">
-  <p className="text-lg">
-    <strong className="text-gray-700">Plan Year:</strong>{" "}
-    <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
-  </p>
-  <p className="text-lg">
-    <strong className="text-gray-700">Total HRA Benefits:</strong>{" "}
-    {formatCurrency(result["Total HRA Benefits"] ?? "N/A")}
-  </p>
-  <p className="text-lg">
-    <strong className="text-gray-700">Key Employee Benefits:</strong>{" "}
-    {formatCurrency(result["Key Employee Benefits"] ?? "N/A")}
-  </p>
-  <p className="text-lg">
-    <strong className="text-gray-700">Key Employee Benefit Percentage:</strong>{" "}
-    {formatPercentage(result["Key Employee Benefit Percentage"] ?? "N/A")}
-  </p>
-  <p className="text-lg">
-    <strong className="text-gray-700">Test Result:</strong>{" "}
-    <span
-      className={`px-3 py-1 rounded-md font-bold ${
-        result?.["Test Result"] === "Passed" ? "bg-green-500 text-white" : "bg-red-500 text-white"
-      }`}
-    >
-      {result?.["Test Result"] ?? "N/A"}
-    </span>
-  </p>
-</div>
+            <p className="text-lg">
+              <strong>Plan Year:</strong>{" "}
+              <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong>HRA Benefits:</strong>{" "}
+              {formatCurrency(result["Total HRA Benefits"] ?? "N/A")}
+            </p>
+            <p className="text-lg mt-2">
+              <strong>Key Employee Benefits:</strong>{" "}
+              {formatCurrency(result["Key Employee Benefits"] ?? "N/A")}
+            </p>
+            <p className="text-lg mt-2">
+              <strong>Key Employee Benefit Percentage:</strong>{" "}
+              {formatPercentage(result["Key Employee Benefit Percentage"] ?? "N/A")}
+            </p>
+            <p className="text-lg mt-2">
+              <strong>Test Result:</strong>{" "}
+              <span
+                className={`px-3 py-1 rounded-md font-bold ${
+                  result["Test Result"] === "Passed" ? "bg-green-500 text-white" : "bg-red-500 text-white"
+                }`}
+              >
+                {result["Test Result"] ?? "N/A"}
+              </span>
+            </p>
+          </div>
 
           {/* Export & Download Buttons */}
           <div className="flex flex-col gap-2 mt-4">
@@ -440,28 +444,34 @@ const HRAKeyEmployeeConcentrationTest = () => {
             </button>
           </div>
 
-          {/* Corrective Actions and Consequences if Test Failed */}
-          {result?.["Test Result"] === "Failed" && (
+          {/* Corrective Actions & Consequences if Test Failed */}
+          {result?.["Test Result"]?.toLowerCase() === "failed" && (
             <>
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
-                <h4 className="font-bold text-black-600">Corrective Actions:</h4>
-                <ul className="list-disc list-inside text-black-600">
-                  <li>Review and adjust the allocation of HRA benefits for key employees.</li>
+                <h4 className="font-bold text-black">Corrective Actions:</h4>
+                <ul className="list-disc list-inside text-black">
+                  <li>
+                    Review HRA plan design to ensure NHCE benefits are at least 55% of HCE benefits.
+                  </li>
                   <br />
-                  <li>Modify plan design to lower the concentration among key employees.</li>
+                  <li>
+                    Adjust employer contributions to balance HRA benefits distribution.
+                  </li>
                   <br />
-                  <li>Reevaluate eligibility criteria to ensure compliance.</li>
+                  <li>
+                    Enhance communication to improve NHCE participation.
+                  </li>
                 </ul>
               </div>
 
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
-                <h4 className="font-bold text-black-600">Consequences:</h4>
-                <ul className="list-disc list-inside text-black-600">
-                  <li>❌ Benefits for key employees may be reclassified as taxable.</li>
+                <h4 className="font-bold text-black">Consequences:</h4>
+                <ul className="list-disc list-inside text-black">
+                  <li>HRA benefits for HCEs may become taxable.</li>
                   <br />
-                  <li>❌ Employer may need to make corrective contributions.</li>
+                  <li>Increased IRS audit risk.</li>
                   <br />
-                  <li>❌ Increased IRS scrutiny and potential penalties.</li>
+                  <li>Additional corrective contributions may be required.</li>
                 </ul>
               </div>
             </>
