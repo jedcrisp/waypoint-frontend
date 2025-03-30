@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from "react";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Firebase PDF saver
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
-import { getAuth } from "firebase/auth";
+import { getAuth } from "firebase/auth"; // Firebase Auth
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
@@ -14,18 +15,18 @@ const HRAEligibilityTest = () => {
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
 
-  // Formatting helpers
-const formatCurrency = (value) => {
-  if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
-  return Number(value).toLocaleString("en-US", { style: "currency", currency: "USD" });
-};
+  // ---------- Formatting Helpers ----------
+  const formatCurrency = (value) => {
+    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    return Number(value).toLocaleString("en-US", { style: "currency", currency: "USD" });
+  };
 
-const formatPercentage = (value) => {
-  if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
-  return `${Number(value).toFixed(2)}%`;
-};
+  const formatPercentage = (value) => {
+    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    return `${Number(value).toFixed(2)}%`;
+  };
 
-  // --- 1. Drag & Drop Logic ---
+  // ----- 1. Drag & Drop Logic -----
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
       setFile(acceptedFiles[0]);
@@ -42,7 +43,7 @@ const formatPercentage = (value) => {
     noKeyboard: true,
   });
 
-  // --- 2. Upload File ---
+  // ----- 2. Upload File to Backend -----
   const handleUpload = async () => {
     if (!file) {
       setError("❌ Please select a file before uploading.");
@@ -58,6 +59,7 @@ const formatPercentage = (value) => {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
     }
+
     setLoading(true);
     setError(null);
     setResult(null);
@@ -76,6 +78,7 @@ const formatPercentage = (value) => {
         return;
       }
       console.log("Firebase Token:", token);
+
       const response = await axios.post(
         `${API_URL}/upload-csv/hra_eligibility`,
         formData,
@@ -96,21 +99,21 @@ const formatPercentage = (value) => {
     }
   };
 
-  // --- 3. Download CSV Template ---
+  // ----- 3. Download CSV Template -----
   const downloadCSVTemplate = () => {
     const csvData = [
-  ["Last Name", "First Name", "Employee ID", "HCI", "Eligible for HRA", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
-  ["Last", "First", "001", "Yes", "Yes", "1978-01-01", "2010-06-01", "Active", "No", "2020-01-01", "No", "No"],
-  ["Last", "First", "002", "No", "No", "1980-02-02", "2011-07-01", "Active", "No", "2021-02-01", "No", "No"],
-  ["Last", "First", "003", "Yes", "Yes", "1975-03-03", "2009-05-15", "Active", "No", "2019-03-01", "No", "No"],
-  ["Last", "First", "004", "No", "No", "1982-04-04", "2012-08-01", "Active", "No", "2022-04-01", "No", "No"],
-  ["Last", "First", "005", "Yes", "Yes", "1978-05-05", "2010-10-01", "Active", "No", "2020-05-01", "No", "No"],
-  ["Last", "First", "006", "Yes", "No", "1980-06-06", "2011-11-01", "Active", "No", "2021-06-01", "No", "No"],
-  ["Last", "First", "007", "No", "Yes", "1975-07-07", "2009-12-01", "Active", "No", "2019-07-01", "No", "No"],
-  ["Last", "First", "008", "Yes", "Yes", "1982-08-08", "2012-01-15", "Active", "No", "2022-08-01", "No", "No"],
-  ["Last", "First", "009", "No", "No", "1978-09-09", "2010-03-01", "Active", "No", "2020-09-01", "No", "No"],
-  ["Last", "First", "010", "Yes", "Yes", "1980-10-10", "2011-04-01", "Active", "No", "2021-10-01", "No", "No"]
-];
+      ["Last Name", "First Name", "Employee ID", "HCI", "Eligible for HRA", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
+      ["Last", "First", "001", "Yes", "Yes", "1978-01-01", "2010-06-01", "Active", "No", "2020-01-01", "No", "No"],
+      ["Last", "First", "002", "No", "No", "1980-02-02", "2011-07-01", "Active", "No", "2021-02-01", "No", "No"],
+      ["Last", "First", "003", "Yes", "Yes", "1975-03-03", "2009-05-15", "Active", "No", "2019-03-01", "No", "No"],
+      ["Last", "First", "004", "No", "No", "1982-04-04", "2012-08-01", "Active", "No", "2022-04-01", "No", "No"],
+      ["Last", "First", "005", "Yes", "Yes", "1978-05-05", "2010-10-01", "Active", "No", "2020-05-01", "No", "No"],
+      ["Last", "First", "006", "Yes", "No", "1980-06-06", "2011-11-01", "Active", "No", "2021-06-01", "No", "No"],
+      ["Last", "First", "007", "No", "Yes", "1975-07-07", "2009-12-01", "Active", "No", "2019-07-01", "No", "No"],
+      ["Last", "First", "008", "Yes", "Yes", "1982-08-08", "2012-01-15", "Active", "No", "2022-08-01", "No", "No"],
+      ["Last", "First", "009", "No", "No", "1978-09-09", "2010-03-01", "Active", "No", "2020-09-01", "No", "No"],
+      ["Last", "First", "010", "Yes", "Yes", "1980-10-10", "2011-04-01", "Active", "No", "2021-10-01", "No", "No"],
+    ];
     const csvTemplate = csvData.map(row => row.join(",")).join("\n");
     const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -122,142 +125,161 @@ const formatPercentage = (value) => {
     document.body.removeChild(link);
   };
 
-  // --- 4. Export Results to PDF ---
-  const exportToPDF = () => {
+  // ----- 4. Export Results to PDF with Firebase Storage Integration -----
+  const exportToPDF = async () => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
+    let pdfBlob;
+    try {
+      const totalEmployees = result["Total Employees"] ?? "N/A";
+      const hciEligibility = result["HCI Eligibility (%)"] !== undefined
+        ? formatPercentage(result["HCI Eligibility (%)"])
+        : "N/A";
+      const nonHCIEligibility = result["Non-HCI Eligibility (%)"] !== undefined
+        ? formatPercentage(result["Non-HCI Eligibility (%)"])
+        : "N/A";
+      const eligibilityRatio = result["Eligibility Ratio (%)"] !== undefined
+        ? formatPercentage(result["Eligibility Ratio (%)"])
+        : "N/A";
+      const testRes = result["Test Result"] ?? "N/A";
+      const failed = testRes.toLowerCase() === "failed";
 
-    const totalEmployees = result["Total Employees"] ?? "N/A";
-    const hciEligibility = result["HCI Eligibility (%)"] !== undefined
-      ? formatPercentage(result["HCI Eligibility (%)"])
-      : "N/A";
-    const nonHCIEligibility = result["Non-HCI Eligibility (%)"] !== undefined
-      ? formatPercentage(result["Non-HCI Eligibility (%)"])
-      : "N/A";
-    const eligibilityRatio = result["Eligibility Ratio (%)"] !== undefined
-      ? formatPercentage(result["Eligibility Ratio (%)"])
-      : "N/A";
-    const testRes = result["Test Result"] ?? "N/A";
-    const failed = testRes.toLowerCase() === "failed";
-
-    const pdf = new jsPDF("p", "mm", "a4");
-    pdf.setFont("helvetica", "normal");
-
-    // Header
-    pdf.setFontSize(18);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("HRA Eligibility Test Results", 105, 15, { align: "center" });
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(`Plan Year: ${planYear || "N/A"}`, 105, 25, { align: "center" });
-    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
-
-    // Results Table
-    pdf.autoTable({
-      startY: 40,
-      head: [["Metric", "Value"]],
-      body: [
-        ["Total Employees", totalEmployees],
-        ["HCI Eligibility (%)", hciEligibility],
-        ["Non-HCI Eligibility (%)", nonHCIEligibility],
-        ["Eligibility Ratio (%)", eligibilityRatio],
-        ["Test Result", testRes],
-      ],
-      headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
-      styles: { fontSize: 12, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-
-    if (failed) {
-      const y = pdf.lastAutoTable.finalY + 10;
-      pdf.setFillColor(255, 230, 230);
-      pdf.setDrawColor(255, 0, 0);
-      pdf.rect(10, y, 190, 35, "FD");
-      pdf.setFontSize(12);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text("Corrective Actions:", 15, y + 8);
-      const actions = [
-        "• Expand HRA eligibility for NHCEs",
-        "• Eliminate discriminatory requirements",
-        "• Encourage NHCE enrollment through education and incentives",
-        "• Amend plan document to comply with IRS guidelines",
-      ];
-      let bulletY = y + 14;
-      actions.forEach((action) => {
-        pdf.text(action, 15, bulletY);
-        bulletY += 5;
-      });
-
-      const y2 = y + 45;
-      pdf.setFillColor(255, 255, 204);
-      pdf.setDrawColor(255, 204, 0);
-      pdf.rect(10, y2, 190, 40, "FD");
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(14);
-      pdf.setTextColor(204, 153, 0);
-      pdf.text("Consequences:", 15, y2 + 10);
+      const pdf = new jsPDF("p", "mm", "a4");
       pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(11);
-      pdf.setTextColor(0, 0, 0);
-      const consequences = [
-        "• Plan may lose tax-qualified status",
-        "• IRS penalties and plan disqualification risk",
-        "• Additional corrective contributions may be required",
-        "• Increased IRS audit risk due to compliance failure",
-      ];
-      let bulletY2 = y2 + 18;
-      consequences.forEach((item) => {
-        pdf.text(item, 15, bulletY2);
-        bulletY2 += 5;
-      });
-    }
 
-    pdf.save("HRA_Eligibility_Results.pdf");
+      // Header
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("HRA Eligibility Test Results", 105, 15, { align: "center" });
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Plan Year: ${planYear || "N/A"}`, 105, 25, { align: "center" });
+      pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
+
+      // Results Table
+      pdf.autoTable({
+        startY: 40,
+        head: [["Metric", "Value"]],
+        body: [
+          ["Total Employees", totalEmployees],
+          ["HCI Eligibility (%)", hciEligibility],
+          ["Non-HCI Eligibility (%)", nonHCIEligibility],
+          ["Eligibility Ratio (%)", eligibilityRatio],
+          ["Test Result", testRes],
+        ],
+        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+        styles: { fontSize: 12, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+
+      // If test failed, add corrective actions & consequences
+      if (failed) {
+        const correctiveActions = [
+          "Review employee eligibility criteria.",
+          "Recalculate benefit allocations for compliance.",
+          "Amend plan documents to clarify classification rules.",
+          "Consult with legal or tax advisors for corrections.",
+        ];
+        const consequences = [
+          "Loss of tax benefits.",
+          "Increased IRS penalties.",
+          "Plan disqualification risk.",
+          "Employee dissatisfaction & legal risks.",
+        ];
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          head: [["Corrective Actions"]],
+          body: correctiveActions.map((action) => [action]),
+          headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          head: [["Consequences"]],
+          body: consequences.map((item) => [item]),
+          headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+      }
+
+      // Footer
+      pdf.setFont("helvetica", "italic");
+      pdf.setFontSize(10);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
+
+      try {
+        pdfBlob = pdf.output("blob");
+        pdf.save("HRA_Eligibility_Results.pdf");
+      } catch (error) {
+        setError(`❌ Error exporting PDF: ${error.message}`);
+        return;
+      }
+      try {
+        await savePdfResultToFirebase({
+          fileName: "HRA Eligibility Test",
+          pdfBlob,
+          additionalData: {
+            planYear,
+            testResult: testRes || "Unknown",
+          },
+        });
+      } catch (error) {
+        setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+      }
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
+    }
   };
 
-  // --- 5. Download Results as CSV ---
+  // ----- 5. Download Results as CSV -----
   const downloadResultsAsCSV = () => {
     if (!result) {
       setError("❌ No results to download.");
       return;
     }
-
+    const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
-    const eligibleEmployees = result["Eligible Employees"] ?? "N/A";
-    const eligibilityPct = result["Eligibility Percentage (%)"] !== undefined
-      ? formatPercentage(result["Eligibility Percentage (%)"])
-      : "N/A";
+    const hciEligibility = result["HCI Eligibility (%)"] ?? "N/A";
+    const nonHCIEligibility = result["Non-HCI Eligibility (%)"] ?? "N/A";
+    const eligibilityRatio = result["Eligibility Ratio (%)"] ?? "N/A";
     const testRes = result["Test Result"] ?? "N/A";
-    const failed = testRes.toLowerCase() === "failed";
 
     const csvRows = [
       ["Metric", "Value"],
-      ["Plan Year", planYear],
+      ["Plan Year", plan],
       ["Total Employees", totalEmployees],
-      ["Eligible Employees", eligibleEmployees],
-      ["Eligibility Percentage (%)", eligibilityPct],
+      ["HCI Eligibility (%)", hciEligibility],
+      ["Non-HCI Eligibility (%)", nonHCIEligibility],
+      ["Eligibility Ratio (%)", eligibilityRatio],
       ["Test Result", testRes],
     ];
 
-    if (failed) {
+    if (String(testRes).toLowerCase() === "failed") {
       const correctiveActions = [
-        "Expand HRA eligibility for NHCEs",
-        "Eliminate discriminatory requirements",
-        "Encourage NHCE enrollment through education and incentives",
-        "Amend plan document to comply with IRS guidelines",
+        "Review employee eligibility criteria.",
+        "Recalculate benefit allocations for compliance.",
+        "Amend plan documents to clarify classification rules.",
+        "Consult with legal or tax advisors for corrections.",
       ];
       const consequences = [
-        "HCEs’ HRA benefits may become taxable",
-        "IRS penalties and plan disqualification risk",
-        "NHCEs may lose access to tax-free HRA benefits",
+        "Loss of tax benefits.",
+        "Increased IRS penalties.",
+        "Plan disqualification risk.",
+        "Employee dissatisfaction & legal risks.",
       ];
-      csvRows.push([], ["Corrective Actions"], ...correctiveActions.map(a => ["", a]));
-      csvRows.push([], ["Consequences"], ...consequences.map(c => ["", c]));
+      csvRows.push(["", ""]);
+      csvRows.push(["Corrective Actions", ""]);
+      correctiveActions.forEach((action) => csvRows.push(["", action]));
+      csvRows.push(["", ""]);
+      csvRows.push(["Consequences", ""]);
+      consequences.forEach((item) => csvRows.push(["", item]));
     }
-
-    const csvContent = csvRows.map(row => row.join(",")).join("\n");
+    const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -268,7 +290,7 @@ const formatPercentage = (value) => {
     document.body.removeChild(link);
   };
 
-  // --- 6. Handle Enter Key ---
+  // ----- 6. Handle Enter Key -----
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && file && !loading) {
       e.preventDefault();
@@ -277,7 +299,7 @@ const formatPercentage = (value) => {
     }
   };
 
-  // --- 7. Render ---
+  // ----- 7. RENDER -----
   return (
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
@@ -291,9 +313,7 @@ const formatPercentage = (value) => {
       {/* Plan Year Dropdown */}
       <div className="mb-6">
         <div className="flex items-center">
-          {planYear === "" && (
-            <span className="text-red-500 text-lg mr-2">*</span>
-          )}
+          {planYear === "" && <span className="text-red-500 text-lg mr-2">*</span>}
           <select
             id="planYear"
             value={planYear}
@@ -315,12 +335,11 @@ const formatPercentage = (value) => {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive
-            ? "border-green-500 bg-blue-100"
-            : "border-gray-300 bg-gray-50"
+          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
+        <input type="file" accept=".csv, .xlsx" onChange={(e) => setFile(e.target.files[0])} className="hidden" />
         {file ? (
           <p className="text-green-600 font-semibold">{file.name}</p>
         ) : isDragActive ? (
@@ -343,7 +362,7 @@ const formatPercentage = (value) => {
       {/* Choose File Button */}
       <button
         type="button"
-        onClick={open}
+        onClick={() => open()}
         className="mt-4 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
       >
         Choose File
@@ -369,23 +388,29 @@ const formatPercentage = (value) => {
           <h3 className="font-bold text-xl text-gray-700">HRA Eligibility Test Results</h3>
           <div className="mt-4">
             <p className="text-lg">
-              <strong className="text-gray-700">Plan Year:</strong>{" "}
+              <strong>Plan Year:</strong>{" "}
               <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">HCI Eligibility:</strong>{" "}
+              <strong>HCI Eligibility:</strong>{" "}
               {formatPercentage(result["HCI Eligibility (%)"])}
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Non-HCI Eligibility:</strong>{" "}
+              <strong>Non-HCI Eligibility:</strong>{" "}
               {formatPercentage(result["Non-HCI Eligibility (%)"])}
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Key Employee Benefit:</strong>{" "}
+              <strong>Key Employee Benefit:</strong>{" "}
               {formatPercentage(result["Eligibility Ratio (%)"])}
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Test Result:</strong>{" "}
+              <strong>Test Criterion:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result["Test Criterion"] || "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong>Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
                   result["Test Result"] === "Passed"
@@ -393,7 +418,7 @@ const formatPercentage = (value) => {
                     : "bg-red-500 text-white"
                 }`}
               >
-                {result["Test Result"] ?? "N/A"}
+                {result["Test Result"] || "N/A"}
               </span>
             </p>
           </div>
@@ -418,28 +443,30 @@ const formatPercentage = (value) => {
           {result["Test Result"]?.toLowerCase() === "failed" && (
             <>
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
-                <h4 className="font-bold text-black-600">Corrective Actions:</h4>
-                <ul className="list-disc list-inside text-black-600">
-                  <li>Review employee eligibility criteria.</li>
+                <h4 className="font-bold text-black">Corrective Actions:</h4>
+                <ul className="list-disc list-inside text-black">
+                  <li>
+                    Review HRA plan design to ensure NHCE benefits are at least 55% of HCE benefits.
+                  </li>
                   <br />
-                  <li>Recalculate benefit allocations for compliance.</li>
+                  <li>
+                    Adjust employer contributions to balance HRA benefits distribution.
+                  </li>
                   <br />
-                  <li>Amend plan documents to clarify classification rules.</li>
-                  <br />
-                  <li>Consult with legal or tax advisors for corrections.</li>
+                  <li>
+                    Enhance communication to improve NHCE participation.
+                  </li>
                 </ul>
               </div>
 
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
-                <h4 className="font-bold text-black-600">Consequences:</h4>
-                <ul className="list-disc list-inside text-black-600">
-                  <li>❌ Loss of tax-exempt status for key employees.</li>
+                <h4 className="font-bold text-black">Consequences:</h4>
+                <ul className="list-disc list-inside text-black">
+                  <li>❌ HRA benefits for HCEs may become taxable.</li>
                   <br />
-                  <li>❌ IRS compliance violations and penalties.</li>
+                  <li>❌ Increased IRS audit risk.</li>
                   <br />
-                  <li>❌ Plan disqualification risks.</li>
-                  <br />
-                  <li>❌ Employee dissatisfaction and legal risks.</li>
+                  <li>❌ Additional corrective contributions may be required.</li>
                 </ul>
               </div>
             </>
