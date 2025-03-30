@@ -401,16 +401,20 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong>Hours Requirement Met:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {result?.["Hours Requirement Met"] ?? "N/A"}
-              </span>
+                <strong>Hours Requirement Met:</strong>{" "}
+                <span className="font-semibold text-black-600">
+                {result?.["Hours Requirement Met"] !== undefined
+                  ? (result["Hours Requirement Met"] ? "True" : "False")
+                : "N/A"}
+            </span>
             </p>
             <p className="text-lg mt-2">
-              <strong>Earnings Requirement Met:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {result?.["Earnings Requirement Met"] ?? "N/A"}
-              </span>
+                <strong>Earnings Requirement Met:</strong>{" "}
+                  <span className="font-semibold text-black-600">
+                {result?.["Earnings Requirement Met"] !== undefined
+                ? (result["Earnings Requirement Met"] ? "True" : "False")
+                : "N/A"}
+            </span>
             </p>
             <p className="text-lg mt-2">
               <strong>Eligibility Percentage:</strong>{" "}
