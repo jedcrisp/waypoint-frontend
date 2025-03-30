@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Ensure this utility is correctly implemented and exported
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust the path as needed
@@ -184,86 +185,116 @@ const HealthFSABenefitsTest = () => {
     document.body.removeChild(link);
   };
 
-  // PDF Export
-  const exportToPDF = () => {
+ // =========================
+  // 6. Export to PDF with Firebase Save
+  // =========================
+  const exportToPDF = async () => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
+    let pdfBlob;
+    try {
+      const pdf = new jsPDF("p", "mm", "a4");
+      pdf.setFont("helvetica", "normal");
 
-    const failed = result["Test Result"]?.toLowerCase() === "failed";
-    const pdf = new jsPDF("p", "mm", "a4");
-    pdf.setFont("helvetica", "normal");
+      // Header
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Health FSA 55% Average Benefits Test Results", 105, 15, { align: "center" });
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
+      pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
-    pdf.setFontSize(18);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Health FSA Benefits Test Results", 105, 15, { align: "center" });
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(
+        "Test Criterion: HCE average benefits must not exceed 125% of NHCE average benefits",
+        105,
+        38,
+        { align: "center", maxWidth: 180 }
+      );
 
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
-    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
+      // Table with Results
+      pdf.autoTable({
+        startY: 44,
+        theme: "grid",
+        head: [["Metric", "Value"]],
+        body: [
+          ["Total Health FSA Benefits (Avg)", result["Total Health FSA Benefits (Avg)"] ?? "N/A"],
+          ["NHCE Average Benefit", result["NHCE Average Benefit"] ?? "N/A"],
+          ["HCE Average Benefit", result["HCE Average Benefit"] ?? "N/A"],
+          ["Average Benefits Ratio (%)", result["Average Benefits Ratio (%)"] ?? "N/A"],
+          ["Test Result", result["Test Result"] ?? "N/A"],
+        ],
+        headStyles: {
+          fillColor: [41, 128, 185],
+          textColor: [255, 255, 255],
+        },
+        styles: {
+          fontSize: 12,
+          font: "helvetica",
+        },
+        margin: { left: 10, right: 10 },
+      });
 
-     pdf.autoTable({
-    startY: 40,
-    theme: "grid",
-    head: [["Metric", "Value"]],
-    body: [
-        ["Total Participants", result["Total Participants"] ?? "N/A"],
-        ["HCI Average Benefits (USD)", formatCurrency(result["HCI Average Benefits (USD)"])],
-        ["Non-HCI Average Benefits (USD)", formatCurrency(result["Non-HCI Average Benefits (USD)"])],
-        ["Benefit Ratio (%)", formatPercentage(result["Benefit Ratio (%)"])],
-        ["Test Result", result["Test Result"] ?? "N/A"],
-      ],
-    headStyles: {
-      fillColor: [41, 128, 185],
-      textColor: [255, 255, 255],
-    },
-    styles: {
-      fontSize: 12,
-      font: "helvetica",
-    },
-    margin: { left: 10, right: 10 },
-  });
+      if (result["Test Result"]?.toLowerCase() === "failed") {
+        const y = pdf.lastAutoTable.finalY + 10;
+        pdf.setFillColor(255, 230, 230);
+        pdf.setDrawColor(255, 0, 0);
+        pdf.rect(10, y, 190, 30, "FD");
+        pdf.setFontSize(12);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text("Corrective Actions:", 15, y + 7);
+        const actions = [
+          "• Review and adjust contributions to ensure NHCE average benefit is at least 55% of HCE average benefit",
+          "• Increase NHCE participation or modify formulas accordingly",
+          "• Reevaluate plan design to improve IRS compliance",
+        ];
+        actions.forEach((action, i) => pdf.text(action, 15, y + 14 + i * 5));
 
-    // Corrective actions & consequences (only if failed)
-  if (failed) {
-    const correctiveActions = [
-        "Adjust employer contributions to ensure compliance with IRS limits",
-        "Increase NHCE participation through targeted incentives",
-        "Reassess benefit allocation to achieve balanced ratios",
-    ];
+        const y2 = y + 40;
+        pdf.setFillColor(255, 255, 204);
+        pdf.setDrawColor(255, 204, 0);
+        pdf.rect(10, y2, 190, 30, "FD");
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(14);
+        pdf.setTextColor(204, 153, 0);
+        pdf.text("Consequences:", 15, y2 + 10);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(11);
+        pdf.setTextColor(0, 0, 0);
+        const consequences = [
+          "• Potential reclassification of benefits as taxable",
+          "• Increased IRS scrutiny and potential penalties",
+          "• Risk of plan disqualification",
+        ];
+        consequences.forEach((item, i) => pdf.text(item, 15, y2 + 18 + i * 5));
+      }
 
-    const consequences = [
-        "HCI benefits may become taxable",
-        "IRS penalties and fines could apply",
-        "Risk of plan disqualification",
-    ];
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-  }
-
-    pdf.save("Health_FSA_Benefits_Results.pdf");
+      // Generate PDF blob and save locally
+      pdfBlob = pdf.output("blob");
+      pdf.save("Health_FSA_55_Average_Benefits_Results.pdf");
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
+      return;
+    }
+    try {
+      // Upload the PDF blob to Firebase Storage using your helper utility
+      await savePdfResultToFirebase({
+        fileName: "Health_FSA_55_Average_Benefits_Test",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult: result["Test Result"] ?? "Unknown",
+        },
+      });
+    } catch (error) {
+      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+    }
   };
-
   return (
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
