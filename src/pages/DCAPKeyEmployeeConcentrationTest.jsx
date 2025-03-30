@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from "react";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Integrated from DCAP contributions
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
@@ -14,19 +15,21 @@ const DCAPKeyEmployeeConcentrationTest = () => {
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
 
+  // =========================
+  //  Helper Functions
+  // =========================
   const formatCurrency = (value) => {
-  if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
-  return Number(value).toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-  });
-};
+    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    return Number(value).toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+    });
+  };
 
-const formatPercentage = (value) => {
-  if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
-  return `${Number(value).toFixed(2)}%`;
-};
-
+  const formatPercentage = (value) => {
+    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    return `${Number(value).toFixed(2)}%`;
+  };
 
   // =========================
   // 1. Drag & Drop Logic
@@ -55,7 +58,6 @@ const formatPercentage = (value) => {
       setError("❌ Please select a file before uploading.");
       return;
     }
-
     const validFileTypes = ["csv"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
@@ -66,7 +68,6 @@ const formatPercentage = (value) => {
       setError("❌ Please select a plan year.");
       return;
     }
-
     setLoading(true);
     setError(null);
     setResult(null);
@@ -86,12 +87,16 @@ const formatPercentage = (value) => {
         return;
       }
 
-      const response = await axios.post(`${API_URL}/upload-csv/dcap_key_employee_concentration`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const response = await axios.post(
+        `${API_URL}/upload-csv/dcap_key_employee_concentration`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       console.log("✅ API Response:", response.data);
       setResult(response.data?.["Test Results"]?.["dcap_key_employee_concentration"] || {});
@@ -117,46 +122,44 @@ const formatPercentage = (value) => {
   // =========================
   // 4. Download CSV Template
   // =========================
-  // You may adjust the template as needed
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-  [
-    "Last Name",
-    "First Name",
-    "Employee ID",
-    "DCAP Benefits",
-    "Key Employee",
-    "DOB",
-    "DOH",
-    "Employment Status",
-    "Excluded from Test",
-    "Plan Entry Date",
-    "Union Employee",
-    "Part-Time / Seasonal"
-  ],
-  ["Last", "First", "001", "$1,000.00", "Yes", "1980-05-10", "2010-06-01", "Active", "No", "2011-01-01", "No", "No"],
-  ["Last", "First",  "002", "$1,500.00", "No", "1985-08-15", "2012-03-10", "Active", "No", "2013-01-01", "No", "Yes"],
-  ["Last", "First",  "003", "$2,000.00", "Yes", "1975-01-20", "2005-05-05", "Active", "No", "2006-01-01", "Yes", "No"],
-  ["Last", "First",  "004", "$1,200.00", "No", "1990-12-01", "2020-08-20", "Active", "Yes", "2021-01-01", "No", "No"],
-  ["Last", "First",  "005", "$1,800.00", "Yes", "1995-07-19", "2021-04-10", "Leave", "No", "2022-01-01", "No", "Yes"],
-  ["Last", "First",  "006", "$1,100.00", "No", "1982-11-03", "2009-11-01", "Active", "No", "2010-01-01", "Yes", "No"],
-  ["Last", "First",  "007", "$1,300.00", "Yes", "2001-04-25", "2022-09-15", "Active", "No", "2023-01-01", "No", "No"],
-  ["Last", "First",  "008", "$1,600.00", "No", "1978-02-14", "2000-01-01", "Terminated", "No", "2001-01-01", "Yes", "Yes"],
-  ["Last", "First",  "009", "$1,400.00", "Yes", "1999-06-30", "2019-03-05", "Active", "No", "2020-01-01", "No", "No"],
-  ["Last", "First",  "010", "$1,700.00", "No", "2003-09-12", "2023-01-10", "Active", "No", "2023-07-01", "Yes", "Yes"],
-].map((row) => row.join(",")).join("\n");
+      [
+        "Last Name",
+        "First Name",
+        "Employee ID",
+        "DCAP Benefits",
+        "Key Employee",
+        "DOB",
+        "DOH",
+        "Employment Status",
+        "Excluded from Test",
+        "Plan Entry Date",
+        "Union Employee",
+        "Part-Time / Seasonal"
+      ],
+      ["Last", "First", "001", "$1,000.00", "Yes", "1980-05-10", "2010-06-01", "Active", "No", "2011-01-01", "No", "No"],
+      ["Last", "First", "002", "$1,500.00", "No", "1985-08-15", "2012-03-10", "Active", "No", "2013-01-01", "No", "Yes"],
+      ["Last", "First", "003", "$2,000.00", "Yes", "1975-01-20", "2005-05-05", "Active", "No", "2006-01-01", "Yes", "No"],
+      ["Last", "First", "004", "$1,200.00", "No", "1990-12-01", "2020-08-20", "Active", "Yes", "2021-01-01", "No", "No"],
+      ["Last", "First", "005", "$1,800.00", "Yes", "1995-07-19", "2021-04-10", "Leave", "No", "2022-01-01", "No", "Yes"],
+      ["Last", "First", "006", "$1,100.00", "No", "1982-11-03", "2009-11-01", "Active", "No", "2010-01-01", "Yes", "No"],
+      ["Last", "First", "007", "$1,300.00", "Yes", "2001-04-25", "2022-09-15", "Active", "No", "2023-01-01", "No", "No"],
+      ["Last", "First", "008", "$1,600.00", "No", "1978-02-14", "2000-01-01", "Terminated", "No", "2001-01-01", "Yes", "Yes"],
+      ["Last", "First", "009", "$1,400.00", "Yes", "1999-06-30", "2019-03-05", "Active", "No", "2020-01-01", "No", "No"],
+      ["Last", "First", "010", "$1,700.00", "No", "2003-09-12", "2023-01-10", "Active", "No", "2023-07-01", "Yes", "Yes"],
+    ].map((row) => row.join(",")).join("\n");
 
+    const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
 
-  const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-
-  const link = document.createElement("a");
-  link.href = url;
-  link.setAttribute("download", "DCAP_Eligibility_Template.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "DCAP_Key_Employee_Concentration_Template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // =========================
   // 5. Download Results as CSV
@@ -172,12 +175,17 @@ const formatPercentage = (value) => {
       ["Total Employees", result["Total Employees"] ?? "N/A"],
       ["Total Participants", result["Total Participants"] ?? "N/A"],
       ["Key Employee Benefits", result["Key Employee Benefits"] ?? "N/A"],
-      ["Key Employee Benefit Percentage", result["Key Employee Benefit Percentage"] ? `${result["Key Employee Benefit Percentage"]}%` : "N/A",],
+      [
+        "Key Employee Benefit Percentage",
+        result["Key Employee Benefit Percentage"]
+          ? `${result["Key Employee Benefit Percentage"]}%`
+          : "N/A"
+      ],
       ["Total DCAP Benefits", result["Total DCAP Benefits"] ?? "N/A"],
       ["Test Result", result["Test Result"] ?? "N/A"],
     ];
 
-    const csvContent = csvRows.map(row => row.join(",")).join("\n");
+    const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -191,102 +199,128 @@ const formatPercentage = (value) => {
   // =========================
   // 6. Export to PDF
   // =========================
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
 
-    const pdf = new jsPDF("p", "mm", "a4");
-    pdf.setFont("helvetica", "normal");
+    let pdfBlob;
+    try {
+      const pdf = new jsPDF("p", "mm", "a4");
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(
+        "Test Criterion: Key employee benefits must not exceed 25% of total DCAP benefits",
+        105,
+        38,
+        { align: "center", maxWidth: 180 }
+      );
 
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "italic");
-    pdf.setTextColor(60, 60, 60); // Gray text
-    pdf.text(
-       "Test Criterion: Key employee benefits must not exceed 25% of total DCAP benefits",
-      105,
-      38,
-      { align: "center", maxWidth: 180 }
-    );
+      // Header
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("DCAP Key Employee Concentration Test Results", 105, 15, { align: "center" });
 
-    // Header
-    pdf.setFontSize(18);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("DCAP Key Employee Concentration Test Results", 105, 15, { align: "center" });
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
+      const generatedTimestamp = new Date().toLocaleString();
+      pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
-    const generatedTimestamp = new Date().toLocaleString();
-    pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
+      pdf.autoTable({
+        startY: 43,
+        theme: "grid",
+        head: [["Metric", "Value"]],
+        body: [
+          ["Total Employees", result["Total Employees"] ?? "N/A"],
+          ["Total Participants", result["Total Participants"] ?? "N/A"],
+          [
+            "Key Employee Benefits",
+            result["Key Employee Benefits"] ? formatCurrency(result["Key Employee Benefits"]) : "N/A"
+          ],
+          [
+            "Key Employee Benefit Percentage",
+            result["Key Employee Benefit Percentage"] ? `${result["Key Employee Benefit Percentage"]}%` : "N/A"
+          ],
+          [
+            "Total DCAP Benefits",
+            result["Total DCAP Benefits"] ? formatCurrency(result["Total DCAP Benefits"]) : "N/A"
+          ],
+          ["Test Result", result["Test Result"] ?? "N/A"],
+        ],
+        headStyles: {
+          fillColor: [41, 128, 185],
+          textColor: [255, 255, 255],
+        },
+        styles: {
+          fontSize: 12,
+          font: "helvetica",
+        },
+        margin: { left: 10, right: 10 },
+      });
 
-  pdf.autoTable({
-    startY: 43,
-    theme: "grid", // Ensures full table grid
-    head: [["Metric", "Value"]],
-    body: [
-      ["Total Employees", result["Total Employees"] ?? "N/A",],
-      ["Total Participants", result["Total Participants"] ?? "N/A",],
-      ["Key Employee Benefits", result["Key Employee Benefits"] ? formatCurrency(result["Key Employee Benefits"]) : "N/A",],
-      ["Key Employee Benefit Percentage", result["Key Employee Benefit Percentage"] ? `${result["Key Employee Benefit Percentage"]}%` : "N/A",],
-      ["Total DCAP Benefits", result["Total DCAP Benefits"] ? formatCurrency(result["Total DCAP Benefits"]) : "N/A",],
-      ["Test Result", result["Test Result"] ?? "N/A"],
-    ],
-    headStyles: {
-      fillColor: [41, 128, 185],
-      textColor: [255, 255, 255],
-    },
-    styles: {
-      fontSize: 12,
-      font: "helvetica",
-    },
-    margin: { left: 10, right: 10 },
-  });
+      // If test failed, add corrective actions and consequences
+      if (result["Test Result"]?.toLowerCase() === "failed") {
+        const correctiveActions = [
+          "Adjust benefits allocations to reduce concentration among key employees",
+          "Consider reallocating contributions for a more balanced distribution",
+          "Review and update plan design and eligibility criteria to ensure IRS compliance",
+        ];
 
-     // Corrective actions & consequences (only if failed)
-  if (result["Test Result"]?.toLowerCase() === "failed") {
-    const correctiveActions = [
-        "Adjust benefits allocations to reduce concentration among key employees",
-        "Consider reallocating contributions for a more balanced distribution",
-        "Review and update plan design and eligibility criteria to ensure IRS compliance",
-    ];
+        const consequences = [
+          "Potential reclassification of benefits as taxable income for key employees",
+          "Increased corrective contributions may be required",
+          "Heightened risk of IRS penalties and additional compliance audits",
+        ];
 
-    const consequences = [
-        "Potential reclassification of benefits as taxable income for key employees",
-        "Increased corrective contributions may be required",
-        "Heightened risk of IRS penalties and additional compliance audits",
-    ];
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Corrective Actions"]],
+          body: correctiveActions.map((action) => [action]),
+          headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Consequences"]],
+          body: consequences.map((consequence) => [consequence]),
+          headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+      }
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
+      pdfBlob = pdf.output("blob");
+      pdf.save("DCAP_Key_Employee_Concentration_Results.pdf");
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
+      return;
+    }
 
-  }
-
-    // Footer
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "italic");
-    pdf.setTextColor(100, 100, 100);
-    pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
-
-    pdf.save("DCAP_Key_Employee_Concentration_Results.pdf");
+    try {
+      // Assuming savePdfResultToFirebase is defined elsewhere
+      await savePdfResultToFirebase({
+        fileName: "DCAP Key Employee Concentration Test",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult: result["Test Result"] ?? "Unknown",
+        },
+      });
+    } catch (error) {
+      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+    }
   };
 
   // =========================
@@ -392,39 +426,36 @@ const formatPercentage = (value) => {
                 {result?.["Total Employees"] ?? "N/A"}
               </span>
             </p>
-
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Total Participants:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {result?.["Total Participants"] ?? "N/A"}
               </span>
             </p>
-<p className="text-lg mt-2">
-  <strong className="text-gray-700">Key Employee Benefits:</strong>{" "}
-  <span className="font-semibold text-gray-800">
-    {result["Key Employee Benefits"]
-      ? formatCurrency(result["Key Employee Benefits"])
-      : "N/A"}
-  </span>
-</p>
-<p className="text-lg mt-2">
-  <strong className="text-gray-700">Key Employee Benefit Percentage:</strong>{" "}
-  <span className="font-semibold text-gray-800">
-    {result["Key Employee Benefit Percentage"]
-      ? formatPercentage(result["Key Employee Benefit Percentage"])
-      : "N/A"}
-  </span>
-</p>
-
-<p className="text-lg">
-  <strong className="text-gray-700">Total DCAP Benefits:</strong>{" "}
-  <span className="font-semibold text-gray-800">
-    {result["Total DCAP Benefits"]
-      ? formatCurrency(result["Total DCAP Benefits"])
-      : "N/A"}
-  </span>
-</p>
-
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Key Employee Benefits:</strong>{" "}
+              <span className="font-semibold text-gray-800">
+                {result["Key Employee Benefits"]
+                  ? formatCurrency(result["Key Employee Benefits"])
+                  : "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Key Employee Benefit Percentage:</strong>{" "}
+              <span className="font-semibold text-gray-800">
+                {result["Key Employee Benefit Percentage"]
+                  ? formatPercentage(result["Key Employee Benefit Percentage"])
+                  : "N/A"}
+              </span>
+            </p>
+            <p className="text-lg">
+              <strong className="text-gray-700">Total DCAP Benefits:</strong>{" "}
+              <span className="font-semibold text-gray-800">
+                {result["Total DCAP Benefits"]
+                  ? formatCurrency(result["Total DCAP Benefits"])
+                  : "N/A"}
+              </span>
+            </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
@@ -455,7 +486,7 @@ const formatPercentage = (value) => {
             </button>
           </div>
 
-          {/* If test fails, show corrective actions & consequences in the UI */}
+          {/* If test fails, show corrective actions & consequences */}
           {result["Test Result"]?.toLowerCase() === "failed" && (
             <>
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
@@ -468,7 +499,6 @@ const formatPercentage = (value) => {
                   <li>Review and update plan design and eligibility criteria to ensure IRS compliance.</li>
                 </ul>
               </div>
-
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
