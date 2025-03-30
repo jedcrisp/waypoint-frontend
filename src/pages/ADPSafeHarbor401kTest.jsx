@@ -4,6 +4,7 @@ import axios from "axios";
 import { getAuth } from "firebase/auth"; // Firebase Auth
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Firebase PDF saver
 
 const ADPSafeHarbor401kTest = () => {
   const [file, setFile] = useState(null);
@@ -112,18 +113,18 @@ const ADPSafeHarbor401kTest = () => {
   // --------- 4. Download CSV Template ---------
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-  ["Last Name", "First Name", "Employee ID", "Eligible for Cafeteria Plan", "Employer Contribution", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
-  ["Last", "First", "001", "Yes", 1500, "1980-05-10", "2010-06-01", "Active", "No", "2011-01-01", "No", "No"],
-  ["Last", "First", "002", "No", 0, "1985-08-15", "2015-03-10", "Active", "No", "2016-01-01", "No", "No"],
-  ["Last", "First", "003", "Yes", 1800, "1992-01-01", "2020-09-10", "Active", "No", "2021-01-01", "No", "No"],
-  ["Last", "First", "004", "Yes", 2000, "1980-08-25", "2012-07-01", "Active", "No", "2013-01-01", "No", "No"],
-  ["Last", "First", "005", "No", 0, "1995-05-18", "2018-05-01", "Active", "No", "2019-01-01", "Yes", "No"],
-  ["Last", "First", "006", "Yes", 2200, "1983-12-09", "2011-01-10", "Active", "No", "2012-01-01", "No", "No"],
-  ["Last", "First", "007", "No", 0, "1990-07-14", "2021-04-01", "Terminated", "No", "2021-07-01", "No", "Yes"],
-  ["Last", "First", "008", "Yes", 1750, "1978-10-20", "2008-02-20", "Active", "No", "2009-01-01", "No", "No"],
-  ["Last", "First", "009", "No", 0, "2001-09-01", "2023-01-01", "Active", "No", "2023-02-01", "No", "No"],
-  ["Last", "First", "010", "Yes", 1600, "1994-06-30", "2016-06-01", "Leave", "No", "2017-01-01", "No", "Yes"]
-]
+      ["Last Name", "First Name", "Employee ID", "Eligible for Cafeteria Plan", "Employer Contribution", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
+      ["Last", "First", "001", "Yes", 1500, "1980-05-10", "2010-06-01", "Active", "No", "2011-01-01", "No", "No"],
+      ["Last", "First", "002", "No", 0, "1985-08-15", "2015-03-10", "Active", "No", "2016-01-01", "No", "No"],
+      ["Last", "First", "003", "Yes", 1800, "1992-01-01", "2020-09-10", "Active", "No", "2021-01-01", "No", "No"],
+      ["Last", "First", "004", "Yes", 2000, "1980-08-25", "2012-07-01", "Active", "No", "2013-01-01", "No", "No"],
+      ["Last", "First", "005", "No", 0, "1995-05-18", "2018-05-01", "Active", "No", "2019-01-01", "Yes", "No"],
+      ["Last", "First", "006", "Yes", 2200, "1983-12-09", "2011-01-10", "Active", "No", "2012-01-01", "No", "No"],
+      ["Last", "First", "007", "No", 0, "1990-07-14", "2021-04-01", "Terminated", "No", "2021-07-01", "No", "Yes"],
+      ["Last", "First", "008", "Yes", 1750, "1978-10-20", "2008-02-20", "Active", "No", "2009-01-01", "No", "No"],
+      ["Last", "First", "009", "No", 0, "2001-09-01", "2023-01-01", "Active", "No", "2023-02-01", "No", "No"],
+      ["Last", "First", "010", "Yes", 1600, "1994-06-30", "2016-06-01", "Leave", "No", "2017-01-01", "No", "Yes"]
+    ]
       .map((row) => row.join(","))
       .join("\n");
     const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
@@ -191,7 +192,7 @@ const ADPSafeHarbor401kTest = () => {
   };
 
   // --------- 6. Export to PDF ---------
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
@@ -213,9 +214,7 @@ const ADPSafeHarbor401kTest = () => {
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "normal");
     pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
-    pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
     pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
-
 
     // Section 1: Basic Results Table
     pdf.autoTable({
@@ -229,78 +228,50 @@ const ADPSafeHarbor401kTest = () => {
         ["Average Employer Contribution (%)", avgEmployerContribution],
         ["Test Result", testRes],
       ],
-    headStyles: {
-      fillColor: [41, 128, 185],
-      textColor: [255, 255, 255],
-    },
-    styles: {
-      fontSize: 12,
-      font: "helvetica",
-    },
-    margin: { left: 10, right: 10 },
-  });
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: [255, 255, 255],
+      },
+      styles: {
+        fontSize: 12,
+        font: "helvetica",
+      },
+      margin: { left: 10, right: 10 },
+    });
 
-    // Section 2: Summary Box
-    const summaryStartY = pdf.lastAutoTable.finalY + 10;
-    const boxWidth = 0;
-    let boxHeight = 0;
-    const failed = testRes.toLowerCase() === "failed";
-
-    pdf.setDrawColor(0, 0, 0);
-    pdf.setLineWidth(0);
-    pdf.rect(10, summaryStartY, boxWidth, boxHeight, "S");
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "bold");
-    if (failed) {
-      pdf.text("", 12, summaryStartY + 8);
-    } else {
-      pdf.text("", 12, summaryStartY + 8);
-    }
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(
-      "",
-      12,
-      summaryStartY + 14,
-      { maxWidth: 186 }
-    );
-
-    // Corrective actions & consequences (only if failed)
-  if (failed) {
-    const correctiveActions = [
+    // If test failed, add corrective actions & consequences
+    if (testRes.toLowerCase() === "failed") {
+      const correctiveActions = [
         "Refund Excess Contributions by March 15 to avoid penalties.",
         "Make Additional Contributions as required.",
         "Recharacterize excess contributions appropriately.",
-    ];
-
-    const consequences = [
+      ];
+      const consequences = [
         "Excess Contributions Must Be Refunded",
         "IRS Penalties and Compliance Risks",
         "Loss of Tax Benefits",
         "Plan Disqualification Risk",
         "Employee Dissatisfaction & Legal Risks",
-    ];
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-  }
+      ];
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Corrective Actions"]],
+        body: correctiveActions.map(action => [action]),
+        headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Consequences"]],
+        body: consequences.map(consequence => [consequence]),
+        headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+    }
 
     // Footer
     pdf.setFontSize(10);
@@ -308,8 +279,26 @@ const ADPSafeHarbor401kTest = () => {
     pdf.setTextColor(100, 100, 100);
     pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
-    console.log("Reached end of PDF function");
-    pdf.save("Safe_Harbor_401k_Test_Results.pdf");
+    let pdfBlob;
+    try {
+      pdfBlob = pdf.output("blob");
+      pdf.save("Safe_Harbor_401k_Test_Results.pdf");
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
+      return;
+    }
+    try {
+      await savePdfResultToFirebase({
+        fileName: "ADP Safe Harbor 401k Test",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult: testRes || "Unknown",
+        },
+      });
+    } catch (error) {
+      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+    }
   };
 
   // --------- RENDER ---------
@@ -420,17 +409,17 @@ const ADPSafeHarbor401kTest = () => {
               {result["Eligible Employees"] ?? "N/A"}
             </p>
             <p className="text-lg mt-2">
-  <strong className="text-gray-700">Eligibility Percentage:</strong>{" "}
-  <span className="font-semibold text-black-600">
-    {formatPercentage(result?.["Eligibility Percentage (%)"])}
-  </span>
-</p>
-<p className="text-lg mt-2">
-  <strong className="text-gray-700">Average Employer Contribution:</strong>{" "}
-  <span className="font-semibold text-black-600">
-    {formatCurrency(result?.["Average Employer Contribution (%)"])}
-  </span>
-</p>
+              <strong className="text-gray-700">Eligibility Percentage:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatPercentage(result?.["Eligibility Percentage (%)"])}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Average Employer Contribution:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatCurrency(result?.["Average Employer Contribution (%)"])}
+              </span>
+            </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
@@ -484,15 +473,15 @@ const ADPSafeHarbor401kTest = () => {
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>❌ Excess Contributions Must Be Refunded</li>
+                  <li>Excess Contributions Must Be Refunded</li>
                   <br />
-                  <li>❌ IRS Penalties and Compliance Risks</li>
+                  <li>IRS Penalties and Compliance Risks</li>
                   <br />
-                  <li>❌ Loss of Tax Benefits for HCEs</li>
+                  <li>Loss of Tax Benefits for HCEs</li>
                   <br />
-                  <li>❌ Plan Disqualification Risk</li>
+                  <li>Plan Disqualification Risk</li>
                   <br />
-                  <li>❌ Employee Dissatisfaction & Legal Risks</li>
+                  <li>Employee Dissatisfaction & Legal Risks</li>
                 </ul>
               </div>
             </>
