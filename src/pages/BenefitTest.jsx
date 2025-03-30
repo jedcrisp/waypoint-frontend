@@ -450,9 +450,9 @@ const BenefitTest = () => {
               </span>
             </p>
             <p className="text-lg">
-              <strong className="text-gray-700">Total Eligible Employees:</strong>{" "}
+              <strong className="text-gray-700">Total Employees:</strong>{" "}
               <span className="font-semibold text-blue-600">
-                {result?.["Total Eligible Employees"] ?? "N/A"}
+                {result?.["Total Employees"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
