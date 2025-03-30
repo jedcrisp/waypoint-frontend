@@ -160,7 +160,6 @@ const RatioPercentageTest = () => {
     const totalNHCEs = result["Total NHCEs"] ?? "N/A";
     const hceEligibility = result["HCE Eligibility (%)"] ?? "N/A";
     const nhceEligibility = result["NHCE Eligibility (%)"] ?? "N/A";
-    const ratioPercentage = result["Ratio Percentage"] ?? "N/A";
     const testRes = result["Test Result"] ?? "N/A";
 
     const csvRows = [
@@ -172,7 +171,6 @@ const RatioPercentageTest = () => {
       ["NHCE Eligibility (%)", nhceEligibility],
       ["Total HCEs", totalHCEs],
       ["Total NHCEs", totalNHCEs],
-      ["Ratio Percentage (%)", ratioPercentage],
       ["Test Result", testRes],
     ];
 
@@ -208,9 +206,6 @@ const RatioPercentageTest = () => {
         : "N/A";
       const totalHCEs = result["Total HCEs"] ?? "N/A";
       const totalNHCEs = result["Total NHCEs"] ?? "N/A";
-      const ratioPercentage = result["Ratio Percentage"] !== undefined
-        ? formatPercentage(result["Ratio Percentage"])
-        : "N/A";
       const testRes = result["Test Result"] ?? "N/A";
       const failed = testRes.toLowerCase() === "failed";
 
@@ -238,7 +233,6 @@ const RatioPercentageTest = () => {
           ["NHCE Eligibility (%)", nhceEligibility],
           ["Total HCEs", totalHCEs],
           ["Total NHCEs", totalNHCEs],
-          ["Ratio Percentage (%)", ratioPercentage],
           ["Test Result", testRes],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
@@ -440,10 +434,6 @@ const RatioPercentageTest = () => {
               <span className="font-semibold text-black-600">
                 {result?.["Total NHCEs"] ?? "N/A"}
               </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong>Ratio Percentage:</strong>{" "}
-              {formatPercentage(result["Ratio Percentage"])}
             </p>
             <p className="text-lg mt-2">
               <strong>Test Result:</strong>{" "}
