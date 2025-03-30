@@ -475,9 +475,10 @@ const HRA25OwnerRuleTest = () => {
                   <li>❌ Employer may face IRS penalties and additional corrective measures.</li>
                   <br />
                   <li>❌ Increased administrative and compliance burdens.</li>
-                </ul>
+                 </ul>
               </div>
             </>
+          )}
         </div>
       )}
     </div>
