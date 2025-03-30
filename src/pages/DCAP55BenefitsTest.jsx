@@ -4,6 +4,7 @@ import axios from "axios";
 import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver";
 
 const DCAP55BenefitsTest = () => {
   const [file, setFile] = useState(null);
@@ -14,8 +15,10 @@ const DCAP55BenefitsTest = () => {
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
 
+  // ---------- Formatting Helpers ----------
   const formatCurrency = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    if (value === undefined || value === null || isNaN(Number(value)))
+      return "N/A";
     return Number(value).toLocaleString("en-US", {
       style: "currency",
       currency: "USD",
@@ -23,12 +26,16 @@ const DCAP55BenefitsTest = () => {
   };
 
   const formatPercentage = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    if (value === undefined || value === null || isNaN(Number(value)))
+      return "N/A";
     return `${Number(value).toFixed(2)}%`;
   };
 
+  // =========================
+  // 1. Drag & Drop Logic
+  // =========================
   const onDrop = useCallback((acceptedFiles) => {
-    if (acceptedFiles.length) {
+    if (acceptedFiles && acceptedFiles.length > 0) {
       setFile(acceptedFiles[0]);
       setResult(null);
       setError(null);
@@ -43,6 +50,9 @@ const DCAP55BenefitsTest = () => {
     noKeyboard: true,
   });
 
+  // =========================
+  // 2. Upload File to Backend
+  // =========================
   const handleUpload = async () => {
     if (!file) {
       setError("❌ Please select a file before uploading.");
@@ -77,12 +87,16 @@ const DCAP55BenefitsTest = () => {
         return;
       }
 
-      const response = await axios.post(`${API_URL}/upload-csv/dcap_55_benefits`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const response = await axios.post(
+        `${API_URL}/upload-csv/dcap_55_benefits`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       const dcapResults = response.data?.["Test Results"]?.["dcap_55_benefits"];
       if (!dcapResults) {
@@ -98,6 +112,9 @@ const DCAP55BenefitsTest = () => {
     }
   };
 
+  // =========================
+  // 3. Download CSV Template
+  // =========================
   const downloadCSVTemplate = () => {
     const csvTemplate = [
       ["Last Name", "First Name", "Employee ID", "HCE", "DCAP Benefits", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
@@ -123,10 +140,12 @@ const DCAP55BenefitsTest = () => {
     document.body.removeChild(link);
   };
 
-  // Export PDF function
-  const exportToPDF = () => {
+  // =========================
+  // 4. Export Results to PDF (with Firebase saving)
+  // =========================
+  const exportToPDF = async () => {
     if (!result) {
-      setError("❌ No results to export.");
+      setError("❌ No results available to export.");
       return;
     }
     
@@ -141,9 +160,10 @@ const DCAP55BenefitsTest = () => {
     const pdf = new jsPDF("p", "mm", "a4");
     pdf.setFont("helvetica", "normal");
 
+    // Subheader with test criterion
     pdf.setFontSize(11);
     pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(60, 60, 60); // Gray text
+    pdf.setTextColor(60, 60, 60);
     pdf.text(
       "Test Criterion: Non-HCEs must receive greater than or equal to 55% of average HCE benefits",
       105,
@@ -160,31 +180,52 @@ const DCAP55BenefitsTest = () => {
     pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
     pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
-    // Table
-   pdf.autoTable({
-    startY: 48,
-    theme: "grid",
-    head: [["Metric", "Value"]],
-    body: [
-        ["Total Employees", totalEmployees !== "N/A" ? Number(totalEmployees).toLocaleString("en-US") : "N/A"],
-        ["Total Participants", totalParticipants !== "N/A" ? Number(totalParticipants).toLocaleString("en-US") : "N/A"],
-        ["HCE Avg Benefits", hceAvg !== "N/A" ? Number(hceAvg).toLocaleString("en-US", { style: "currency", currency: "USD" }) : "N/A"],
-        ["Non-HCE Avg Benefits", nhceAvg !== "N/A" ? Number(nhceAvg).toLocaleString("en-US", { style: "currency", currency: "USD" }) : "N/A"],
-        ["Benefit Ratio (%)", benefitRatio !== "N/A" ? `${benefitRatio}%` : "N/A"],
+    // Results Table
+    pdf.autoTable({
+      startY: 48,
+      theme: "grid",
+      head: [["Metric", "Value"]],
+      body: [
+        [
+          "Total Employees",
+          totalEmployees !== "N/A" ? Number(totalEmployees).toLocaleString("en-US") : "N/A"
+        ],
+        [
+          "Total Participants",
+          totalParticipants !== "N/A" ? Number(totalParticipants).toLocaleString("en-US") : "N/A"
+        ],
+        [
+          "HCE Avg Benefits",
+          hceAvg !== "N/A"
+            ? Number(hceAvg).toLocaleString("en-US", { style: "currency", currency: "USD" })
+            : "N/A"
+        ],
+        [
+          "Non-HCE Avg Benefits",
+          nhceAvg !== "N/A"
+            ? Number(nhceAvg).toLocaleString("en-US", { style: "currency", currency: "USD" })
+            : "N/A"
+        ],
+        [
+          "Benefit Ratio (%)",
+          benefitRatio !== "N/A" ? `${benefitRatio}%` : "N/A"
+        ],
         ["Test Result", testResult],
       ],
-    headStyles: {
-      fillColor: [41, 128, 185],
-      textColor: [255, 255, 255],
-    },
-    styles: {
-      fontSize: 12,
-      font: "helvetica",
-    },
-    margin: { left: 10, right: 10 },
-  });
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: [255, 255, 255],
+      },
+      styles: {
+        fontSize: 12,
+        font: "helvetica",
+        lineColor: [150, 150, 150],
+        lineWidth: 0.2,
+      },
+      margin: { left: 10, right: 10 },
+    });
 
-    // Add corrective actions and consequences if test failed
+    // Add corrective actions & consequences if test failed
     if (failed) {
       const correctiveActions = [
         "Reduce DCAP Benefits for owners/HCEs to bring them under 55% threshold",
@@ -202,7 +243,7 @@ const DCAP55BenefitsTest = () => {
         startY: pdf.lastAutoTable.finalY + 10,
         theme: "grid",
         head: [["Corrective Actions"]],
-        body: correctiveActions.map(action => [action]),
+        body: correctiveActions.map((action) => [action]),
         headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
         styles: { fontSize: 11, font: "helvetica" },
         margin: { left: 10, right: 10 },
@@ -212,7 +253,7 @@ const DCAP55BenefitsTest = () => {
         startY: pdf.lastAutoTable.finalY + 10,
         theme: "grid",
         head: [["Consequences"]],
-        body: consequences.map(consequence => [consequence]),
+        body: consequences.map((consequence) => [consequence]),
         headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
         styles: { fontSize: 11, font: "helvetica" },
         margin: { left: 10, right: 10 },
@@ -220,15 +261,39 @@ const DCAP55BenefitsTest = () => {
     }
 
     // Footer
-    pdf.setFontSize(10);
     pdf.setFont("helvetica", "italic");
+    pdf.setFontSize(10);
     pdf.setTextColor(100, 100, 100);
     pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
-    pdf.save("DCAP_55_Benefits_Results.pdf");
+    // Output PDF as a blob and save locally
+    let pdfBlob;
+    try {
+      pdfBlob = pdf.output("blob");
+      pdf.save("DCAP_55_Benefits_Results.pdf");
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
+      return;
+    }
+
+    // Save PDF to Firebase using the helper function
+    try {
+      await savePdfResultToFirebase({
+        fileName: "DCAP 55% Benefits Test",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult: testResult || "Unknown",
+        },
+      });
+    } catch (error) {
+      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+    }
   };
 
-  // Download Results as CSV
+  // =========================
+  // 6. Download Results as CSV
+  // =========================
   const downloadResultsAsCSV = () => {
     if (!result) {
       setError("❌ No results to download.");
@@ -241,20 +306,42 @@ const DCAP55BenefitsTest = () => {
     const nhceAvg = result["Non-HCE Avg Benefits"] ?? "N/A";
     const benefitRatio = result["Benefit Ratio (%)"] ?? "N/A";
     const testResult = result["Test Result"] ?? "N/A";
-    const failed = testResult.toLowerCase() === "failed";
 
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", planYear],
-      ["Total Employees", totalEmployees !== "N/A" ? Number(totalEmployees).toLocaleString("en-US") : "N/A"],
-      ["Total Participants", totalParticipants !== "N/A" ? Number(totalParticipants).toLocaleString("en-US") : "N/A"],
-      ["HCE Avg Benefits", hceAvg !== "N/A" ? Number(hceAvg).toLocaleString("en-US", { style: "currency", currency: "USD" }) : "N/A"],
-      ["Non-HCE Avg Benefits", nhceAvg !== "N/A" ? Number(nhceAvg).toLocaleString("en-US", { style: "currency", currency: "USD" }) : "N/A"],
-      ["Benefit Ratio (%)", ratio !== "N/A" ? `${benefitRatio}%` : "N/A"],
+      [
+        "Total Employees",
+        totalEmployees !== "N/A"
+          ? Number(totalEmployees).toLocaleString("en-US")
+          : "N/A"
+      ],
+      [
+        "Total Participants",
+        totalParticipants !== "N/A"
+          ? Number(totalParticipants).toLocaleString("en-US")
+          : "N/A"
+      ],
+      [
+        "HCE Avg Benefits",
+        hceAvg !== "N/A"
+          ? Number(hceAvg).toLocaleString("en-US", { style: "currency", currency: "USD" })
+          : "N/A"
+      ],
+      [
+        "Non-HCE Avg Benefits",
+        nhceAvg !== "N/A"
+          ? Number(nhceAvg).toLocaleString("en-US", { style: "currency", currency: "USD" })
+          : "N/A"
+      ],
+      [
+        "Benefit Ratio (%)",
+        benefitRatio !== "N/A" ? `${benefitRatio}%` : "N/A"
+      ],
       ["Test Result", testResult],
     ];
 
-    const csvContent = csvRows.map(row => row.join(",")).join("\n");
+    const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -265,7 +352,9 @@ const DCAP55BenefitsTest = () => {
     document.body.removeChild(link);
   };
 
-  // Handle Enter Key for upload
+  // =========================
+  // 7. Handle Enter Key
+  // =========================
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && file && !loading) {
       e.preventDefault();
@@ -274,6 +363,9 @@ const DCAP55BenefitsTest = () => {
     }
   };
 
+  // =========================
+  // RENDER
+  // =========================
   return (
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
@@ -287,7 +379,9 @@ const DCAP55BenefitsTest = () => {
       {/* Plan Year Dropdown */}
       <div className="mb-6">
         <div className="flex items-center">
-          {planYear === "" && <span className="text-red-500 text-lg mr-2">*</span>}
+          {planYear === "" && (
+            <span className="text-red-500 text-lg mr-2">*</span>
+          )}
           <select
             value={planYear}
             onChange={(e) => setPlanYear(e.target.value)}
@@ -308,7 +402,9 @@ const DCAP55BenefitsTest = () => {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
+          isDragActive
+            ? "border-green-500 bg-blue-100"
+            : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
@@ -318,7 +414,7 @@ const DCAP55BenefitsTest = () => {
           <p className="text-green-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV</strong> here.
+            Drag & drop a <strong>CSV or Excel file</strong> here.
           </p>
         )}
       </div>
@@ -334,7 +430,7 @@ const DCAP55BenefitsTest = () => {
       {/* Choose File Button */}
       <button
         type="button"
-        onClick={open}
+        onClick={() => open()}
         className="mt-4 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
       >
         Choose File
@@ -364,37 +460,43 @@ const DCAP55BenefitsTest = () => {
               <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
             </p>
             <p className="text-lg mt-2">
-            <strong className="text-gray-700">Total Employees:</strong>{" "}
+              <strong className="text-gray-700">Total Employees:</strong>{" "}
               <span className="font-semibold text-black">
-              {result?.["Total Employees"] !== undefined
-              ? Number(result["Total Employees"]).toLocaleString("en-US")
-               : "N/A"}
-                 </span>
-              </p>
-            <p className="text-lg mt-2">
-            <strong className="text-gray-700">Total Participants:</strong>{" "}
-            <span className="font-semibold text-black">
-            {result?.["Total Participants"] !== undefined
-            ? Number(result["Total Participants"]).toLocaleString("en-US")
-            : "N/A"}
-            </span>
-              </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">HCE Average Benefits:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {formatCurrency(result?.["HCE Avg Benefits"]) || "N/A"}
+                {result?.["Total Employees"] !== undefined
+                  ? Number(result["Total Employees"]).toLocaleString("en-US")
+                  : "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">NHCE Average Benefits:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {formatCurrency(result?.["Non-HCE Avg Benefits"]) || "N/A"}
+              <strong className="text-gray-700">Total Participants:</strong>{" "}
+              <span className="font-semibold text-black">
+                {result?.["Total Participants"] !== undefined
+                  ? Number(result["Total Participants"]).toLocaleString("en-US")
+                  : "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Average Benefit Ratio:</strong>{" "}
+              <strong className="text-gray-700">HCE Avg Benefits:</strong>{" "}
               <span className="font-semibold text-black-600">
-                {formatPercentage(result?.["Benefit Ratio (%)"]) || "N/A"}
+                {result?.["HCE Avg Benefits"] !== undefined
+                  ? Number(result["HCE Avg Benefits"]).toLocaleString("en-US", { style: "currency", currency: "USD" })
+                  : "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Non-HCE Avg Benefits:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Non-HCE Avg Benefits"] !== undefined
+                  ? Number(result["Non-HCE Avg Benefits"]).toLocaleString("en-US", { style: "currency", currency: "USD" })
+                  : "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Benefit Ratio (%):</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Benefit Ratio (%)"] !== undefined
+                  ? formatPercentage(result["Benefit Ratio (%)"])
+                  : "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
@@ -427,28 +529,40 @@ const DCAP55BenefitsTest = () => {
             </button>
           </div>
 
-          {/* Corrective Actions & Consequences if test failed */}
+          {/* Corrective Actions & Consequences if Test Failed */}
           {result["Test Result"]?.toLowerCase() === "failed" && (
             <>
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black-600">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>Reduce DCAP benefits for owners/HCEs to bring them under 55% threshold.</li>
+                  <li>
+                    Adjust eligibility requirements to ensure NHCEs meet the 70% threshold.
+                  </li>
                   <br />
-                  <li>Increase NHCE participation or benefits.</li>
+                  <li>
+                    Modify plan design to allow more NHCEs to participate.
+                  </li>
                   <br />
-                  <li>Redistribute employer contributions to balance the ratio.</li>
+                  <li>
+                    Ensure compliance with the Ratio Percentage Test.
+                  </li>
+                  <br />
+                  <li>
+                    Review employee demographics to adjust contribution structures.
+                  </li>
                 </ul>
               </div>
 
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black-600">Consequences:</h4>
                 <ul className="list-disc list-inside text-black-600">
-                  <li>HCE DCAP benefits become taxable.</li>
+                  <li>Plan may lose tax-qualified status.</li>
                   <br />
-                  <li>IRS penalties and potential plan disqualification.</li>
+                  <li>HCEs may have contributions refunded, reducing their tax benefits.</li>
                   <br />
-                  <li>Loss of tax-free DCAP benefits for employees.</li>
+                  <li>Additional corrective employer contributions may be required.</li>
+                  <br />
+                  <li>Increased IRS audit risk due to compliance failure.</li>
                 </ul>
               </div>
             </>
