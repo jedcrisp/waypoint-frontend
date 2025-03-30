@@ -13,7 +13,7 @@ const HRA25OwnerRuleTest = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  const API_URL = import.meta.env.VITE_BACKEND_URL || "https://waypoint-app.up.railway.app";
+  const API_URL = import.meta.env.VITE_BACKEND_URL;
 
   // Format Helpers
   const formatCurrency = (amount) =>
@@ -46,12 +46,12 @@ const HRA25OwnerRuleTest = () => {
   }, []);
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
-    onDrop,
-    accept: { "text/csv": [".csv"], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"] },
-    multiple: false,
-    noClick: true,
-    noKeyboard: true,
-  });
+      onDrop,
+      accept: ".csv, .xlsx",
+      multiple: false,
+      noClick: true,
+      noKeyboard: true,
+    });
 
   // Upload Handler
   const handleUpload = async () => {
@@ -128,10 +128,18 @@ const HRA25OwnerRuleTest = () => {
         "Union Employee",
         "Part-Time / Seasonal",
       ],
-      ["Last", "First", "001", "2500", "600", "1980-05-10", "2010-06-01", "Active", "No", "2020-01-01", "No", "No"],
-      ["Last", "First", "002", "3000", "800", "1975-08-15", "2008-03-10", "Active", "No", "2019-05-01", "No", "No"],
-      // ... more rows as needed
-    ];
+  ["Last", "First", "001", "2500", "600", "1980-05-10", "2010-06-01", "10", "No", "Active", "No", "2020-01-01", "No", "No"],
+  ["Last", "First", "002", "3000", "800", "1975-08-15", "2008-03-10", "15", "No", "Active", "No", "2019-05-01", "No", "No"],
+  ["Last", "First", "003", "2800", "700", "1982-02-20", "2011-07-15", "20", "Yes", "Active", "No", "2021-02-01", "Yes", "No"],
+  ["Last", "First", "004", "2600", "650", "1978-11-30", "2009-05-20", "5", "No", "Active", "No", "2018-11-15", "No", "No"],
+  ["Last", "First", "005", "3200", "850", "1985-06-25", "2012-09-30", "25", "Yes", "Active", "No", "2020-06-10", "No", "No"],
+  ["Last", "First", "006", "2400", "500", "1979-03-14", "2010-12-01", "12", "No", "Active", "No", "2019-08-20", "No", "Yes"],
+  ["Last", "First", "007", "3100", "900", "1983-08-05", "2013-04-10", "18", "No", "Active", "No", "2021-01-05", "Yes", "No"],
+  ["Last", "First", "008", "2900", "750", "1981-12-12", "2010-11-11", "8", "No", "Active", "No", "2020-09-15", "No", "No"],
+  ["Last", "First", "009", "2700", "680", "1977-07-07", "2007-03-25", "22", "Yes", "Active", "No", "2018-03-30", "No", "No"],
+  ["Last", "First", "010", "3300", "950", "1986-04-18", "2014-10-20", "30", "No", "Active", "No", "2021-07-22", "Yes", "No"]
+]; 
+
     const csvTemplate = csvData.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -150,34 +158,23 @@ const HRA25OwnerRuleTest = () => {
       return;
     }
     const plan = planYear || "N/A";
+    const totalEmployees = result["Total Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
     const totalHraBenefits = result["Total HRA Benefits"] ?? "N/A";
     const ownerAttributedBenefits = result["Owner-Attributed Benefits"] ?? "N/A";
     const ownerRulePercentage = result["Owner Rule Percentage"] ?? "N/A";
-    const testRes = result["Test Result"] ?? "N/A";
+    const testResult = result["Test Result"] ?? "N/A";
 
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", plan],
-      ["Total HRA Benefits", totalHraBenefits],
+      ["Total Employees", totalEmployees],
+      ["Total Participants", totalParticipants],
       ["Owner-Attributed Benefits", ownerAttributedBenefits],
       ["Owner Rule Percentage", `${ownerRulePercentage}%`],
-      ["Test Result", testRes],
+      ["Total HRA Benefits", totalHraBenefits],
+      ["Test Result", testResult],
     ];
-
-    if (String(testRes).toLowerCase() === "failed") {
-      const correctiveActions = [
-        "Review owner-related benefit allocations to ensure compliance with the 25% rule.",
-        "Adjust plan design to lower the proportion of benefits going to owners.",
-        "Consider additional corrective contributions if necessary.",
-      ];
-      const consequences = [
-        "Owner-attributed benefits may become taxable.",
-        "Employer may face IRS penalties and additional corrective measures.",
-        "Increased administrative and compliance burdens.",
-      ];
-      csvRows.push([], ["Corrective Actions"], ...correctiveActions.map(action => ["", action]));
-      csvRows.push([], ["Consequences"], ...consequences.map(item => ["", item]));
-    }
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -198,7 +195,12 @@ const HRA25OwnerRuleTest = () => {
     }
     let pdfBlob;
     try {
-      const testRes = result["Test Result"] ?? "N/A";
+      const totalEmployees = result["Total Employees"] ?? "N/A";
+      const totalParticipants = result["Total Participants"] ?? "N/A";
+      const totalHraBenefits = result["Total HRA Benefits"] ?? "N/A";
+      const ownerAttributedBenefits = result["Owner-Attributed Benefits"] ?? "N/A";
+      const ownerRulePercentage = result["Owner Rule Percentage"] ?? "N/A";
+      const testResult = result["Test Result"] ?? "N/A";
       const failed = testRes.toLowerCase() === "failed";
       const pdf = new jsPDF("p", "mm", "a4");
       pdf.setFont("helvetica", "normal");
@@ -219,10 +221,12 @@ const HRA25OwnerRuleTest = () => {
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
-          ["Total HRA Benefits", formatCurrency(result["Total HRA Benefits"])],
+          ["Total Employees", result["Total Employees"]],
+          ["Total Participants", result["Total Participants"]],
           ["Owner-Attributed Benefits", formatCurrency(result["Owner-Attributed Benefits"])],
           ["Owner Rule Percentage", formatPercentage(result["Owner Rule Percentage"])],
-          ["Test Result", testRes],
+          ["Total HRA Benefits", formatCurrency(result["Total HRA Benefits"])],
+          ["Test Result", testResult],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
         styles: { fontSize: 12 },
@@ -239,9 +243,9 @@ const HRA25OwnerRuleTest = () => {
         pdf.setTextColor(0, 0, 0);
         pdf.text("Corrective Actions:", 15, y + 7);
         const actions = [
-          "• Review owner-related benefit allocations to ensure compliance with the 25% rule",
-          "• Adjust plan design to lower the proportion of benefits going to owners",
-          "• Consider additional corrective contributions if necessary",
+          "Review owner-related benefit allocations to ensure compliance with the 25% rule",
+          "Adjust plan design to lower the proportion of benefits going to owners",
+          "Consider additional corrective contributions if necessary",
         ];
         actions.forEach((action, i) => pdf.text(action, 15, y + 14 + i * 5));
 
@@ -257,10 +261,10 @@ const HRA25OwnerRuleTest = () => {
         pdf.setFontSize(11);
         pdf.setTextColor(0, 0, 0);
         const consequences = [
-          "• Taxation of FSA benefits for key employees",
-          "• Increased IRS scrutiny and potential penalties",
-          "• Risk of plan disqualification",
-          "• Retroactive correction requirements",
+          "Taxation of FSA benefits for key employees",
+          "Increased IRS scrutiny and potential penalties",
+          "Risk of plan disqualification",
+          "Retroactive correction requirements",
         ];
         consequences.forEach((item, i) => pdf.text(item, 15, y2 + 18 + i * 5));
       }
@@ -275,7 +279,7 @@ const HRA25OwnerRuleTest = () => {
     try {
       // Upload PDF blob to Firebase Storage
       await savePdfResultToFirebase({
-        fileName: "HRA_25_Owner_Rule_Test",
+        fileName: "HRA 25% Owner Rule",
         pdfBlob,
         additionalData: {
           planYear,
@@ -401,21 +405,33 @@ const HRA25OwnerRuleTest = () => {
               </span>
             </p>
             <p className="text-lg">
+              <strong className="text-gray-700">Total Employees:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Employees"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg">
+              <strong className="text-gray-700">Total Participants:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Participants"] ?? "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Owner-Attributed Benefits:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatCurrency(result["Owner-Attributed Benefits"])}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Owner Benefit Percentage:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatPercentage(result["Owner Benefit Percentage"])}
+              </span>
+            </p>
+            <p className="text-lg">
               <strong className="text-gray-700">Total HRA Benefits:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {formatCurrency(result["Total HRA Benefits"])}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Key Employee Benefits:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {formatCurrency(result["Key Employee Benefits"])}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Key Employee Benefit Percentage:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {formatPercentage(result["Key Employee Benefit Percentage"])}
               </span>
             </p>
             <p className="text-lg mt-2">
@@ -470,11 +486,11 @@ const HRA25OwnerRuleTest = () => {
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
                 <h4 className="font-bold text-black">Consequences:</h4>
                 <ul className="list-disc list-inside text-black">
-                  <li>❌ Benefits allocated to owners may become taxable.</li>
+                  <li>Benefits allocated to owners may become taxable.</li>
                   <br />
-                  <li>❌ Employer may face IRS penalties and additional corrective measures.</li>
+                  <li>Employer may face IRS penalties and additional corrective measures.</li>
                   <br />
-                  <li>❌ Increased administrative and compliance burdens.</li>
+                  <li>Increased administrative and compliance burdens.</li>
                  </ul>
               </div>
             </>
