@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from "react";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
@@ -7,16 +8,17 @@ import "jspdf-autotable";
 
 const DCAPContributionsTest = () => {
   const [file, setFile] = useState(null);
-  const [planYear, setPlanYear] = useState(""); // Plan Year dropdown
+  const [planYear, setPlanYear] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure correct backend URL
+  const API_URL = import.meta.env.VITE_BACKEND_URL;
 
   // ---------- Formatting Helpers ----------
   const formatCurrency = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    if (value === undefined || value === null || isNaN(Number(value)))
+      return "N/A";
     return Number(value).toLocaleString("en-US", {
       style: "currency",
       currency: "USD",
@@ -24,10 +26,10 @@ const DCAPContributionsTest = () => {
   };
 
   const formatPercentage = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    if (value === undefined || value === null || isNaN(Number(value)))
+      return "N/A";
     return `${Number(value).toFixed(2)}%`;
   };
-
 
   // =========================
   // 1. Drag & Drop Logic
@@ -42,31 +44,28 @@ const DCAPContributionsTest = () => {
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
-    accept: ".csv",
+    accept: ".csv, .xlsx",
     multiple: false,
     noClick: true,
     noKeyboard: true,
   });
 
   // =========================
-  // 2. Upload File
+  // 2. Upload File to Backend
   // =========================
   const handleUpload = async () => {
     if (!file) {
       setError("❌ Please select a file before uploading.");
       return;
     }
-
-    // Validate file extension
+    if (!planYear) {
+      setError("❌ Please select a plan year.");
+      return;
+    }
     const validFileTypes = ["csv"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
       setError("❌ Invalid file type. Please upload a CSV file.");
-      return;
-    }
-
-    if (!planYear) {
-      setError("❌ Please select a plan year.");
       return;
     }
 
@@ -113,22 +112,20 @@ const DCAPContributionsTest = () => {
   // =========================
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-  ["Last Name", "First Name", "Employee ID", "DCAP Contributions", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
-  ["Last", "First", "001", 2500, "No", "1980-05-10", "2010-06-01", "Active", "No", "2020-01-01", "No", "No"],
-  ["Last", "First", "002", 3000, "Yes", "1975-08-15", "2008-03-10", "Active", "No", "2019-01-01", "No", "No"],
-  ["Last", "First", "003", 0, "No", "1990-01-01", "2021-05-01", "Active", "No", "2022-01-01", "No", "No"],
-  ["Last", "First", "004", 4000, "Yes", "1985-10-30", "2005-07-12", "Active", "No", "2020-01-01", "No", "No"],
-  ["Last", "First", "005", 0, "No", "2000-12-01", "2022-08-20", "Terminated", "No", "2022-01-01", "No", "No"],
-  ["Last", "First", "006", 3200, "Yes", "1992-05-14", "2018-11-11", "Active", "Yes", "2020-01-01", "No", "No"],
-  ["Last", "First", "007", 2800, "No", "2002-01-05", "2023-09-10", "Active", "No", "2022-01-01", "No", "No"],
-  ["Last", "First", "008", 0, "No", "1980-03-25", "2015-11-01", "Active", "No", "2020-01-01", "No", "No"],
-  ["Last", "First", "009", 3500, "Yes", "1982-06-22", "2011-07-07", "Active", "No", "2020-01-01", "No", "No"],
-  ["Last", "First", "010", 0, "No", "2003-09-12", "2023-01-10", "Active", "No", "2022-01-01", "No", "No"],
-]
-      .map((row) => row.join(","))
-      .join("\n");
-
-    const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
+      ["Last Name", "First Name", "Employee ID", "DCAP Contributions", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
+      ["Last", "First", "001", 2500, "No", "1980-05-10", "2010-06-01", "Active", "No", "2020-01-01", "No", "No"],
+      ["Last", "First", "002", 3000, "Yes", "1975-08-15", "2008-03-10", "Active", "No", "2019-01-01", "No", "No"],
+      ["Last", "First", "003", 0, "No", "1990-01-01", "2021-05-01", "Active", "No", "2022-01-01", "No", "No"],
+      ["Last", "First", "004", 4000, "Yes", "1985-10-30", "2005-07-12", "Active", "No", "2020-01-01", "No", "No"],
+      ["Last", "First", "005", 0, "No", "2000-12-01", "2022-08-20", "Terminated", "No", "2022-01-01", "No", "No"],
+      ["Last", "First", "006", 3200, "Yes", "1992-05-14", "2018-11-11", "Active", "Yes", "2020-01-01", "No", "No"],
+      ["Last", "First", "007", 2800, "No", "2002-01-05", "2023-09-10", "Active", "No", "2022-01-01", "No", "No"],
+      ["Last", "First", "008", 0, "No", "1980-03-25", "2015-11-01", "Active", "No", "2020-01-01", "No", "No"],
+      ["Last", "First", "009", 3500, "Yes", "1982-06-22", "2011-07-07", "Active", "No", "2020-01-01", "No", "No"],
+      ["Last", "First", "010", 0, "No", "2003-09-12", "2023-01-10", "Active", "No", "2022-01-01", "No", "No"],
+    ];
+    const csvContent = csvTemplate.map((row) => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -139,121 +136,134 @@ const DCAPContributionsTest = () => {
   };
 
   // =========================
-  // 4. Export to PDF
+  // 4. Export to PDF (with Firebase saving)
   // =========================
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
+    
+    let pdfBlob;
+    try {
+      const pdf = new jsPDF("p", "mm", "a4");
+      pdf.setFont("helvetica", "normal");
 
-    // Example fields: HCE Average, NHCE Average, Test Result
-    const totalEmployees = result["Total Employees"] ?? "N/A";
-    const totalParticipants = result["Total Participants"] ?? "N/A";
-    const hceAvg = result["HCE Average Contributions"] ?? "N/A";
-    const nhceAvg = result["NHCE Average Contributions"] ?? "N/A";
-    const percent125NHCEAvg = result["125% of NHCE Average"] ?? "N/A";
-    const testRes = result["Test Result"] ?? "N/A";
-    const failed = testRes.toLowerCase() === "failed";
+      const totalEmployees = result["Total Employees"] ?? "N/A";
+      const totalParticipants = result["Total Participants"] ?? "N/A";
+      const hceAvg = result["HCE Average Contributions"] ?? "N/A";
+      const nhceAvg = result["NHCE Average Contributions"] ?? "N/A";
+      const percent125NHCEAvg = result["125% of NHCE Average"] ?? "N/A";
+      const testRes = result["Test Result"] ?? "N/A";
+      const failed = testRes.toLowerCase() === "failed";
 
-    const pdf = new jsPDF("p", "mm", "a4");
-    pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(
+        "Test Criterion: HCE average contributions must not exceed 125% of NHCE average",
+        105,
+        38,
+        { align: "center", maxWidth: 180 }
+      );
 
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "italic");
-    pdf.setTextColor(60, 60, 60); // Gray text
-    pdf.text(
-      "Test Criterion: HCE average contributions must not exceed 125% of NHCE average",
-      105,
-      38,
-      { align: "center", maxWidth: 180 }
-    );
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("DCAP Contributions Test Results", 105, 15, { align: "center" });
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
+      pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
-    // Header
-    pdf.setFontSize(18);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("DCAP Contributions Test Results", 105, 15, { align: "center" });
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
-    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
-
-    // Table
-    pdf.autoTable({
-    startY: 43,
-    theme: "grid",
-    head: [["Metric", "Value"]],
-    body: [
-        ["Total Employees", totalEmployees],
-        ["Total Participants", totalParticipants],
-        [
-          "HCE Average Contributions",
-          hceAvg !== "N/A" ? `$${Number(hceAvg).toLocaleString()}` : "N/A",
+      pdf.autoTable({
+        startY: 43,
+        theme: "grid",
+        head: [["Metric", "Value"]],
+        body: [
+          ["Total Employees", totalEmployees],
+          ["Total Participants", totalParticipants],
+          [
+            "HCE Average Contributions",
+            hceAvg !== "N/A" ? `$${Number(hceAvg).toLocaleString()}` : "N/A",
+          ],
+          [
+            "NHCE Average Contributions",
+            nhceAvg !== "N/A" ? `$${Number(nhceAvg).toLocaleString()}` : "N/A",
+          ],
+          [
+            "125% of NHCE Average",
+            percent125NHCEAvg !== "N/A"
+              ? `$${Number(1.25 * Number(nhceAvg)).toLocaleString()}`
+              : "N/A",
+          ],
+          ["Test Result", testRes],
         ],
-        [
-          "NHCE Average Contributions",
-          nhceAvg !== "N/A" ? `$${Number(nhceAvg).toLocaleString()}` : "N/A",
-        ],
-        ["125% of NHCE Average", percent125NHCEAvg !== "N/A" ? `$${(1.25 * Number(nhceAvg)).toLocaleString()}` : "N/A"],
-        ["Test Result", testRes],
-      ],
-      headStyles: {
-        fillColor: [41, 128, 185],
-        textColor: [255, 255, 255],
-      },
-      styles: {
-        fontSize: 12,
-        font: "helvetica",
-      },
-      margin: { left: 10, right: 10 },
-    });
+        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+        styles: { fontSize: 12, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
 
-    // Corrective actions & consequences (only if failed)
-  if (failed) {
-    const correctiveActions = [
-        "Limit contributions for HCEs to ensure compliance",
-        "Increase matching for NHCEs",
-        "Adjust plan design for balanced contributions",
-    ];
+      if (failed) {
+        const correctiveActions = [
+          "Limit contributions for HCEs to ensure compliance",
+          "Increase matching for NHCEs",
+          "Adjust plan design for balanced contributions",
+        ];
+        const consequences = [
+          "HCE contributions become taxable income",
+          "IRS penalties and possible plan disqualification",
+          "Additional corrective contributions may be required",
+        ];
 
-    const consequences = [
-        "HCE contributions become taxable income",
-        "IRS penalties and possible plan disqualification",
-        "Additional corrective contributions may be required",
-    ];
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Corrective Actions"]],
+          body: correctiveActions.map((action) => [action]),
+          headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Corrective Actions"]],
-      body: correctiveActions.map(action => [action]),
-      headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Consequences"]],
+          body: consequences.map((consequence) => [consequence]),
+          headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+      }
 
-    pdf.autoTable({
-      startY: pdf.lastAutoTable.finalY + 10,
-      theme: "grid",
-      head: [["Consequences"]],
-      body: consequences.map(consequence => [consequence]),
-      headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-      styles: { fontSize: 11, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-  }
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
-    // Footer
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "italic");
-    pdf.setTextColor(100, 100, 100);
-    pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
+      pdfBlob = pdf.output("blob");
+      pdf.save("DCAP_Contributions_Test.pdf");
+    } catch (error) {
+      setError(`❌ Error exporting PDF: ${error.message}`);
+      return;
+    }
 
-    pdf.save("DCAP_Contributions_Results.pdf");
+    try {
+      await savePdfResultToFirebase({
+        fileName: "DCAP Contributions Test",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult: result["Test Result"] ?? "Unknown",
+        },
+      });
+    } catch (error) {
+      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+    }
   };
 
   // =========================
-  // 5. Download CSV Results
+  // 5. Download Results as CSV
   // =========================
   const downloadResultsAsCSV = () => {
     if (!result) {
@@ -267,7 +277,6 @@ const DCAPContributionsTest = () => {
     const nhceAvg = result["NHCE Average Contributions"];
     const percent125NHCEAvg = result["125% of NHCE Average"] ?? "N/A";
     const testRes = result["Test Result"] ?? "N/A";
-    const failed = testRes.toLowerCase() === "failed";
 
     const csvRows = [
       ["Metric", "Value"],
@@ -282,11 +291,14 @@ const DCAPContributionsTest = () => {
         "NHCE Average Contributions",
         nhceAvg !== undefined ? `$${Number(nhceAvg).toLocaleString()}` : "N/A",
       ],
-      ["125% of NHCE Average", percent125NHCEAvg !== undefined ? `$${(1.25 * Number(nhceAvg)).toLocaleString()}` : "N/A"],
+      [
+        "125% of NHCE Average",
+        percent125NHCEAvg !== undefined ? `$${Number(1.25 * Number(nhceAvg)).toLocaleString()}` : "N/A",
+      ],
       ["Test Result", testRes],
     ];
 
-    const csvContent = csvRows.map(row => row.join(",")).join("\n");
+    const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -309,7 +321,7 @@ const DCAPContributionsTest = () => {
   };
 
   // =========================
-  // 7. Render
+  // RENDER
   // =========================
   return (
     <div
@@ -318,7 +330,7 @@ const DCAPContributionsTest = () => {
       tabIndex="0"
     >
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
-        📂 Upload DCAP Contributions File
+        📂 Upload DCAP 55% Benefits File
       </h2>
 
       {/* Plan Year Dropdown */}
@@ -326,7 +338,6 @@ const DCAPContributionsTest = () => {
         <div className="flex items-center">
           {planYear === "" && <span className="text-red-500 text-lg mr-2">*</span>}
           <select
-            id="planYear"
             value={planYear}
             onChange={(e) => setPlanYear(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-md"
@@ -346,7 +357,9 @@ const DCAPContributionsTest = () => {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
+          isDragActive
+            ? "border-green-500 bg-blue-100"
+            : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
@@ -356,7 +369,7 @@ const DCAPContributionsTest = () => {
           <p className="text-green-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV file</strong> here.
+            Drag & drop a <strong>CSV</strong> here.
           </p>
         )}
       </div>
@@ -369,7 +382,7 @@ const DCAPContributionsTest = () => {
         Download CSV Template
       </button>
 
-      {/* Choose File (Blue) */}
+      {/* Choose File Button */}
       <button
         type="button"
         onClick={open}
@@ -378,13 +391,11 @@ const DCAPContributionsTest = () => {
         Choose File
       </button>
 
-      {/* Upload (Green if file selected, else Gray) */}
+      {/* Upload Button */}
       <button
         onClick={handleUpload}
         className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
-          !file
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-green-500 hover:bg-green-400"
+          !file ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
         }`}
         disabled={!file || loading}
       >
@@ -396,9 +407,9 @@ const DCAPContributionsTest = () => {
 
       {/* Display Results */}
       {result && (
-        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
+        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-md">
           <h3 className="font-bold text-xl text-gray-700">
-            DCAP Contributions Test Results
+            DCAP 55% Benefits Test Results
           </h3>
           <div className="mt-4">
             <p className="text-lg">
@@ -408,71 +419,52 @@ const DCAPContributionsTest = () => {
               </span>
             </p>
             <p className="text-lg mt-2">
-  <strong className="text-gray-700">Total Employees:</strong>{" "}
-  <span className="font-semibold text-black-600">
-    {result?.["Total Employees"] !== undefined
-      ? result["Total Employees"].toLocaleString()
-      : "N/A"}
-  </span>
-</p>
-<p className="text-lg mt-2">
-  <strong className="text-gray-700">Total Participants:</strong>{" "}
-  <span className="font-semibold text-black-600">
-    {result?.["Total Participants"] !== undefined
-      ? result["Total Participants"].toLocaleString()
-      : "N/A"}
-  </span>
-</p>
+              <strong className="text-gray-700">Total Employees:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Employees"] !== undefined
+                  ? Number(result["Total Employees"]).toLocaleString("en-US")
+                  : "N/A"}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">Total Participants:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {result?.["Total Participants"] !== undefined
+                  ? Number(result["Total Participants"]).toLocaleString("en-US")
+                  : "N/A"}
+              </span>
+            </p>
 
             <p className="text-lg mt-2">
-  <strong className="text-gray-700">HCE Average Contributions:</strong>{" "}
-  <span className="font-semibold text-black-600">
-    {formatCurrency(result?.["HCE Average Contributions"])}
-  </span>
-</p>
-<p className="text-lg mt-2">
-  <strong className="text-gray-700">NHCE Average Contributions:</strong>{" "}
-  <span className="font-semibold text-black-600">
-    {formatCurrency(result?.["NHCE Average Contributions"])}
-  </span>
-</p>
-<p className="text-lg mt-2">
-  <strong className="text-gray-700">125% of NHCE Average:</strong>{" "}
-  <span className="font-semibold text-black-600">
-    {formatCurrency(result?.["125% of NHCE Average"])}
-  </span>
-</p>
-
-
-
+              <strong className="text-gray-700">HCE Average Contributions:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatCurrency(result?.["HCE Average Contributions"])}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">NHCE Average Contributions:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatCurrency(result?.["NHCE Average Contributions"])}
+              </span>
+            </p>
+            <p className="text-lg mt-2">
+              <strong className="text-gray-700">125% of NHCE Average:</strong>{" "}
+              <span className="font-semibold text-black-600">
+                {formatCurrency(result?.["125% of NHCE Average"])}
+              </span>
+            </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
-                  result["Test Result"] === "Passed"
+                  result?.["Test Result"] === "Passed"
                     ? "bg-green-500 text-white"
                     : "bg-red-500 text-white"
                 }`}
               >
-                {result["Test Result"] ?? "N/A"}
+                {result?.["Test Result"] || "N/A"}
               </span>
             </p>
-          </div>
-
-          {/* Export & Download Buttons */}
-          <div className="flex flex-col gap-2 mt-4">
-            <button
-              onClick={exportToPDF}
-              className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
-            >
-              Export PDF Report
-            </button>
-            <button
-              onClick={downloadResultsAsCSV}
-              className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
-            >
-              Download CSV Report
-            </button>
           </div>
 
           {/* If test fails, show corrective actions & consequences */}
@@ -501,6 +493,22 @@ const DCAPContributionsTest = () => {
               </div>
             </>
           )}
+
+          {/* Export & Download Buttons */}
+          <div className="flex flex-col gap-2 mt-4">
+            <button
+              onClick={exportToPDF}
+              className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+            >
+              Export PDF Report
+            </button>
+            <button
+              onClick={downloadResultsAsCSV}
+              className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
+            >
+              Download CSV Report
+            </button>
+          </div>
         </div>
       )}
     </div>
