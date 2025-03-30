@@ -136,6 +136,7 @@ const HRA55AverageBenefitsTest = () => {
     }
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
     const hceAvg = result["HCE Average Benefits"] ?? "N/A";
     const nhceAvg = result["NHCE Average Benefits"] ?? "N/A";
     const benefitRatio = result["Average Benefits Ratio (%)"] ?? "N/A";
@@ -145,6 +146,7 @@ const HRA55AverageBenefitsTest = () => {
       ["Metric", "Value"],
       ["Plan Year", plan],
       ["Total Employees", totalEmployees],
+      ["Total Participants", totalParticipants],
       ["HCE Average Benefits", hceAvg],
       ["NHCE Average Benefits", nhceAvg],
       ["Average Benefits Ratio (%)", benefitRatio],
@@ -191,6 +193,8 @@ const HRA55AverageBenefitsTest = () => {
     let pdfBlob;
     try {
       const testRes = result["Test Result"] ?? "N/A";
+      const totalEmployees = result["Total Employees"] ?? "N/A";
+      const totalParticipants = result["Total Participants"] ?? "N/A";
       const failed = testRes.toLowerCase() === "failed";
       const pdf = new jsPDF("p", "mm", "a4");
       pdf.setFont("helvetica", "normal");
@@ -212,6 +216,7 @@ const HRA55AverageBenefitsTest = () => {
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", totalEmployees],
+          ["Total Participants", totalParticipants],
           ["HCE Average Benefits", formatCurrency(hceAvg)],
           ["NHCE Average Benefits", formatCurrency(nhceAvg)],
           ["Average Benefits Ratio (%)", formatPercentage(benefitRatio)],
