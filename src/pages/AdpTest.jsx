@@ -147,8 +147,8 @@ const ADPTest = () => {
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
     const totalParticipants = result["Total Participants"] ?? "N/A"; 
-    const hceAdp = result["HCE ADP"] !== undefined ? formatPercentage(result["HCE ADP"]) : "N/A";
-    const nhceAdp = result["NHCE ADP"] !== undefined ? formatPercentage(result["NHCE ADP"]) : "N/A"
+    const hceAdp = result["HCE ADP (%)"] !== undefined ? formatPercentage(result["HCE ADP"]) : "N/A";
+    const nhceAdp = result["NHCE ADP (%)"] !== undefined ? formatPercentage(result["NHCE ADP"]) : "N/A"
     const testRes = result["Test Result"] ?? "N/A";
 
     const csvRows = [
@@ -156,8 +156,8 @@ const ADPTest = () => {
       ["Plan Year", plan],
       ["Total Employees", totalEmployees],
       ["Total Participants", totalParticipants],
-      ["HCE ADP", hceAdp],
-      ["NHCE ADP", nhceAdp],
+      ["HCE ADP (%)", hceAdp],
+      ["NHCE ADP (%)", nhceAdp],
       ["Test Result", testRes],
     ];
 
@@ -204,8 +204,8 @@ const ADPTest = () => {
       // Retrieve metrics from result and format them
       const totalEmployees = result["Total Employees"] ?? "N/A";
       const totalParticipants = result["Total Participants"] ?? "N/A"; 
-      const hceAdp = result["HCE ADP"] !== undefined ? formatPercentage(result["HCE ADP"]) : "N/A";
-      const nhceAdp = result["NHCE ADP"] !== undefined ? formatPercentage(result["NHCE ADP"]) : "N/A"
+      const hceAdp = result["HCE ADP (%)"] !== undefined ? formatPercentage(result["HCE ADP"]) : "N/A";
+      const nhceAdp = result["NHCE ADP (%)"] !== undefined ? formatPercentage(result["NHCE ADP"]) : "N/A"
       const testRes = result["Test Result"] ?? "N/A";
       const failed = testRes.toLowerCase() === "failed";
 
@@ -412,7 +412,7 @@ const ADPTest = () => {
             </p>
             <p className="text-lg mt-2">
               <strong>NHCE ADP:</strong>{" "}
-              {formatPercentage(result["NHCE (%)"])}
+              {formatPercentage(result["NHCE ADP (%)"])}
             </p>
             <p className="text-lg mt-2">
               <strong>Test Result:</strong>{" "}
