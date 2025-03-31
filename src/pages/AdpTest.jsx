@@ -206,8 +206,8 @@ const ADPTest = () => {
       const totalParticipants = result["Total Participants"] ?? "N/A"; 
       const hceAdp = result["HCE ADP (%)"] !== undefined ? formatPercentage(result["HCE ADP"]) : "N/A";
       const nhceAdp = result["NHCE ADP (%)"] !== undefined ? formatPercentage(result["NHCE ADP"]) : "N/A"
-      const testRes = result["Test Result"] ?? "N/A";
-      const failed = testRes.toLowerCase() === "failed";
+      const testResult = result["Test Result"] ?? "N/A";
+      const failed = testResult.toLowerCase() === "failed";
 
       // Generate the PDF
       const pdf = new jsPDF("p", "mm", "a4");
@@ -290,7 +290,7 @@ const ADPTest = () => {
           pdfBlob,
           additionalData: {
             planYear,
-            testResult: testRes || "Unknown",
+            testResult: testResult || "Unknown",
           },
         });
       } catch (error) {
