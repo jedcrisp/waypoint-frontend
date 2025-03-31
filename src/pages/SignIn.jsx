@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { 
   signInWithEmailAndPassword, 
+  signOut, 
   onAuthStateChanged 
 } from "firebase/auth";
 import { auth } from "../firebase";
-import waypointlogo from "../assets/waypointlogo.png";
+import waypointlogo from '../assets/waypointlogo.png';
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
@@ -29,6 +30,15 @@ const SignIn = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    setError("");
+    try {
+      await signOut(auth);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   return (
     <div style={{
       minHeight: "100vh",
@@ -45,7 +55,7 @@ const SignIn = () => {
         padding: "2rem",
         textAlign: "center",
       }}>
-        {/* Logo */}
+
         <img 
           src={waypointlogo} 
           alt="Waypoint Logo" 
@@ -55,18 +65,36 @@ const SignIn = () => {
             display: "block" 
           }} 
         />
-        <h1 style={{
-          fontSize: "1.5rem",
-          fontWeight: "bold",
-          color: "#333",
-          margin: "0 0 1rem",
-        }}>
+        <h1
+          style={{
+            fontSize: "1.5rem",
+            fontWeight: "bold",
+            color: "#333",
+            margin: "0 0 1rem",
+          }}
+        >
           Log In To Continue
         </h1>
+
         {user ? (
-          <h2 style={{ color: "#333", marginBottom: "1rem" }}>
-            Welcome, {user.email}!
-          </h2>
+          <>
+            <h2 style={{ color: "#333", marginBottom: "1rem" }}>Welcome, {user.email}!</h2>
+            <button
+              onClick={handleSignOut}
+              style={{
+                width: "100%",
+                padding: "0.75rem",
+                fontSize: "1rem",
+                borderRadius: "4px",
+                backgroundColor: "#f44336",
+                color: "#fff",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              Sign Out
+            </button>
+          </>
         ) : (
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: "1rem" }}>
@@ -85,6 +113,7 @@ const SignIn = () => {
                 }}
               />
             </div>
+
             <div style={{ marginBottom: "1rem" }}>
               <input
                 type="password"
@@ -101,6 +130,7 @@ const SignIn = () => {
                 }}
               />
             </div>
+
             <button
               type="submit"
               style={{
@@ -116,6 +146,7 @@ const SignIn = () => {
             >
               Access Account
             </button>
+
             {error && <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>}
           </form>
         )}
