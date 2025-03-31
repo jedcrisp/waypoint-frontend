@@ -65,12 +65,11 @@ function App() {
   const auth = getAuth();
   const timeoutRef = useRef(null);
 
-  // Function to reset the idle timeout timer
+  // Reset idle timeout timer (5 minutes)
   const resetTimeout = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    // Set timeout for 5 minutes (300,000 milliseconds)
     timeoutRef.current = setTimeout(() => {
       signOut(auth);
     }, 300000);
@@ -93,6 +92,21 @@ function App() {
     };
   }, []);
 
+  // Listen for network status changes
+  useEffect(() => {
+    const handleOnline = () => console.log("User is online");
+    const handleOffline = () => console.log("User is offline");
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  // Firebase Auth state listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -109,9 +123,8 @@ function App() {
       <TestContext.Provider value={{ selectedTests, setSelectedTests, uploadedFile, setUploadedFile }}>
         <>
           <Navbar />
-          {/* Render ChatComponent once, either here or in your layout */}
           <ChatComponent />
-          <UploadButton /> {/* Upload button for CSV files */}
+          <UploadButton />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<SignIn />} />
