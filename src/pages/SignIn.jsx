@@ -4,66 +4,19 @@ import {
   signOut, 
   onAuthStateChanged 
 } from "firebase/auth";
-import { doc, getDoc, getFirestore } from "firebase/firestore";
 import { auth } from "../firebase";
 import waypointlogo from '../assets/waypointlogo.png';
-
-const db = getFirestore();
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
-  const [checkingAccess, setCheckingAccess] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setCheckingAccess(true);
-
-      if (!currentUser) {
-        setUser(null);
-        setCheckingAccess(false);
-        return;
-      }
-
-      try {
-        const token = await currentUser.getIdToken(true);
-        const host = window.location.hostname;
-        const subdomain = host.includes("localhost")
-          ? "healthequity" // change for local testing
-          : host.split(".")[0];
-
-        const docRef = doc(db, "clientPortals", subdomain);
-        const docSnap = await getDoc(docRef);
-
-        if (!docSnap.exists()) {
-          setError("❌ This portal is not set up.");
-          await signOut(auth);
-          setUser(null);
-        } else {
-          const allowedUsers = docSnap.data().allowedUsers || [];
-          const normalizedAllowed = allowedUsers.map(e => e.toLowerCase().trim());
-          const normalizedEmail = currentUser.email.toLowerCase().trim();
-
-          if (!normalizedAllowed.includes(normalizedEmail)) {
-            setError("❌ You are not authorized to access this portal.");
-            await signOut(auth);
-            setUser(null);
-          } else {
-            setUser(currentUser);
-          }
-        }
-      } catch (err) {
-        console.error("Access check error:", err);
-        setError("⚠️ Failed to verify access.");
-        await signOut(auth);
-        setUser(null);
-      }
-
-      setCheckingAccess(false);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -81,7 +34,6 @@ const SignIn = () => {
     setError("");
     try {
       await signOut(auth);
-      setUser(null);
     } catch (err) {
       setError(err.message);
     }
@@ -113,7 +65,6 @@ const SignIn = () => {
             display: "block" 
           }} 
         />
-
         <h1
           style={{
             fontSize: "1.5rem",
@@ -125,13 +76,9 @@ const SignIn = () => {
           Log In To Continue
         </h1>
 
-        {checkingAccess ? (
-          <p>Checking access...</p>
-        ) : user ? (
+        {user ? (
           <>
-            <h2 style={{ color: "#333", marginBottom: "1rem" }}>
-              Welcome, {user.email}!
-            </h2>
+            <h2 style={{ color: "#333", marginBottom: "1rem" }}>Welcome, {user.email}!</h2>
             <button
               onClick={handleSignOut}
               style={{
@@ -200,9 +147,7 @@ const SignIn = () => {
               Access Account
             </button>
 
-            {error && (
-              <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>
-            )}
+            {error && <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>}
           </form>
         )}
       </div>
