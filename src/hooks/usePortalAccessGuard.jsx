@@ -15,7 +15,7 @@ export const usePortalAccessGuard = () => {
 
     // Force subdomain when on localhost
     const subdomain = isLocalhost
-      ? 'healthequity'
+      ? 'demo'
       : parts.length >= 3
       ? parts[0]
       : null
