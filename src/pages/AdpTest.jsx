@@ -216,7 +216,7 @@ const ADPTest = () => {
       // Header
       pdf.setFontSize(18);
       pdf.setFont("helvetica", "bold");
-      pdf.text("Ratio Percentage Test Results", 105, 15, { align: "center" });
+      pdf.text("ADP Test Results", 105, 15, { align: "center" });
       pdf.setFontSize(12);
       pdf.setFont("helvetica", "normal");
       pdf.text(`Plan Year: ${planYear || "N/A"}`, 105, 25, { align: "center" });
@@ -230,8 +230,8 @@ const ADPTest = () => {
         body: [
           ["Total Employees", totalEmployees],
           ["Total Participants", totalParticipants],
-          ["HCE ADP", hceAdp],
-          ["NHCE ADP", nhceAdp ],
+          ["HCE ADP (%)", hceAdp],
+          ["NHCE ADP (%)", nhceAdp ],
           ["Test Result", testRes],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
@@ -286,7 +286,7 @@ const ADPTest = () => {
       }
       try {
         await savePdfResultToFirebase({
-          fileName: "ADP_Test_Results.pdf",
+          fileName: "ADP Test Results.pdf",
           pdfBlob,
           additionalData: {
             planYear,
