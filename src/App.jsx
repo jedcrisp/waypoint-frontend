@@ -4,7 +4,6 @@ import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 
 // Pages
 import Home from "./pages/Home";
-import Unauthorized from "./components/Unauthorized";
 import UploadButton from "./components/UploadButton";
 import ReportPage from "./pages/ReportPage";
 import TestSelection from "./pages/TestSelection";
@@ -65,11 +64,12 @@ function App() {
   const auth = getAuth();
   const timeoutRef = useRef(null);
 
-  // Reset idle timeout timer (5 minutes)
+  // Function to reset the idle timeout timer
   const resetTimeout = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
+    // Set timeout for 5 minutes (300,000 milliseconds)
     timeoutRef.current = setTimeout(() => {
       signOut(auth);
     }, 300000);
@@ -92,21 +92,6 @@ function App() {
     };
   }, []);
 
-  // Listen for network status changes
-  useEffect(() => {
-    const handleOnline = () => console.log("User is online");
-    const handleOffline = () => console.log("User is offline");
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
-
-  // Firebase Auth state listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -121,14 +106,13 @@ function App() {
   return (
     <ErrorBoundary>
       <TestContext.Provider value={{ selectedTests, setSelectedTests, uploadedFile, setUploadedFile }}>
-        <>
+        <Router>
           <Navbar />
+          {/* Render ChatComponent once, either here or in your layout */}
           <ChatComponent />
-          <UploadButton />
+          <UploadButton /> {/* Upload button for CSV files */}
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/login" element={<SignIn />} />
-            <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/select-test" element={<TestSelection />} />
             <Route path="/test-adp" element={<AdpTest />} />
             <Route path="/test-adp-safe-harbor-401k" element={<ADPSafeHarbor401kTest />} />
@@ -171,7 +155,7 @@ function App() {
             <Route path="/security" element={<Security />} />
             <Route path="/test-history" element={<TestHistory />} />
           </Routes>
-        </>
+        </Router>
       </TestContext.Provider>
     </ErrorBoundary>
   );
