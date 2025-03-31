@@ -230,8 +230,8 @@ const ADPTest = () => {
         body: [
           ["Total Employees", totalEmployees],
           ["Total Participants", totalParticipants],
-          ["HCE ADP (%)", hceAdp],
-          ["NHCE ADP (%)", nhceAdp ],
+          ["HCE ACP (%)", formatPct(hceAvg)],
+          ["NHCE ACP (%)", formatPct(nhceAvg)],
           ["Test Result", testRes],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
