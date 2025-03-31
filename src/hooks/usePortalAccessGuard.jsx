@@ -36,6 +36,8 @@ export const usePortalAccessGuard = () => {
         return
       }
 
+      console.log("📧 Logged in user:", user.email);
+
       try {
         console.log("✅ Authenticated user:", user.email)
         const token = await user.getIdToken()
