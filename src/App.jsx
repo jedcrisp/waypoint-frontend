@@ -112,7 +112,7 @@ function App() {
           <ChatComponent />
           <UploadButton /> {/* Upload button for CSV files */}
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/home" element={<Home />} />
             <Route path="/select-test" element={<TestSelection />} />
             <Route path="/test-adp" element={<AdpTest />} />
             <Route path="/test-adp-safe-harbor-401k" element={<ADPSafeHarbor401kTest />} />
