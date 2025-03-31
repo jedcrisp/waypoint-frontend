@@ -185,7 +185,7 @@ const SafeHarborTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Ratio_Percentage_Results.csv");
+    link.setAttribute("download", "ADP_Safe_Harbor_Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -228,7 +228,7 @@ const SafeHarborTest = () => {
       // Header
       pdf.setFontSize(18);
       pdf.setFont("helvetica", "bold");
-      pdf.text("Ratio Percentage Test Results", 105, 15, { align: "center" });
+      pdf.text("ADP Safe Harbor Test Results", 105, 15, { align: "center" });
       pdf.setFontSize(12);
       pdf.setFont("helvetica", "normal");
       pdf.text(`Plan Year: ${planYear || "N/A"}`, 105, 25, { align: "center" });
