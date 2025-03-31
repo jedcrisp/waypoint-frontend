@@ -4,6 +4,7 @@ import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 
 // Pages
 import Home from "./pages/Home";
+import Unauthorized from "./components/Unauthorized";
 import UploadButton from "./components/UploadButton";
 import ReportPage from "./pages/ReportPage";
 import TestSelection from "./pages/TestSelection";
@@ -106,13 +107,15 @@ function App() {
   return (
     <ErrorBoundary>
       <TestContext.Provider value={{ selectedTests, setSelectedTests, uploadedFile, setUploadedFile }}>
-        <Router>
+        <>
           <Navbar />
           {/* Render ChatComponent once, either here or in your layout */}
           <ChatComponent />
           <UploadButton /> {/* Upload button for CSV files */}
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/login" element={<SignIn />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/select-test" element={<TestSelection />} />
             <Route path="/test-adp" element={<AdpTest />} />
             <Route path="/test-adp-safe-harbor-401k" element={<ADPSafeHarbor401kTest />} />
@@ -155,7 +158,7 @@ function App() {
             <Route path="/security" element={<Security />} />
             <Route path="/test-history" element={<TestHistory />} />
           </Routes>
-        </Router>
+        </>
       </TestContext.Provider>
     </ErrorBoundary>
   );
