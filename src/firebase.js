@@ -22,6 +22,16 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+// Enable offline persistence
+enableIndexedDbPersistence(db)
+  .catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn("Persistence failed because multiple tabs are open");
+    } else if (err.code === 'unimplemented') {
+      console.warn("Persistence is not supported");
+    }
+  });
+
 // Optional: attach auth to window for debugging
 if (typeof window !== "undefined") {
   window.firebaseAuth = auth;
