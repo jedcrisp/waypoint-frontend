@@ -3,6 +3,9 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
 import { useNavigate } from 'react-router-dom'
 import { auth, db } from '../firebase'
+import { setLogLevel } from "firebase/firestore";
+setLogLevel("debug");
+
 
 export const usePortalAccessGuard = () => {
   const [loading, setLoading] = useState(true)
