@@ -3,17 +3,14 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { AuthProvider } from './AuthContext';
-import { app } from "./firebase";
-import { BrowserRouter } from "react-router-dom"; // ✅ Import this
+import { app } from "./firebase"; // ✅ Import Firebase to ensure it loads
 
-console.log("Firebase App Initialized:", app);
+console.log("Firebase App Initialized:", app); // ✅ Check if Firebase loads
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <BrowserRouter> {/* ✅ Wrap in router context */}
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </BrowserRouter>
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </React.StrictMode>
 );
