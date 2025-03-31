@@ -204,8 +204,8 @@ const ADPTest = () => {
       // Retrieve metrics from result and format them
       const totalEmployees = result["Total Employees"] ?? "N/A";
       const totalParticipants = result["Total Participants"] ?? "N/A"; 
-      const hceAdp = result["HCE ADP (%)"] !== undefined ? formatPercentage(result["HCE ADP"]) : "N/A";
-      const nhceAdp = result["NHCE ADP (%)"] !== undefined ? formatPercentage(result["NHCE ADP"]) : "N/A"
+      const hceAdp = result["HCE ADP (%)"] !== undefined ? formatPercentage(result["HCE ADP (%)"]) : "N/A";
+      const nhceAdp = result["NHCE ADP (%)"] !== undefined ? formatPercentage(result["NHCE ADP (%)"]) : "N/A"
       const testResult = result["Test Result"] ?? "N/A";
       const failed = testResult.toLowerCase() === "failed";
 
@@ -225,13 +225,14 @@ const ADPTest = () => {
 
       // Basic Results Table
       pdf.autoTable({
-        startY: 40,
+         startY: 40,
+        theme: "grid",
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", totalEmployees],
           ["Total Participants", totalParticipants],
-          ["HCE ADP (%)", formatPercentage(hceAdp)],
-          ["NHCE ADP (%)", formatPercentage(nhceAdp)],
+          ["HCE ADP (%)", hceAdp],
+          ["NHCE ADP (%)", ncheAdp],
           ["Test Result", testResult],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
