@@ -106,7 +106,7 @@ function App() {
   return (
     <ErrorBoundary>
       <TestContext.Provider value={{ selectedTests, setSelectedTests, uploadedFile, setUploadedFile }}>
-        <Router>
+        <>
           <Navbar />
           {/* Render ChatComponent once, either here or in your layout */}
           <ChatComponent />
@@ -155,7 +155,7 @@ function App() {
             <Route path="/security" element={<Security />} />
             <Route path="/test-history" element={<TestHistory />} />
           </Routes>
-        </Router>
+        </>
       </TestContext.Provider>
     </ErrorBoundary>
   );
