@@ -131,7 +131,7 @@ const ADPSafeHarbor401kTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "ADP_Safe_Harbor_401k_Template.csv");
+    link.setAttribute("download", "ADP Safe Harbor 401k Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -187,7 +187,7 @@ const ADPSafeHarbor401kTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Safe_Harbor_401k_Test_Results.csv");
+    link.setAttribute("download", "ADP Safe Harbor 401k Test Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -212,22 +212,33 @@ const ADPSafeHarbor401kTest = () => {
     // Header
     pdf.setFontSize(18);
     pdf.setFont("helvetica", "bold");
-    pdf.text("Safe Harbor 401(k) Test Results", 105, 15, { align: "center" });
+    pdf.text("ADP Safe Harbor 401(k) Test Results", 105, 15, { align: "center" });
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "normal");
     pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
     pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
+    // Subheader with test criterion
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(60, 60, 60);
+    pdf.text(
+      "Test Criterion: IRC §401(k)(12): The Safe Harbor 401(k) test deems a plan to automatically satisfy ADP and ACP nondiscrimination testing if it provides mandatory employer contributions and meets specific notice and vesting requirements set by the IRS.",
+      105,
+      38,
+      { align: "center", maxWidth: 180 }
+    );
+
     // Section 1: Basic Results Table
     pdf.autoTable({
-      startY: 40,
+      startY: 56,
       theme: "grid",
       head: [["Metric", "Value"]],
       body: [
         ["Total Employees", totalEmployees],
         ["Total Participants", totalParticipants],
-        ["Eligibility Percentage (%)", eligibilityPct],
-        ["Average Employer Contribution (%)", avgEmployerContribution],
+        ["Eligibility Percentage", eligibilityPct],
+        ["Average Employer Contribution", avgEmployerContribution],
         ["Test Result", testRes],
       ],
       headStyles: {
@@ -284,14 +295,14 @@ const ADPSafeHarbor401kTest = () => {
     let pdfBlob;
     try {
       pdfBlob = pdf.output("blob");
-      pdf.save("Safe_Harbor_401k_Test_Results.pdf");
+      pdf.save("ADP Safe Harbor 401k Test Results.pdf");
     } catch (error) {
       setError(`❌ Error exporting PDF: ${error.message}`);
       return;
     }
     try {
       await savePdfResultToFirebase({
-        fileName: "ADP Safe Harbor 401k Test",
+        fileName: "ADP Safe Harbor 401k",
         pdfBlob,
         additionalData: {
           planYear,
@@ -353,7 +364,7 @@ const ADPSafeHarbor401kTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
@@ -397,33 +408,33 @@ const ADPSafeHarbor401kTest = () => {
           </h3>
           <div className="mt-4">
             <p className="text-lg">
-              <strong className="text-gray-700">Plan Year:</strong>{" "}
+              <strong className="text-black-700">Plan Year:</strong>{" "}
               <span className="font-semibold text-blue-600">
                 {planYear || "N/A"}
               </span>
             </p>
             <p className="text-lg">
-              <strong className="text-gray-700">Total Employees:</strong>{" "}
+              <strong className="text-black-700">Total Employees:</strong>{" "}
               {result["Total Employees"] ?? "N/A"}
             </p>
             <p className="text-lg">
-              <strong className="text-gray-700">Total Participants:</strong>{" "}
+              <strong className="text-black-700">Total Participants:</strong>{" "}
               {result["Total Participants"] ?? "N/A"}
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Eligibility Percentage:</strong>{" "}
+              <strong className="text-black-700">Eligibility Percentage:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {formatPercentage(result?.["Eligibility Percentage (%)"])}
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Average Employer Contribution:</strong>{" "}
+              <strong className="text-black-700">Average Employer Contribution:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {formatCurrency(result?.["Average Employer Contribution (%)"])}
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Test Result:</strong>{" "}
+              <strong className="text-black-700">Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
                   result["Test Result"] === "Passed"
