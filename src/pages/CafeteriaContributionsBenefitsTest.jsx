@@ -217,14 +217,14 @@ const CafeteriaContributionsBenefitsTest = () => {
 
       if (failed) {
         const correctiveActions = [
-          "Review allocation of contributions between employer and employees",
-          "Adjust plan design to promote equitable contributions",
-          "Reevaluate plan terms to align with non-discrimination requirements",
+          "Reallocate Cafeteria Plan benefits to balance distributions.",
+          "Adjust classifications of key employees.",
+          "Review and update contribution policies.",
         ];
         const consequences = [
-          "Benefits may be reclassified as taxable for HCEs",
-          "Additional employer contributions might be required",
-          "Increased risk of IRS penalties and audits",
+          "Loss of Tax-Exempt Status for Key Employees",
+          "IRS Scrutiny and Potential Penalties",
+          "Risk of Plan Disqualification for Non-Compliance",
         ];
 
         pdf.autoTable({
