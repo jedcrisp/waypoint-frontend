@@ -443,7 +443,7 @@ const AverageBenefitTest = () => {
               <p className="text-lg mt-2">
                 <strong>Average Benefit Ratio:</strong>{" "}
                 <span className="font-semibold text-gray-800">
-                  {formatPercentage(result?.["Average Benefit Ratio"])}
+                  {formatPercentage(result?.["Average Benefit Ratio (%)"])}
                 </span>
               </p>
               <p className="text-lg mt-2">
