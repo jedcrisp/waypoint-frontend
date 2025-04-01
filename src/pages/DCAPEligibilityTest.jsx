@@ -137,7 +137,7 @@ const DCAPEligibilityTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "DCAP_Eligibility_Template.csv");
+    link.setAttribute("download", "DCAP Eligibility Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -167,7 +167,7 @@ const DCAPEligibilityTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "DCAP_Eligibility_Results.csv");
+    link.setAttribute("download", "DCAP Eligibility Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -188,14 +188,13 @@ const DCAPEligibilityTest = () => {
       const totalEmployees = result["Total Employees"] ?? "N/A";
       const totalParticipants = result["Total Participants"] ?? "N/A";
       const dcapEligibilityPercentage = result["DCAP Eligibility Percentage (%)"] ?? "N/A";
-      const testRes = result["Test Result"] ?? "N/A";
-      const failed = testRes.toLowerCase() === "failed";
-
+      const testResult = result["Test Result"] ?? "N/A";
+      const failed = testResult
       pdf.setFontSize(11);
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
       pdf.text(
-        "Test Criterion: At least 50% of eligible employees must be eligible for DCAP",
+        "Test Criterion: IRC §129(d): A Dependent Care Assistance Program must not discriminate in terms of eligibility to favor highly compensated employees.",
         105,
         38,
         { align: "center", maxWidth: 180 }
@@ -210,14 +209,14 @@ const DCAPEligibilityTest = () => {
       pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
       pdf.autoTable({
-        startY: 43,
+        startY: 47,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", totalEmployees],
           ["Total Participants", totalParticipants],
           ["DCAP Eligibility Percentage", dcapEligibilityPercentage !== "N/A" ? formatPercentage(dcapEligibilityPercentage) : "N/A",],
-          ["Test Result", testRes],
+          ["Test Result", testResult],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
         styles: { fontSize: 12, font: "helvetica" },
@@ -265,7 +264,7 @@ const DCAPEligibilityTest = () => {
       pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
       pdfBlob = pdf.output("blob");
-      pdf.save("DCAP_Eligibility_Test_Results.pdf");
+      pdf.save("DCAP Eligibility Test Results.pdf");
     } catch (error) {
       setError(`❌ Error exporting PDF: ${error.message}`);
       return;
@@ -273,7 +272,7 @@ const DCAPEligibilityTest = () => {
 
     try {
       await savePdfResultToFirebase({
-        fileName: "DCAP Eligibility Test",
+        fileName: "DCAP Eligibility Test Results",
         pdfBlob,
         additionalData: {
           planYear,
@@ -340,7 +339,7 @@ const DCAPEligibilityTest = () => {
           <p className="text-green-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
