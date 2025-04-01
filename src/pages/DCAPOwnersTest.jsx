@@ -160,7 +160,7 @@ const DCAPOwnersTest = () => {
 
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "DCAP_Owners_Template.csv");
+    link.setAttribute("download", "DCAP Owners Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -195,7 +195,7 @@ const DCAPOwnersTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "DCAP_Owners_Results.csv");
+    link.setAttribute("download", "DCAP Owners Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -226,7 +226,7 @@ const DCAPOwnersTest = () => {
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
       pdf.text(
-        "Test Criterion: ≤ 25% of total DCAP benefits may go to owners",
+        "Test Criterion: Under IRC §129(c), no more than 25% of total DCAP benefits may be provided to shareholders or owners who hold more than 5% of the company.",
         105,
         38,
         { align: "center", maxWidth: 180 }
@@ -234,7 +234,7 @@ const DCAPOwnersTest = () => {
 
       // Table with Results
       pdf.autoTable({
-        startY: 40,
+        startY: 48,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
@@ -307,7 +307,7 @@ const DCAPOwnersTest = () => {
 
       // Generate blob and save locally
       pdfBlob = pdf.output("blob");
-      pdf.save("DCAP_Owners_Results.pdf");
+      pdf.save("DCAP Owners Results.pdf");
     } catch (error) {
       setError(`❌ Error exporting PDF: ${error.message}`);
       return;
