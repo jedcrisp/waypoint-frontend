@@ -253,8 +253,8 @@ const ADPSafeHarborSlidingTest = () => {
       if (failed) {
         const correctiveActions = [
           "Refund Excess Contributions by the required deadline.",
-          "Make Additional Contributions as required.",
-          "Recharacterize excess contributions appropriately.",
+          "Make Additional Contributions to NHCEs via QNEC or QMAC.",
+          "Recharacterize Excess HCE Contributions as Employee Contributions.",
         ];
         const consequences = [
           "Excess Contributions Must Be Refunded",
@@ -457,6 +457,22 @@ const ADPSafeHarborSlidingTest = () => {
             </p>
           </div>
 
+          {/* Export & Download Buttons */}
+          <div className="flex flex-col gap-2 mt-4">
+            <button
+              onClick={exportToPDF}
+              className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+            >
+              Export PDF Results
+            </button>
+            <button
+              onClick={downloadResultsAsCSV}
+              className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
+            >
+              Download CSV Results
+            </button>
+          </div>
+
           {/* Conditionally render corrective actions & consequences */}
           {result["Test Result"].toLowerCase() === "failed" && (
             <>
@@ -494,21 +510,7 @@ const ADPSafeHarborSlidingTest = () => {
             </>
           )}
 
-          {/* Export & Download Buttons */}
-          <div className="flex flex-col gap-2 mt-4">
-            <button
-              onClick={exportToPDF}
-              className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
-            >
-              Export PDF Results
-            </button>
-            <button
-              onClick={downloadResultsAsCSV}
-              className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
-            >
-              Download CSV Results
-            </button>
-          </div>
+          
         </div>
       )}
     </div>
