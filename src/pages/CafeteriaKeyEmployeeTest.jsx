@@ -139,7 +139,7 @@ const CafeteriaKeyEmployeeTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Cafeteria_Key_Employee_Template.csv");
+    link.setAttribute("download", "Cafeteria Key Employee Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -177,7 +177,7 @@ const CafeteriaKeyEmployeeTest = () => {
     pdf.setFont("helvetica", "italic");
     pdf.setTextColor(60, 60, 60);
     pdf.text(
-      "Test Criterion: HCE average benefits must not exceed 125% of NHCE average benefits",
+      "Test Criterion: Under IRC §125(b)(1), key employees must not receive more than 25% of the total cafeteria plan benefits.",
       105,
       40,
       { align: "center", maxWidth: 180 }
@@ -194,7 +194,7 @@ const CafeteriaKeyEmployeeTest = () => {
 
     // Results Table
     pdf.autoTable({
-      startY: 47,
+      startY: 48,
       theme: "grid",
       head: [["Metric", "Value"]],
       body: [
@@ -259,7 +259,7 @@ const CafeteriaKeyEmployeeTest = () => {
     let pdfBlob;
     try {
       pdfBlob = pdf.output("blob");
-      pdf.save("Cafeteria_Key_Employee_Test_Results.pdf");
+      pdf.save("Cafeteria Key Employee Test Results.pdf");
     } catch (error) {
       setError(`❌ Error exporting PDF: ${error.message}`);
       return;
@@ -267,7 +267,7 @@ const CafeteriaKeyEmployeeTest = () => {
 
     try {
       await savePdfResultToFirebase({
-        fileName: "Cafeteria Key Employee Test",
+        fileName: "Cafeteria Key Employee Test Results",
         pdfBlob,
         additionalData: {
           planYear,
@@ -318,7 +318,7 @@ const CafeteriaKeyEmployeeTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Cafeteria_Key_Employee_Test_Results.csv");
+    link.setAttribute("download", "Cafeteria Key Employee Test Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -387,7 +387,7 @@ const CafeteriaKeyEmployeeTest = () => {
           <p className="text-green-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
