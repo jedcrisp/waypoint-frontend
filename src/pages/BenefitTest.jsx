@@ -263,7 +263,7 @@ const BenefitTest = () => {
     // Save PDF to Firebase using the helper function
     try {
       await savePdfResultToFirebase({
-        fileName: "Benefit Test Results",
+        fileName: "Benefit",
         pdfBlob,
         additionalData: {
           planYear,
