@@ -101,7 +101,7 @@ const CafeteriaContributionsBenefitsTest = () => {
 
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Cafeteria_Contributions_Benefits_Template.csv");
+    link.setAttribute("download", "Cafeteria Contributions Benefits Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -184,8 +184,19 @@ const CafeteriaContributionsBenefitsTest = () => {
       const hceNhceRatio = result["HCE/NHCE Ratio"] ?? "N/A";
       const totalContributions = formatCurrency(result["Total Contributions"]);
 
+      // Add test criterion subheader
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(
+        "Test Criterion: IRC §125(b): A cafeteria plan must not discriminate in contributions and benefits in favor of highly compensated or key employees.",
+        105,
+        40,
+        { align: "center", maxWidth: 180 }
+      );
+
       pdf.autoTable({
-        startY: 45,
+        startY: 49,
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", totalEmployees],
@@ -245,13 +256,13 @@ const CafeteriaContributionsBenefitsTest = () => {
     const pdfBlob = pdf.output("blob");
 
     // Save locally
-    pdf.save("Cafeteria_Contributions_Benefits_Results.pdf");
+    pdf.save("Cafeteria Contributions Benefits Test Results.pdf");
   } catch (error) {
     setError(`❌ Error exporting PDF: ${error.message}`);
   }
 
     const pdfUrl = await savePdfResultToFirebase({
-      fileName: "Cafeteria Contributions Benefits",
+      fileName: "Cafeteria Contributions Benefits Test Results",
       pdfBlob,
       additionalData: {
         planYear,
@@ -301,7 +312,7 @@ const CafeteriaContributionsBenefitsTest = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", "Cafeteria_Contributions_Benefits_Results.csv");
+      link.setAttribute("download", "Cafeteria Contributions Benefits Results.csv");
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -368,7 +379,7 @@ const CafeteriaContributionsBenefitsTest = () => {
           <p className="text-green-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
