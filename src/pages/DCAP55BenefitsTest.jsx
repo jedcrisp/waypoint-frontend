@@ -228,16 +228,22 @@ const DCAP55BenefitsTest = () => {
     // Add corrective actions & consequences if test failed
     if (failed) {
       const correctiveActions = [
-        "Reduce DCAP Benefits for owners/HCEs to bring them under 55% threshold",
-        "Increase NHCE participation or benefits",
-        "Redistribute employer contributions to balance the ratio",
-      ];
+  "Reduce DCAP (Dependent Care FSA) benefits for HCEs to bring the average benefit below 55%",
+  "Encourage or require greater NHCE participation in the Dependent Care plan",
+  "Cap HCE contributions based on NHCE average benefits to maintain balance",
+  "Reimburse affected HCEs through payroll adjustment if benefits are reduced retroactively",
+  "Implement plan design changes or automatic enrollment for NHCEs to increase participation",
+];
+
 
       const consequences = [
-        "HCE DCAP benefits become taxable",
-        "IRS penalties and potential plan disqualification",
-        "Loss of tax-free DCAP benefits for employees",
-      ];
+  "HCEs lose the ability to receive DCAP benefits tax-free",
+  "HCEs' DCAP contributions become fully taxable and included in W-2 wages",
+  "Risk of IRS penalties or audits if the plan is not corrected",
+  "Potential loss of Section 129 plan qualification for the entire plan",
+  "Negative employee perception or morale impact for HCEs affected by retroactive taxation",
+];
+
 
       pdf.autoTable({
         startY: pdf.lastAutoTable.finalY + 10,
@@ -529,41 +535,47 @@ const DCAP55BenefitsTest = () => {
             </button>
           </div>
 
-          {/* Corrective Actions & Consequences if Test Failed */}
-          {result["Test Result"]?.toLowerCase() === "failed" && (
-            <>
-              <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
-                <h4 className="font-bold text-black-600">Corrective Actions:</h4>
-                <ul className="list-disc list-inside text-black-600">
-                  <li>
-                    Adjust eligibility requirements to ensure NHCEs meet the 70% threshold.
-                  </li>
-                  <br />
-                  <li>
-                    Modify plan design to allow more NHCEs to participate.
-                  </li>
-                  <br />
-                  <li>
-                    Ensure compliance with the Ratio Percentage Test.
-                  </li>
-                  <br />
-                  <li>
-                    Review employee demographics to adjust contribution structures.
-                  </li>
-                </ul>
-              </div>
+         {/* Corrective Actions & Consequences if Test Failed */}
+{result["Test Result"]?.toLowerCase() === "failed" && (
+  <>
+    <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+      <h4 className="font-bold text-black-600">Corrective Actions:</h4>
+      <ul className="list-disc list-inside text-black-600">
+        <li>
+          Reduce DCAP (Dependent Care FSA) benefits for HCEs to bring the average below 55%.
+        </li>
+        <br />
+        <li>
+          Encourage or implement automatic enrollment for NHCEs to increase participation.
+        </li>
+        <br />
+        <li>
+          Cap HCE contributions based on NHCE benefit averages to maintain compliance.
+        </li>
+        <br />
+        <li>
+          Redesign the plan to improve accessibility and adoption among NHCEs.
+        </li>
+        <br />
+        <li>
+          Reimburse affected HCEs through payroll adjustments if benefits must be reduced.
+        </li>
+      </ul>
+    </div>
 
-              <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
-                <h4 className="font-bold text-black-600">Consequences:</h4>
-                <ul className="list-disc list-inside text-black-600">
-                  <li>Plan may lose tax-qualified status.</li>
-                  <br />
-                  <li>HCEs may have contributions refunded, reducing their tax benefits.</li>
-                  <br />
-                  <li>Additional corrective employer contributions may be required.</li>
-                  <br />
-                  <li>Increased IRS audit risk due to compliance failure.</li>
-                </ul>
+    <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
+      <h4 className="font-bold text-black-600">Consequences:</h4>
+      <ul className="list-disc list-inside text-black-600">
+        <li>HCEs will lose the ability to receive DCAP benefits tax-free.</li>
+        <br />
+        <li>HCE contributions will be added to taxable wages and reported on their W-2.</li>
+        <br />
+        <li>Potential IRS penalties or audits if corrective action is not taken.</li>
+        <br />
+        <li>Loss of Section 129 plan qualification, affecting all participants.</li>
+        <br />
+        <li>Employee dissatisfaction or morale impact for impacted HCEs.</li>
+      </ul>
               </div>
             </>
           )}
