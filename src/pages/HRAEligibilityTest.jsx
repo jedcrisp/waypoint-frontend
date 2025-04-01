@@ -119,7 +119,7 @@ const HRAEligibilityTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "HRA_Eligibility_Template.csv");
+    link.setAttribute("download", "HRA Eligibility Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -158,15 +158,27 @@ const HRAEligibilityTest = () => {
       pdf.text(`Plan Year: ${planYear || "N/A"}`, 105, 25, { align: "center" });
       pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
+      // Subheader with test criterion
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(60, 60, 60);
+    pdf.text(
+      "Test Criterion: IRC §105(h)(3)(A): A Health Reimbursement Arrangement (HRA) must not favor highly compensated individuals in determining eligibility to participate in the plan.",
+      105,
+      38,
+      { align: "center", maxWidth: 180 }
+    );
+
       // Results Table
       pdf.autoTable({
-        startY: 40,
-        head: [["Metric", "Value"]],
-        body: [
+      startY: 50,
+      theme: "grid",
+      head: [["Metric", "Value"]],
+      body: [
           ["Total Employees", totalEmployees],
-          ["HCI Eligibility (%)", hciEligibility],
-          ["Non-HCI Eligibility (%)", nonHCIEligibility],
-          ["Eligibility Ratio (%)", eligibilityRatio],
+          ["HCI Eligibility", hciEligibility],
+          ["Non-HCI Eligibility", nonHCIEligibility],
+          ["Eligibility Ratio", eligibilityRatio],
           ["Test Result", testRes],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
@@ -190,6 +202,7 @@ const HRAEligibilityTest = () => {
         ];
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
           head: [["Corrective Actions"]],
           body: correctiveActions.map((action) => [action]),
           headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
@@ -198,6 +211,7 @@ const HRAEligibilityTest = () => {
         });
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
           head: [["Consequences"]],
           body: consequences.map((item) => [item]),
           headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
@@ -214,14 +228,14 @@ const HRAEligibilityTest = () => {
 
       try {
         pdfBlob = pdf.output("blob");
-        pdf.save("HRA_Eligibility_Results.pdf");
+        pdf.save("HRA Eligibility Results.pdf");
       } catch (error) {
         setError(`❌ Error exporting PDF: ${error.message}`);
         return;
       }
       try {
         await savePdfResultToFirebase({
-          fileName: "HRA Eligibility Test",
+          fileName: "HRA Eligibility",
           pdfBlob,
           additionalData: {
             planYear,
@@ -264,7 +278,7 @@ const HRAEligibilityTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "HRA_Eligibility_Results.csv");
+    link.setAttribute("download", "HRA Eligibility Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -326,7 +340,7 @@ const HRAEligibilityTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
