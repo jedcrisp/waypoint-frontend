@@ -52,17 +52,17 @@ const AverageBenefitTest = () => {
   // ----- 2. CSV Template Download -----
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-  ["Last Name", "First Name", "Employee ID", "Total Benefits", "NHCE Average Benefit", "HCE Average Benefit", "DOB", "DOH", "Employment Status", "Excluded from Test", "HCE", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
-  ["Last", "First", "001", "4500", "4000", "5000", "1980-04-12", "2010-06-01", "Active", "No", "Yes", "2011-01-01", "No", "No"],
-  ["Last", "First", "002", "3700", "3700", "0", "1985-11-03", "2015-08-15", "Active", "No", "No", "2016-01-01", "No", "No"],
-  ["Last", "First", "003", "5200", "0", "5200", "1978-01-22", "2008-02-18", "Active", "No", "Yes", "2009-01-01", "No", "No"],
-  ["Last", "First", "004", "3300", "3300", "0", "1990-09-14", "2020-03-12", "Active", "No", "No", "2020-04-01", "No", "Yes"],
-  ["Last", "First", "005", "4700", "4700", "0", "1992-07-29", "2016-09-05", "Active", "No", "No", "2016-10-01", "No", "No"],
-  ["Last", "First", "006", "6000", "0", "6000", "1975-05-19", "2005-01-10", "Active", "No", "Yes", "2005-02-01", "Yes", "No"],
-  ["Last", "First", "007", "3900", "3900", "0", "1994-02-17", "2021-06-01", "Active", "No", "No", "2021-07-01", "No", "Yes"],
-  ["Last", "First", "008", "5300", "0", "5300", "1982-12-11", "2011-10-08", "Active", "No", "Yes", "2012-01-01", "No", "No"],
-  ["Last", "First", "009", "3600", "3600", "0", "1989-08-05", "2018-11-20", "Active", "No", "No", "2019-01-01", "No", "No"],
-  ["Last", "First", "010", "4900", "0", "4900", "1987-06-06", "2012-04-10", "Active", "No", "Yes", "2012-05-01", "No", "No"]
+  ["Last Name", "First Name", "Employee ID", "Total Benefits", "DOB", "DOH", "Employment Status", "Excluded from Test", "HCE", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
+  ["Last", "First", "001", "4500", "1980-04-12", "2010-06-01", "Active", "No", "Yes", "2011-01-01", "No", "No"],
+  ["Last", "First", "002", "3700",  "1985-11-03", "2015-08-15", "Active", "No", "No", "2016-01-01", "No", "No"],
+  ["Last", "First", "003", "5200",  "1978-01-22", "2008-02-18", "Active", "No", "Yes", "2009-01-01", "No", "No"],
+  ["Last", "First", "004", "3300",  "1990-09-14", "2020-03-12", "Active", "No", "No", "2020-04-01", "No", "Yes"],
+  ["Last", "First", "005", "4700",  "1992-07-29", "2016-09-05", "Active", "No", "No", "2016-10-01", "No", "No"],
+  ["Last", "First", "006", "6000",  "1975-05-19", "2005-01-10", "Active", "No", "Yes", "2005-02-01", "Yes", "No"],
+  ["Last", "First", "007", "3900",  "1994-02-17", "2021-06-01", "Active", "No", "No", "2021-07-01", "No", "Yes"],
+  ["Last", "First", "008", "5300",  "1982-12-11", "2011-10-08", "Active", "No", "Yes", "2012-01-01", "No", "No"],
+  ["Last", "First", "009", "3600",  "1989-08-05", "2018-11-20", "Active", "No", "No", "2019-01-01", "No", "No"],
+  ["Last", "First", "010", "4900",  "1987-06-06", "2012-04-10", "Active", "No", "Yes", "2012-05-01", "No", "No"]
 ]
 
     const blob = new Blob([csvTemplate.join("\n")], {
@@ -155,7 +155,7 @@ const AverageBenefitTest = () => {
     const totalBenefits = result["Total Benefits"] ?? "N/A";
     const nhceAvg = result["NHCE Average Benefit"] ?? "N/A";
     const hceAvg = result["HCE Average Benefit"] ?? "N/A";
-    const averageBenefitRatio = result["Average Benefit Ratio (%)"] ?? "N/A";
+    const averageBenefitRatio = result["Average Benefit Ratio"] ?? "N/A";
     const testResult = result["Test Result"] ?? "N/A";
 
     const csvRows = [
@@ -196,7 +196,7 @@ const AverageBenefitTest = () => {
       const totalParticipants = result["Total Participants"] || "N/A";
       const nhceAvg = formatCurrency(result["NHCE Average Benefit"]);
       const hceAvg = formatCurrency(result["HCE Average Benefit"]);
-      const averageBenefitRatio = formatPercentage(result["Average Benefit Ratio (%)"]);
+      const averageBenefitRatio = formatPercentage(result["Average Benefit Ratio"]);
       const testResult = result["Test Result"] || "N/A";
       const failed = testResult.toLowerCase() === "failed";
 
@@ -443,7 +443,7 @@ const AverageBenefitTest = () => {
               <p className="text-lg mt-2">
                 <strong>Average Benefit Ratio:</strong>{" "}
                 <span className="font-semibold text-gray-800">
-                  {formatPercentage(result?.["Average Benefit Ratio (%)"])}
+                  {formatPercentage(result?.["Average Benefit Ratio"])}
                 </span>
               </p>
               <p className="text-lg mt-2">
