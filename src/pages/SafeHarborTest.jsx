@@ -133,7 +133,7 @@ const SafeHarborTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Safe_Harbor_Template.csv");
+    link.setAttribute("download", "ADP Safe Harbor Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -185,7 +185,7 @@ const SafeHarborTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "ADP_Safe_Harbor_Results.csv");
+    link.setAttribute("download", "ADP Safe Harbor Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -235,25 +235,42 @@ const SafeHarborTest = () => {
       const generatedTimestamp = new Date().toLocaleString();
       pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
+      // Subheader with test criterion
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(60, 60, 60);
+    pdf.text(
+      "Test Criterion: IRC §401(k)(12): A plan is deemed to satisfy the ADP test if it meets Safe Harbor requirements by providing mandatory employer contributions and meeting immediate eligibility and full vesting conditions.",
+      105,
+      38,
+      { align: "center", maxWidth: 180 }
+    );
+
       // Basic Results Table
       pdf.autoTable({
-        startY: 40,
+        startY: 52,
+        theme: "grid",
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", totalEmployees],
           ["Total Participants", totalParticipants],
-          ["Eligibility Percentage (%)", eligibilityPercentage],
-          ["Average Employer Contribution (%)", averageEmployerContribution],
-          ["Benefit Ratio (%)", benefitRatio],
+          ["Eligibility Percentage", eligibilityPercentage],
+          ["Average Employer Contribution", averageEmployerContribution],
+          ["Benefit Ratio", benefitRatio],
           ["HCE Benefits (Avg)", hceBenefits],
           ["NHCE Benefits (Avg)", nhceBenefits],
           ["Test Result", testRes],
         ],
-        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
-        styles: { fontSize: 12, font: "helvetica" },
-        margin: { left: 10, right: 10 },
-      });
-
+        headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: [255, 255, 255],
+      },
+      styles: {
+        fontSize: 12,
+        font: "helvetica",
+      },
+      margin: { left: 10, right: 10 },
+    });
       // If test failed, add corrective actions & consequences
       if (failed) {
         const correctiveActions = [
@@ -270,6 +287,7 @@ const SafeHarborTest = () => {
         ];
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
           head: [["Corrective Actions"]],
           body: correctiveActions.map((action) => [action]),
           headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
@@ -278,6 +296,7 @@ const SafeHarborTest = () => {
         });
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
           head: [["Consequences"]],
           body: consequences.map((item) => [item]),
           headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
@@ -294,7 +313,7 @@ const SafeHarborTest = () => {
 
       try {
         pdfBlob = pdf.output("blob");
-        pdf.save("ADP_Safe_Harbor_Test_Results.pdf");
+        pdf.save("ADP Safe Harbor Test Results.pdf");
       } catch (error) {
         setError(`❌ Error exporting PDF: ${error.message}`);
         return;
@@ -368,7 +387,7 @@ const SafeHarborTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
