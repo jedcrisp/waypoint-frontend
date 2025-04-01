@@ -153,7 +153,7 @@ const AverageBenefitTest = () => {
     const totalEmployees = result["Total Employees"] ?? "N/A";
     const totalParticipants = result["Total Participants"] ?? "N/A";
     const totalBenefits = result["Total Benefits"] ?? "N/A";
-    const averageBenefitRatio = result["Average Benefit Ratio"] ?? "N/A";
+    const averageBenefitRatio = result["Average Benefit Ratio (%)"] ?? "N/A";
     const testResult = result["Test Result"] ?? "N/A";
 
     const csvRows = [
@@ -190,7 +190,7 @@ const AverageBenefitTest = () => {
       const totalBenefits = formatCurrency(result["Total Benefits"]);
       const totalEmployees = result["Total Employees"] || "N/A";
       const totalParticipants = result["Total Participants"] || "N/A";
-      const averageBenefitRatio = formatPercentage(result["Average Benefit Ratio"]);
+      const averageBenefitRatio = formatPercentage(result["Average Benefit Ratio (%)"]);
       const testResult = result["Test Result"] || "N/A";
       const failed = testResult.toLowerCase() === "failed";
 
@@ -423,7 +423,7 @@ const AverageBenefitTest = () => {
               <p className="text-lg mt-2">
                 <strong>Average Benefit Ratio:</strong>{" "}
                 <span className="font-semibold text-gray-800">
-                  {formatPercentage(result?.["Average Benefit Ratio"])}
+                  {formatPercentage(result?.["Average Benefit Ratio (%)"])}
                 </span>
               </p>
               <p className="text-lg mt-2">
