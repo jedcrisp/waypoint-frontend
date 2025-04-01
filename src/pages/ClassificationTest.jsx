@@ -148,7 +148,7 @@ const ClassificationTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Classification_Template.csv");
+    link.setAttribute("download", "Classification Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -190,7 +190,7 @@ const ClassificationTest = () => {
     pdf.setFont("helvetica", "italic");
     pdf.setTextColor(60, 60, 60);
     pdf.text(
-      "Test Criterion: At least 70% of eligible employees must be eligible for the cafeteria plan",
+      "Test Criterion: IRC §125(b)(1)(A): The plan must not favor highly compensated or key employees and must pass the §410(b) nondiscriminatory classification test based on eligibility rates.",
       105,
       38,
       { align: "center", maxWidth: 180 }
@@ -198,14 +198,14 @@ const ClassificationTest = () => {
 
     // Results Table
     pdf.autoTable({
-      startY: 43,
+      startY: 52,
       theme: "grid",
       head: [["Metric", "Value"]],
       body: [
         ["Total Employees", totalEmployees],
         ["Total Participants", totalParticipants],
         ["Eligible for Cafeteria Plan", eligibleForCafeteriaPlan],
-        ["Eligibility Percentage (%)", eligibilityPercentage],
+        ["Eligibility Percentage", eligibilityPercentage],
         ["Test Result", testResult],
       ],
       headStyles: {
@@ -255,11 +255,17 @@ const ClassificationTest = () => {
       });
     }
 
+    // Footer
+      pdf.setFont("helvetica", "italic");
+      pdf.setFontSize(10);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
+
     // Output PDF as a blob and save locally
     let pdfBlob;
     try {
       pdfBlob = pdf.output("blob");
-      pdf.save("Classification_Test_Results.pdf");
+      pdf.save("Classification Test Results.pdf");
     } catch (error) {
       setError(`❌ Error exporting PDF: ${error.message}`);
       return;
@@ -268,7 +274,7 @@ const ClassificationTest = () => {
     // Save PDF to Firebase using the helper function
     try {
       await savePdfResultToFirebase({
-        fileName: "Classification Test",
+        fileName: "Classification",
         pdfBlob,
         additionalData: {
           planYear,
@@ -312,7 +318,7 @@ const ClassificationTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Classification_Test_Results.csv");
+    link.setAttribute("download", "Classification Test Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -381,7 +387,7 @@ const ClassificationTest = () => {
           <p className="text-green-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
@@ -452,7 +458,7 @@ const ClassificationTest = () => {
             </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">
-                Eligibility Percentage (%):
+                Eligibility Percentage:
               </strong>{" "}
               <span className="font-semibold text-black-600">
                 {result?.["Eligibility Percentage (%)"] !== undefined
