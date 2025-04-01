@@ -155,6 +155,7 @@ const AverageBenefitTest = () => {
     const totalBenefits = result["Total Benefits"] ?? "N/A";
     const nhceAvg = result["NHCE Average Benefit"] ?? "N/A";
     const hceAvg = result["HCE Average Benefit"] ?? "N/A";
+    const averageBenefitRatio = result["Average Benefit Ratio"] ?? "N/A";
     const testResult = result["Test Result"] ?? "N/A";
 
     const csvRows = [
@@ -165,6 +166,7 @@ const AverageBenefitTest = () => {
       ["NHCE Average Benefit", nhceAvg],
       ["HCE Average Benefit", hceAvg],
       ["Total Benefits", totalBenefits],
+      ["Average Benefit Ratio", averageBenefitRatio],
       ["Test Result", testResult],
     ];
 
@@ -194,6 +196,7 @@ const AverageBenefitTest = () => {
       const totalParticipants = result["Total Participants"] || "N/A";
       const nhceAvg = formatCurrency(result["NHCE Average Benefit"]);
       const hceAvg = formatCurrency(result["HCE Average Benefit"]);
+      const averageBenefitRatio = formatPercentage(result["Average Benefit Ratio"]);
       const testResult = result["Test Result"] || "N/A";
       const failed = testResult.toLowerCase() === "failed";
 
@@ -230,6 +233,7 @@ const AverageBenefitTest = () => {
           ["NHCE Average Benefit", nhceAvg],
           ["HCE Average Benefit", hceAvg],
           ["Total Benefits", totalBenefits],
+          ["Average Benefit Ratio", averageBenefitRatio],
           ["Test Result", testResult],
         ],
         headStyles: {
@@ -434,6 +438,12 @@ const AverageBenefitTest = () => {
                 <strong>Total Benefits:</strong>{" "}
                 <span className="font-semibold text-gray-800">
                   {formatCurrency(result?.["Total Benefits"])}
+                </span>
+              </p>
+              <p className="text-lg mt-2">
+                <strong>Average Benefit Ratio:</strong>{" "}
+                <span className="font-semibold text-gray-800">
+                  {formatPercentage(result?.["Average Benefit Ratio"])}
                 </span>
               </p>
               <p className="text-lg mt-2">
