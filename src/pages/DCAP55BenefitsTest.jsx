@@ -134,7 +134,7 @@ const DCAP55BenefitsTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "DCAP_55_Benefits_Template.csv");
+    link.setAttribute("download", "DCAP 55% Benefits Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -161,11 +161,11 @@ const DCAP55BenefitsTest = () => {
     pdf.setFont("helvetica", "normal");
 
     // Subheader with test criterion
-    pdf.setFontSize(11);
+    pdf.setFontSize(12);
     pdf.setFont("helvetica", "normal");
     pdf.setTextColor(60, 60, 60);
     pdf.text(
-      "Test Criterion: Non-HCEs must receive greater than or equal to 55% of average HCE benefits",
+      "Test Criterion: IRC §129(d)(8): DCAP plan must not provide benefits to highly compensated employees that exceed 55% of the average benefits provided to all employees.",
       105,
       40,
       { align: "center", maxWidth: 170 }
@@ -182,7 +182,7 @@ const DCAP55BenefitsTest = () => {
 
     // Results Table
     pdf.autoTable({
-      startY: 48,
+      startY: 52,
       theme: "grid",
       head: [["Metric", "Value"]],
       body: [
@@ -207,7 +207,7 @@ const DCAP55BenefitsTest = () => {
             : "N/A"
         ],
         [
-          "Benefit Ratio (%)",
+          "Benefit Ratio)",
           benefitRatio !== "N/A" ? `${benefitRatio}%` : "N/A"
         ],
         ["Test Result", testResult],
@@ -270,7 +270,7 @@ const DCAP55BenefitsTest = () => {
     let pdfBlob;
     try {
       pdfBlob = pdf.output("blob");
-      pdf.save("DCAP_55_Benefits_Results.pdf");
+      pdf.save("DCAP 55% Benefits Results.pdf");
     } catch (error) {
       setError(`❌ Error exporting PDF: ${error.message}`);
       return;
@@ -279,7 +279,7 @@ const DCAP55BenefitsTest = () => {
     // Save PDF to Firebase using the helper function
     try {
       await savePdfResultToFirebase({
-        fileName: "DCAP 55% Benefits Test",
+        fileName: "DCAP 55% Benefits",
         pdfBlob,
         additionalData: {
           planYear,
@@ -346,7 +346,7 @@ const DCAP55BenefitsTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "DCAP_55_Benefits_Results.csv");
+    link.setAttribute("download", "DCAP 55% Benefits Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -414,7 +414,7 @@ const DCAP55BenefitsTest = () => {
           <p className="text-green-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
