@@ -130,7 +130,7 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Simple_Cafeteria_Plan_Eligibility_Template.csv");
+    link.setAttribute("download", "SIMPLE Cafeteria Plan Eligibility Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -152,7 +152,7 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
         ? formatPercentage(result["Eligibility Percentage (%)"])
         : "N/A";
       const testResult = result["Test Result"] ?? "N/A";
-      const failed = testRes.toLowerCase() === "failed";
+      const failed = testResult.toLowerCase() === "failed";
 
       const pdf = new jsPDF("p", "mm", "a4");
       pdf.setFont("helvetica", "normal");
@@ -166,22 +166,46 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
       pdf.text(`Plan Year: ${planYear || "N/A"}`, 105, 25, { align: "center" });
       pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
+      // Subheader with test criterion
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(
+      "Test Criterion: IRC §125(j): A simple cafeteria plan is deemed to satisfy eligibility and participation nondiscrimination rules if it meets minimum eligibility and contribution requirements for all employees.",
+      105,
+      38,
+      { align: "center", maxWidth: 180 }
+    );
+
+    const normalizeValue = (value) => {
+  if (String(value).toLowerCase() === "true") return "True";
+  if (String(value).toLowerCase() === "false") return "False";
+  return value ?? "N/A";
+};
+
       // Results Table
       pdf.autoTable({
-        startY: 40,
-        head: [["Metric", "Value"]],
-        body: [
+      startY: 50,
+      theme: "grid",
+      head: [["Metric", "Value"]],
+      body: [
           ["Total Employees", totalEmployees],
           ["Total Participants", totalParticipants],
-          ["Hours Requirement Met", hoursRequirementMet],
-          ["Earnings Requirement Met", earningsRequirementMet],
-          ["Eligibility Percentage (%)", eligibilityPct],
+          ["Hours Requirement Met", normalizeValue(hoursRequirementMet)],
+          ["Earnings Requirement Met", normalizeValue(earningsRequirementMet)],
+          ["Eligibility Percentage", eligibilityPct],
           ["Test Result", testResult],
         ],
-        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
-        styles: { fontSize: 12, font: "helvetica" },
-        margin: { left: 10, right: 10 },
-      });
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: [255, 255, 255],
+      },
+      styles: {
+        fontSize: 12,
+        font: "helvetica",
+      },
+      margin: { left: 10, right: 10 },
+    });
 
       // If test failed, add corrective actions & consequences
       if (failed) {
@@ -198,21 +222,23 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
           "Employee dissatisfaction and legal risks.",
         ];
         pdf.autoTable({
-          startY: pdf.lastAutoTable.finalY + 10,
-          head: [["Corrective Actions"]],
-          body: correctiveActions.map((action) => [action]),
-          headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-          styles: { fontSize: 11, font: "helvetica" },
-          margin: { left: 10, right: 10 },
-        });
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Corrective Actions"]],
+        body: correctiveActions.map((action) => [action]),
+        headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
         pdf.autoTable({
-          startY: pdf.lastAutoTable.finalY + 10,
-          head: [["Consequences"]],
-          body: consequences.map((item) => [item]),
-          headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-          styles: { fontSize: 11, font: "helvetica" },
-          margin: { left: 10, right: 10 },
-        });
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Consequences"]],
+        body: consequences.map((consequence) => [consequence]),
+        headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
       }
 
       // Footer
@@ -223,18 +249,18 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
 
       try {
         pdfBlob = pdf.output("blob");
-        pdf.save("Simple_Cafeteria_Plan_Eligibility_Test_Results.pdf");
+        pdf.save("SIMPLE Cafeteria Plan Eligibility Test Results.pdf");
       } catch (error) {
         setError(`❌ Error exporting PDF: ${error.message}`);
         return;
       }
       try {
         await savePdfResultToFirebase({
-          fileName: "Simple Cafeteria Plan Eligibility",
+          fileName: "SIMPLE Cafeteria Plan Eligibility Test Results",
           pdfBlob,
           additionalData: {
             planYear,
-            testResult: testRes || "Unknown",
+            testResult: testResult || "Unknown",
           },
         });
       } catch (error) {
@@ -270,7 +296,7 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
       ["Hours Requirement Met", hoursRequirementMet],
       ["Earnings Requirement Met", earningsRequirementMet],
       ["Eligible Employees", eligibleEmployees],
-      ["Eligibility Percentage (%)", eligibilityPct],
+      ["Eligibility Percentage", eligibilityPct],
       ["Test Result", testResult],
     ];
 
@@ -279,7 +305,7 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Simple_Cafeteria_Plan_Eligibility_Results.csv");
+    link.setAttribute("download", "SIMPLE Cafeteria Plan Eligibility Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -341,7 +367,7 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
@@ -381,7 +407,7 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
       {result && (
         <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-md">
           <h3 className="font-bold text-xl text-gray-700">
-            Simple Cafeteria Plan Eligibility Results
+            SIMPLE Cafeteria Plan Eligibility Results
           </h3>
           <div className="mt-4">
             <p className="text-lg">
@@ -401,21 +427,21 @@ const SimpleCafeteriaPlanEligibilityTest = () => {
               </span>
             </p>
             <p className="text-lg mt-2">
-                <strong>Hours Requirement Met:</strong>{" "}
-                <span className="font-semibold text-black-600">
-                {result?.["Hours Requirement Met"] !== undefined
-                  ? (result["Hours Requirement Met"] ? "True" : "False")
-                : "N/A"}
-            </span>
-            </p>
-            <p className="text-lg mt-2">
-                <strong>Earnings Requirement Met:</strong>{" "}
-                  <span className="font-semibold text-black-600">
-                {result?.["Earnings Requirement Met"] !== undefined
-                ? (result["Earnings Requirement Met"] ? "True" : "False")
-                : "N/A"}
-            </span>
-            </p>
+  <strong>Hours Requirement Met:</strong>{" "}
+  <span className="font-semibold text-black-600">
+    {result?.["Hours Requirement Met"] !== undefined
+      ? (result["Hours Requirement Met"] ? "True" : "False")
+      : "N/A"}
+  </span>
+</p>
+<p className="text-lg mt-2">
+  <strong>Earnings Requirement Met:</strong>{" "}
+  <span className="font-semibold text-black-600">
+    {result?.["Earnings Requirement Met"] !== undefined
+      ? (result["Earnings Requirement Met"] ? "True" : "False")
+      : "N/A"}
+  </span>
+</p>
             <p className="text-lg mt-2">
               <strong>Eligibility Percentage:</strong>{" "}
               <span className="font-semibold text-black-600">
