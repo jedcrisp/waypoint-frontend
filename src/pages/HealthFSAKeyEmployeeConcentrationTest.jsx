@@ -149,7 +149,7 @@ const HealthFSAKeyEmployeeConcentrationTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Health_FSA_Key_Employee_Concentration_Template.csv");
+    link.setAttribute("download", "Health FSA Key Employee Concentration Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -178,7 +178,7 @@ const HealthFSAKeyEmployeeConcentrationTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Health_FSA_Key_Employee_Concentration_Results.csv");
+    link.setAttribute("download", "Health FSA Key Employee Concentration Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -207,8 +207,19 @@ const HealthFSAKeyEmployeeConcentrationTest = () => {
       pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
       pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
+       // Subheader with test criterion
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(60, 60, 60);
+    pdf.text(
+      "Test Criterion: Test Criterion (IRC §125(b)(5)(C)): Contributions or benefits provided to key employees under the Health FSA must not exceed 25% of the total benefits provided to all employees under the plan.",
+      105,
+      38,
+      { align: "center", maxWidth: 180 }
+    );
+
       pdf.autoTable({
-        startY: 40,
+        startY: 52,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
@@ -266,7 +277,7 @@ const HealthFSAKeyEmployeeConcentrationTest = () => {
 
       // Generate PDF blob and trigger local download
       const pdfBlob = pdf.output("blob");
-      pdf.save("Health_FSA_Key_Employee_Concentration_Results.pdf");
+      pdf.save("Health FSA Key Employee Concentration Results.pdf");
 
       await savePdfResultToFirebase({
         fileName: "Health FSA Key Employee Concentration",
@@ -326,7 +337,7 @@ const HealthFSAKeyEmployeeConcentrationTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
