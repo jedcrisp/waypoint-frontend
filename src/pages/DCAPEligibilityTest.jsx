@@ -272,7 +272,7 @@ const DCAPEligibilityTest = () => {
 
     try {
       await savePdfResultToFirebase({
-        fileName: "DCAP Eligibility Test Results",
+        fileName: "DCAP Eligibility",
         pdfBlob,
         additionalData: {
           planYear,
