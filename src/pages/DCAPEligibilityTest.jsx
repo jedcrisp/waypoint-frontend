@@ -225,17 +225,22 @@ const DCAPEligibilityTest = () => {
 
       if (failed) {
         const correctiveActions = [
-          "Expand eligibility criteria to include more non-HCEs.",
-          "Enhance employee outreach to increase participation.",
-          "Adjust benefit allocation to meet compliance requirements.",
-          "Amend plan documents to align with IRS nondiscrimination rules.",
-        ];
+  "Expand plan eligibility criteria to include more non-HCEs (e.g., part-time or newer employees).",
+  "Improve communication and education efforts to encourage NHCE enrollment.",
+  "Delay HCE participation until eligibility among NHCEs improves.",
+  "Amend plan documents to reduce eligibility waiting periods or restrictions for NHCEs.",
+  "Monitor enrollment trends and conduct periodic nondiscrimination self-tests.",
+];
+
 
         const consequences = [
-          "IRS penalties and potential plan disqualification.",
-          "Loss of tax-advantaged status for contributions.",
-          "Increased administrative costs due to corrective actions.",
-        ];
+  "Loss of tax-free status for HCE DCAP benefits.",
+  "DCAP contributions for HCEs may become taxable and included in W-2 wages.",
+  "Potential IRS penalties or increased audit scrutiny.",
+  "Plan may be deemed discriminatory and lose Section 129 qualified status.",
+  "Negative employee impact or required reimbursement of disallowed benefits.",
+];
+
 
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
@@ -420,45 +425,7 @@ const DCAPEligibilityTest = () => {
             </p>
           </div>
 
-          {/* If failed, show corrective actions and consequences */}
-          {result?.["Test Result"]?.toLowerCase() === "failed" && (
-            <>
-              <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
-                <h4 className="font-bold text-gray-800">Corrective Actions:</h4>
-                <ul className="list-disc list-inside text-gray-800">
-                  <li className="mt-2">
-                    Expand Eligibility for NHCEs: Remove restrictive criteria that exclude NHCEs from participating in DCAP.
-                  </li>
-                  <li className="mt-2">
-                    Increase NHCE Participation: Improve education and awareness, offer enrollment incentives, and simplify the sign-up process.
-                  </li>
-                  <li className="mt-2">
-                    Adjust Employer Contributions: Ensure employer contributions are evenly distributed among HCEs and NHCEs.
-                  </li>
-                  <li className="mt-2">
-                    Amend the Plan Document: Modify eligibility and contribution rules to align with IRS nondiscrimination requirements.
-                  </li>
-                </ul>
-              </div>
-
-              <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
-                <h4 className="font-bold text-gray-800">Consequences:</h4>
-                <ul className="list-disc list-inside text-gray-800">
-                  <li className="mt-2">
-                    Potential IRS penalties or plan disqualification.
-                  </li>
-                  <li className="mt-2">
-                    Potential disqualification of the Health FSA plan.
-                  </li>
-                  <li className="mt-2">
-                    Loss of tax-free DCAP benefits for employees.
-                  </li>
-                </ul>
-              </div>
-            </>
-          )}
-
-          {/* Export & Download Buttons */}
+           {/* Export & Download Buttons */}
           <div className="flex flex-col gap-2 mt-4">
             <button
               onClick={exportToPDF}
@@ -473,6 +440,55 @@ const DCAPEligibilityTest = () => {
               Download CSV Results
             </button>
           </div>
+
+          {/* If failed, show corrective actions and consequences */}
+{result?.["Test Result"]?.toLowerCase() === "failed" && (
+  <>
+    <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+      <h4 className="font-bold text-gray-800">Corrective Actions:</h4>
+      <ul className="list-disc list-inside text-gray-800">
+        <li className="mt-2">
+          Expand plan eligibility criteria to include more non-HCEs (e.g., part-time or recently hired employees).
+        </li>
+        <li className="mt-2">
+          Improve communication and education efforts to encourage NHCE enrollment.
+        </li>
+        <li className="mt-2">
+          Delay HCE participation until eligibility among NHCEs improves.
+        </li>
+        <li className="mt-2">
+          Amend plan documents to reduce waiting periods or restrictive eligibility conditions.
+        </li>
+        <li className="mt-2">
+          Monitor enrollment trends and conduct periodic nondiscrimination self-tests.
+        </li>
+      </ul>
+    </div>
+
+    <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
+      <h4 className="font-bold text-gray-800">Consequences:</h4>
+      <ul className="list-disc list-inside text-gray-800">
+        <li className="mt-2">
+          Loss of tax-free status for HCE DCAP benefits.
+        </li>
+        <li className="mt-2">
+          DCAP contributions for HCEs may become taxable and included in W-2 wages.
+        </li>
+        <li className="mt-2">
+          Potential IRS penalties or increased audit scrutiny.
+        </li>
+        <li className="mt-2">
+          Plan may be deemed discriminatory and lose Section 129 qualified status.
+        </li>
+        <li className="mt-2">
+          Negative employee impact or required reimbursement of disallowed benefits.
+        </li>
+      </ul>
+              </div>
+            </>
+          )}
+
+         
         </div>
       )}
     </div>
