@@ -257,9 +257,9 @@ const AverageBenefitTest = () => {
           theme: "grid",
           head: [["Consequences"]],
           body: [
-            ["Potential reclassification of benefits as taxable."],
-            ["Increased IRS scrutiny and possible penalties."],
-            ["Need for corrective contributions."],
+            ["Benefits may be reclassified as taxable."],
+            ["Increased IRS scrutiny and potential penalties."],
+            ["Additional corrective contributions may be required."],
           ],
           headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
           styles: { fontSize: 11, font: "helvetica" },
