@@ -136,7 +136,7 @@ const HRA55AverageBenefitsTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "HRA_55_Average_Benefits_Template.csv");
+    link.setAttribute("download", "HRA 55% Average Benefits Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -170,7 +170,7 @@ const HRA55AverageBenefitsTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "HRA_55_Average_Benefits_Results.csv");
+    link.setAttribute("download", "HRA 55% Average Benefits Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -203,16 +203,28 @@ const HRA55AverageBenefitsTest = () => {
     pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
     pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
+    // Subheader with test criterion
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(60, 60, 60);
+    pdf.text(
+      "Test Criterion: IRC §105(h)(2): The average benefits provided to non-highly compensated employees under an HRA must be at least 55% of the average benefits provided to highly compensated employees.",
+      105,
+      38,
+      { align: "center", maxWidth: 180 }
+    );
+
     // Summary Table
     pdf.autoTable({
-      startY: 40,
+      startY: 52,
       theme: "grid",
       head: [["Metric", "Value"]],
       body: [
+        ["Total Employees", result["Total Employees"] || "N/A"],
+        ["Total Participants", result["Total Participants"] || "N/A"],
         ["HCE Average Benefits", hceAverageBenefits],
         ["NHCE Average Benefits", nhceAverageBenefits],
         ["Average Benefit Ratio", avgBenefitRatio],
-        ["Test Criterion", testCriterion],
         ["Test Result", testResult],
       ],
       headStyles: {
@@ -271,12 +283,12 @@ const HRA55AverageBenefitsTest = () => {
 
     // Generate PDF blob and save locally
     const pdfBlob = pdf.output("blob");
-    pdf.save("HRA_55_Average_Benefits_Test_Results.pdf");
+    pdf.save("HRA 55% Average Benefits Test Results.pdf");
 
     // Save PDF blob to Firebase
     try {
       await savePdfResultToFirebase({
-        fileName: "HRA55_AverageBenefitsTest",
+        fileName: "HRA 55% Average Benefits",
         pdfBlob,
         additionalData: {
           planYear,
@@ -345,7 +357,7 @@ const HRA55AverageBenefitsTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
