@@ -71,7 +71,7 @@ const AverageBenefitTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Average_Benefit_Template.csv");
+    link.setAttribute("download", "Average Benefit Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -155,7 +155,7 @@ const AverageBenefitTest = () => {
     const totalBenefits = result["Total Benefits"] ?? "N/A";
     const nhceAvg = result["NHCE Average Benefit"] ?? "N/A";
     const hceAvg = result["HCE Average Benefit"] ?? "N/A";
-    const testRes = result["Test Result"] ?? "N/A";
+    const testResult = result["Test Result"] ?? "N/A";
 
     const csvRows = [
       ["Metric", "Value"],
@@ -165,7 +165,7 @@ const AverageBenefitTest = () => {
       ["NHCE Average Benefit", nhceAvg],
       ["HCE Average Benefit", hceAvg],
       ["Total Benefits", totalBenefits],
-      ["Test Result", testRes],
+      ["Test Result", testResult],
     ];
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
@@ -194,8 +194,8 @@ const AverageBenefitTest = () => {
       const totalParticipants = result["Total Participants"] || "N/A";
       const nhceAvg = formatCurrency(result["NHCE Average Benefit"]);
       const hceAvg = formatCurrency(result["HCE Average Benefit"]);
-      const testRes = result["Test Result"] || "N/A";
-      const failed = testRes.toLowerCase() === "failed";
+      const testResult = result["Test Result"] || "N/A";
+      const failed = testResult.toLowerCase() === "failed";
 
       const pdf = new jsPDF("p", "mm", "a4");
       pdf.setFont("helvetica", "normal");
@@ -213,7 +213,7 @@ const AverageBenefitTest = () => {
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
       pdf.text(
-        "Test Criterion: NHCE average benefit must be at least 55% of HCE average benefit",
+        "Test Criterion: IRC §410(b)(2): The Average Benefit Test is met if the average benefit percentage of Non-Highly Compensated Employees (NHCEs) is at least 70% of that of Highly Compensated Employees (HCEs), ensuring the plan does not disproportionately favor HCEs.",
         105,
         38,
         { align: "center", maxWidth: 180 }
@@ -221,7 +221,7 @@ const AverageBenefitTest = () => {
 
       // Section 1: Basic Results Table
       pdf.autoTable({
-        startY: 40,
+        startY: 52,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
@@ -230,7 +230,7 @@ const AverageBenefitTest = () => {
           ["NHCE Average Benefit", nhceAvg],
           ["HCE Average Benefit", hceAvg],
           ["Total Benefits", totalBenefits],
-          ["Test Result", testRes],
+          ["Test Result", testResult],
         ],
         headStyles: {
           fillColor: [41, 128, 185],
@@ -280,7 +280,7 @@ const AverageBenefitTest = () => {
       pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
       pdfBlob = pdf.output("blob");
-      pdf.save("Average_Benefit_Results.pdf");
+      pdf.save("Average Benefit Results.pdf");
     } catch (error) {
       setError(`❌ Error exporting PDF: ${error.message}`);
       return;
@@ -288,7 +288,7 @@ const AverageBenefitTest = () => {
 
     try {
       await savePdfResultToFirebase({
-        fileName: "Average Benefit Test",
+        fileName: "Average Benefit",
         pdfBlob,
         additionalData: {
           planYear,
@@ -356,7 +356,7 @@ const AverageBenefitTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
