@@ -156,7 +156,7 @@ const EligibilityTest = () => {
 
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Cafeteria_Eligibility_Template.csv");
+    link.setAttribute("download", "Cafeteria Eligibility Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -189,7 +189,7 @@ const EligibilityTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Cafeteria_Eligibility_Results.csv");
+    link.setAttribute("download", "Cafeteria Eligibility Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -224,7 +224,7 @@ const EligibilityTest = () => {
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
       pdf.text(
-        "Test Criterion: HCE average benefits must not exceed 125% of NHCE average benefits",
+        "Test Criterion: IRC §125(g)(3): At least 70% of all non-excludable employees must be eligible to participate in the cafeteria plan, or the plan must pass one of the alternative eligibility tests.",
         105,
         38,
         { align: "center", maxWidth: 180 }
@@ -232,7 +232,7 @@ const EligibilityTest = () => {
 
       // Table with Results
       pdf.autoTable({
-        startY: 44,
+        startY: 50,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
@@ -310,14 +310,14 @@ const EligibilityTest = () => {
 
       // Generate blob and save locally
       pdfBlob = pdf.output("blob");
-      pdf.save("Cafeteria_Eligibility_Results.pdf");
+      pdf.save("Cafeteria Eligibility Test Results.pdf");
     } catch (error) {
       setError(`❌ Error exporting PDF: ${error.message}`);
       return;
     }
     try {
       await savePdfResultToFirebase({
-        fileName: "Cafeteria Eligibility",
+        fileName: "Cafeteria Eligibility Test Results",
         pdfBlob,
         additionalData: {
           planYear,
@@ -377,7 +377,7 @@ const EligibilityTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
