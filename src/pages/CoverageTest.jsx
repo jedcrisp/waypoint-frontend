@@ -147,7 +147,7 @@ const CoverageTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Cafeteria_Coverage_Template.csv");
+    link.setAttribute("download", "Coverage Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -180,34 +180,13 @@ const CoverageTest = () => {
       ["Test Result", testRes],
     ];
 
-    // If test failed, add corrective actions and consequences
-    if (testRes.toLowerCase() === "failed") {
-      const correctiveActions = [
-        "Adjust eligibility requirements to ensure NHCEs meet the 70% threshold.",
-        "Modify plan design to allow more NHCEs to participate.",
-        "Ensure compliance with the Ratio Percentage Test.",
-        "Review employee demographics to adjust contribution structures.",
-      ];
-      const consequences = [
-        "Plan may lose tax-qualified status",
-        "HCEs may have contributions refunded, reducing their tax benefits",
-        "Additional corrective employer contributions may be required",
-        "Increased IRS audit risk due to compliance failure",
-      ];
-      csvRows.push(["", ""]);
-      csvRows.push(["Corrective Actions", ""]);
-      correctiveActions.forEach((action) => csvRows.push(["", action]));
-      csvRows.push(["", ""]);
-      csvRows.push(["Consequences", ""]);
-      consequences.forEach((item) => csvRows.push(["", item]));
-    }
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Coverage_Test_Results.csv");
+    link.setAttribute("download", "Coverage Test Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -249,7 +228,7 @@ const CoverageTest = () => {
     pdf.setFont("helvetica", "italic");
     pdf.setTextColor(60, 60, 60);
     pdf.text(
-      "Test Criterion: At least 70% of eligible employees must be eligible for the cafeteria plan",
+      "Test Criterion: IRC §410(b): The Coverage Test ensures that a qualified retirement or benefit plan does not disproportionately favor highly compensated employees by requiring the plan to benefit a minimum percentage of non-highly compensated employees.",
       105,
       38,
       { align: "center", maxWidth: 180 }
@@ -257,7 +236,7 @@ const CoverageTest = () => {
 
     // Results Table
     pdf.autoTable({
-      startY: 43,
+      startY: 54,
       theme: "grid",
       head: [["Metric", "Value"]],
       body: [
@@ -325,7 +304,7 @@ const CoverageTest = () => {
     let pdfBlob;
     try {
       pdfBlob = pdf.output("blob");
-      pdf.save("Cafeteria_Coverage_Test_Results.pdf");
+      pdf.save("Coverage Test Results.pdf");
     } catch (error) {
       setError(`❌ Error exporting PDF: ${error.message}`);
       return;
@@ -334,7 +313,7 @@ const CoverageTest = () => {
     // Save PDF to Firebase using the helper function
     try {
       await savePdfResultToFirebase({
-        fileName: "Coverage Test",
+        fileName: "Coverage",
         pdfBlob,
         additionalData: {
           planYear,
@@ -367,7 +346,7 @@ const CoverageTest = () => {
       tabIndex="0"
     >
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
-        📂 Upload Cafeteria Coverage File
+        📂 Upload Coverage File
       </h2>
 
       {/* Plan Year Dropdown */}
@@ -389,7 +368,7 @@ const CoverageTest = () => {
           <p className="text-green-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
@@ -437,15 +416,15 @@ const CoverageTest = () => {
               </span>
             </p>
             <p className="text-lg">
-              <strong className="text-gray-700">Total Employees:</strong>{" "}
+              <strong className="text-black-700">Total Employees:</strong>{" "}
               {result["Total Employees"] ?? "N/A"}
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Total Participants:</strong>{" "}
+              <strong className="text-black-700">Total Participants:</strong>{" "}
               {result["Total Participants"] ?? "N/A"}
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Eligibility Percentage:</strong>{" "}
+              <strong className="text-black-700">Eligibility Percentage:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {result["Eligibility Percentage (%)"] !== undefined
                   ? result["Eligibility Percentage (%)"] + "%"
@@ -453,7 +432,7 @@ const CoverageTest = () => {
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Test Result:</strong>{" "}
+              <strong className="text-black-700">Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
                   result["Test Result"] === "Passed"
