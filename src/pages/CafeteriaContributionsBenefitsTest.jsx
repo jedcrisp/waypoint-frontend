@@ -262,7 +262,7 @@ const CafeteriaContributionsBenefitsTest = () => {
   }
 
     const pdfUrl = await savePdfResultToFirebase({
-      fileName: "Cafeteria Contributions Benefits Test Results",
+      fileName: "Cafeteria Contributions Benefits",
       pdfBlob,
       additionalData: {
         planYear,
