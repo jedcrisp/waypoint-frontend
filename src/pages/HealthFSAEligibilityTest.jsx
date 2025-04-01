@@ -150,7 +150,7 @@ const HealthFSAEligibilityTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Health_FSA_Eligibility_Template.csv");
+    link.setAttribute("download", "Health FSA Eligibility Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -173,28 +173,13 @@ const HealthFSAEligibilityTest = () => {
       ["Eligible for FSA", result["Eligible for FSA"] ?? "N/A"],
       ["Test Result", result["Health FSA Eligibility Test Result"] ?? "N/A"],
     ];
-    if (result["Health FSA Eligibility Test Result"]?.toLowerCase() === "failed") {
-      const correctiveActions = [
-        "Expand eligibility for NHCEs.",
-        "Increase NHCE participation through education and incentives.",
-        "Adjust employer contributions to encourage NHCE participation.",
-        "Amend the plan document to correct historical disparities.",
-      ];
-      const consequences = [
-        "Taxation of FSA benefits for HCEs.",
-        "IRS penalties and fines.",
-        "Risk of plan disqualification.",
-        "Retroactive correction requirements.",
-      ];
-      csvRows.push([], ["Corrective Actions"], ...correctiveActions.map(action => ["", action]));
-      csvRows.push([], ["Consequences"], ...consequences.map(item => ["", item]));
-    }
+
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Health_FSA_Eligibility_Results.csv");
+    link.setAttribute("download", "Health FSA Eligibility Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -222,17 +207,28 @@ const HealthFSAEligibilityTest = () => {
       pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
       pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
+      // Subheader with test criterion
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(
+        "Test Criterion: IRC §105(h)(3)(A): A Health FSA must not discriminate in favor of highly compensated individuals as to eligibility to participate in the plan.",
+        105,
+       38,
+        { align: "center", maxWidth: 180 }
+      );
+
       // Table with Results
       pdf.autoTable({
-        startY: 44,
+        startY: 47,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", result["Total Employees"] ?? "N/A"],
           ["Total Participants", result["Total Participants"] ?? "N/A"],
           ["Eligible for FSA", result["Eligible for FSA"] ?? "N/A"],
-          ["Eligibility Percentage (%)", formatPercentage(result["Eligibility Percentage (%)"])],
-          ["Test Result", result["Health FSA Eligibility Test Result"] ?? "N/A"],
+          ["Eligibility Percentage", formatPercentage(result["Eligibility Percentage (%)"])],
+          ["Test Result", result["Test Result"] ?? "N/A"],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
         styles: { fontSize: 12, font: "helvetica" },
@@ -240,45 +236,46 @@ const HealthFSAEligibilityTest = () => {
       });
 
       // Corrective actions & consequences (if test failed)
-      if (result["Health FSA Eligibility Test Result"]?.toLowerCase() === "failed") {
-        const y = pdf.lastAutoTable.finalY + 10;
-        pdf.setFillColor(255, 230, 230);
-        pdf.setDrawColor(255, 0, 0);
-        pdf.rect(10, y, 190, 30, "FD");
-        pdf.setFontSize(12);
-        pdf.setTextColor(0, 0, 0);
-        pdf.text("Corrective Actions:", 15, y + 7);
-        const actions = [
+      if (result["Test Result"]?.toLowerCase() === "failed") {
+      
+        const correctiveActions = [
           "Expand eligibility for NHCEs",
           "Increase NHCE participation through education and incentives",
           "Adjust employer contributions to encourage NHCE participation",
           "Amend the plan document to correct historical disparities",
         ];
-        actions.forEach((action, i) => pdf.text(action, 15, y + 14 + i * 5));
 
-        const y2 = y + 40;
-        pdf.setFillColor(255, 255, 204);
-        pdf.setDrawColor(255, 204, 0);
-        pdf.rect(10, y2, 190, 30, "FD");
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(14);
-        pdf.setTextColor(204, 153, 0);
-        pdf.text("Consequences:", 15, y2 + 10);
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(11);
-        pdf.setTextColor(0, 0, 0);
         const consequences = [
           "Taxation of FSA benefits for HCEs",
           "Increased IRS scrutiny and potential penalties",
           "Risk of plan disqualification",
           "Retroactive correction requirements",
         ];
-        consequences.forEach((item, i) => pdf.text(item, 15, y2 + 18 + i * 5));
+
+        pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Corrective Actions"]],
+        body: correctiveActions.map((action) => [action]),
+        headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Consequences"]],
+        body: consequences.map((consequence) => [consequence]),
+        headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
       }
 
       // Generate PDF blob and trigger local download
       pdfBlob = pdf.output("blob");
-      pdf.save("Health_FSA_Eligibility_Results.pdf");
+      pdf.save("Health FSA Eligibility Results.pdf");
     } catch (error) {
       setError(`❌ Error exporting PDF: ${error.message}`);
       return;
@@ -346,8 +343,8 @@ const HealthFSAEligibilityTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here, or{" "}
-            <span className="text-blue-500 font-semibold">click to browse</span>
+            Drag & drop a <strong>CSV file</strong>
+            <span className="text-blue-500 font-semibold"></span>
           </p>
         )}
       </div>
@@ -426,14 +423,30 @@ const HealthFSAEligibilityTest = () => {
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
-                  result?.["Health FSA Eligibility Test Result"] === "Passed"
+                  result?.["Test Result"] === "Passed"
                     ? "bg-green-500 text-white"
                     : "bg-red-500 text-white"
                 }`}
               >
-                {result?.["Health FSA Eligibility Test Result"] ?? "N/A"}
+                {result?.["Test Result"] ?? "N/A"}
               </span>
             </p>
+          </div>
+
+           {/* Export & Download Buttons */}
+          <div className="flex flex-col gap-2 mt-4">
+            <button
+              onClick={exportToPDF}
+              className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+            >
+              Export PDF Report
+            </button>
+            <button
+              onClick={downloadResultsAsCSV}
+              className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
+            >
+              Download CSV Report
+            </button>
           </div>
 
           {/* If test fails, show corrective actions & consequences */}
@@ -467,22 +480,6 @@ const HealthFSAEligibilityTest = () => {
 
             </>
           )}
-
-          {/* Export & Download Buttons */}
-          <div className="flex flex-col gap-2 mt-4">
-            <button
-              onClick={exportToPDF}
-              className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
-            >
-              Export PDF Report
-            </button>
-            <button
-              onClick={downloadResultsAsCSV}
-              className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
-            >
-              Download CSV Report
-            </button>
-          </div>
         </div>
       )}
     </div>
