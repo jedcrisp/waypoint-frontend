@@ -143,7 +143,7 @@ const HRAKeyEmployeeConcentrationTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "HRA_Key_Emp_Con_Template.csv");
+    link.setAttribute("download", "HRA Key Employee Concentration Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -179,7 +179,7 @@ const HRAKeyEmployeeConcentrationTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "HRA_Key_Employee_Concentration_Results.csv");
+    link.setAttribute("download", "HRA Key Employee Concentration Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -213,9 +213,21 @@ const HRAKeyEmployeeConcentrationTest = () => {
       const generatedTimestamp = new Date().toLocaleString();
       pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
+      // Subheader with test criterion
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(60, 60, 60);
+    pdf.text(
+      "Test Criterion: IRC §125(b)(5): No more than 25% of total HRA benefits may be provided to Key Employees.",
+      105,
+      38,
+      { align: "center", maxWidth: 180 }
+    );
+
       // Results Table
       pdf.autoTable({
-        startY: 40,
+        startY: 47,
+        theme: "grid",
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", totalEmployees],
@@ -225,10 +237,16 @@ const HRAKeyEmployeeConcentrationTest = () => {
           ["Key Employee Benefit Percentage", keyEmployeeBenefitPercentage],
           ["Test Result", testRes],
         ],
-        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
-        styles: { fontSize: 12, font: "helvetica" },
-        margin: { left: 10, right: 10 },
-      });
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: [255, 255, 255],
+      },
+      styles: {
+        fontSize: 12,
+        font: "helvetica",
+      },
+      margin: { left: 10, right: 10 },
+    });
 
       // If test failed, add corrective actions & consequences
       if (failed) {
@@ -244,6 +262,7 @@ const HRAKeyEmployeeConcentrationTest = () => {
         ];
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
           head: [["Corrective Actions"]],
           body: correctiveActions.map((action) => [action]),
           headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
@@ -252,6 +271,7 @@ const HRAKeyEmployeeConcentrationTest = () => {
         });
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
           head: [["Consequences"]],
           body: consequences.map((item) => [item]),
           headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
@@ -268,7 +288,7 @@ const HRAKeyEmployeeConcentrationTest = () => {
 
       try {
         pdfBlob = pdf.output("blob");
-        pdf.save("HRA_Key_Employee_Concentration_Results.pdf");
+        pdf.save("HRA Key Employee Concentration Results.pdf");
       } catch (error) {
         setError(`❌ Error exporting PDF: ${error.message}`);
         return;
@@ -340,7 +360,7 @@ const HRAKeyEmployeeConcentrationTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
