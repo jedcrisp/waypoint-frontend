@@ -132,7 +132,7 @@ const ADPTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "ADP_Template.csv");
+    link.setAttribute("download", "ADP Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -161,33 +161,12 @@ const ADPTest = () => {
       ["Test Result", testRes],
     ];
 
-    if (String(testRes).toLowerCase() === "failed") {
-      const correctiveActions = [
-        "Increase NHCE participation to ensure at least 70% of HCE rate.",
-        "Adjust eligibility criteria to include more NHCEs.",
-        "Modify plan design to encourage NHCE participation.",
-        "Review and adjust contribution allocations per IRS § 410(b).",
-      ];
-      const consequences = [
-        "Mandatory employer contributions for non-key employees.",
-        "Potential loss of plan tax advantages.",
-        "Increased IRS audit risk.",
-        "Additional corrective contributions may be required.",
-      ];
-      csvRows.push(["", ""]);
-      csvRows.push(["Corrective Actions", ""]);
-      correctiveActions.forEach((action) => csvRows.push(["", action]));
-      csvRows.push(["", ""]);
-      csvRows.push(["Consequences", ""]);
-      consequences.forEach((item) => csvRows.push(["", item]));
-    }
-
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "ADP_Test_Results.csv");
+    link.setAttribute("download", "ADP Test Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -223,9 +202,20 @@ const ADPTest = () => {
       const generatedTimestamp = new Date().toLocaleString();
       pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
+      // Subheader with test criterion
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(60, 60, 60);
+    pdf.text(
+      "Test Criterion: IRC §401(k)(3): The ADP test ensures that elective deferrals made by Highly Compensated Employees (HCEs) do not exceed 125% of the average deferral rate of Non-Highly Compensated Employees (NHCEs), or meet alternative safe harbor thresholds (200%/2% or 125%/2%).",
+      105,
+      38,
+      { align: "center", maxWidth: 180 }
+    );
+
       // Basic Results Table
       pdf.autoTable({
-         startY: 40,
+         startY: 56,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
@@ -256,6 +246,7 @@ const ADPTest = () => {
         ];
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
           head: [["Corrective Actions"]],
           body: correctiveActions.map((action) => [action]),
           headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
@@ -264,6 +255,7 @@ const ADPTest = () => {
         });
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
           head: [["Consequences"]],
           body: consequences.map((item) => [item]),
           headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
@@ -280,14 +272,14 @@ const ADPTest = () => {
 
       try {
         pdfBlob = pdf.output("blob");
-        pdf.save("ADP_Test_Results.pdf");
+        pdf.save("ADP Test Results.pdf");
       } catch (error) {
         setError(`❌ Error exporting PDF: ${error.message}`);
         return;
       }
       try {
         await savePdfResultToFirebase({
-          fileName: "ADP Test Results.pdf",
+          fileName: "ADP",
           pdfBlob,
           additionalData: {
             planYear,
@@ -354,7 +346,7 @@ const ADPTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
@@ -400,11 +392,11 @@ const ADPTest = () => {
               <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
             </p>
             <p className="text-lg">
-              <strong className="text-gray-700">Total Employees:</strong>{" "}
+              <strong className="text-black-700">Total Employees:</strong>{" "}
               {result["Total Employees"] ?? "N/A"}
             </p>
             <p className="text-lg">
-              <strong className="text-gray-700">Total Participants:</strong>{" "}
+              <strong className="text-black-700">Total Participants:</strong>{" "}
               {result["Total Participants"] ?? "N/A"}
             </p>
             <p className="text-lg mt-2">
