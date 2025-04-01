@@ -129,7 +129,7 @@ const DCAPContributionsTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "DCAP_Contributions_Template.csv");
+    link.setAttribute("download", "DCAP Contributions Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -161,7 +161,7 @@ const DCAPContributionsTest = () => {
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
       pdf.text(
-        "Test Criterion: HCE average contributions must not exceed 125% of NHCE average",
+        "Test Criterion: RC §129(d): Contributions made to a DCAP must not disproportionately favor highly compensated employees, ensuring compliance with nondiscrimination requirements.",
         105,
         38,
         { align: "center", maxWidth: 180 }
@@ -176,7 +176,7 @@ const DCAPContributionsTest = () => {
       pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
       pdf.autoTable({
-        startY: 43,
+        startY: 47,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
@@ -242,7 +242,7 @@ const DCAPContributionsTest = () => {
       pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
       pdfBlob = pdf.output("blob");
-      pdf.save("DCAP_Contributions_Test.pdf");
+      pdf.save("DCAP Contributions Results.pdf");
     } catch (error) {
       setError(`❌ Error exporting PDF: ${error.message}`);
       return;
@@ -250,7 +250,7 @@ const DCAPContributionsTest = () => {
 
     try {
       await savePdfResultToFirebase({
-        fileName: "DCAP Contributions Test",
+        fileName: "DCAP Contributions",
         pdfBlob,
         additionalData: {
           planYear,
@@ -303,7 +303,7 @@ const DCAPContributionsTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "DCAP_Contributions_Results.csv");
+    link.setAttribute("download", "DCAP Contributions Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -467,6 +467,22 @@ const DCAPContributionsTest = () => {
             </p>
           </div>
 
+          {/* Export & Download Buttons */}
+          <div className="flex flex-col gap-2 mt-4">
+            <button
+              onClick={exportToPDF}
+              className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+            >
+              Export PDF Report
+            </button>
+            <button
+              onClick={downloadResultsAsCSV}
+              className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
+            >
+              Download CSV Report
+            </button>
+          </div>
+
           {/* If test fails, show corrective actions & consequences */}
           {result["Test Result"]?.toLowerCase() === "failed" && (
             <>
@@ -494,21 +510,6 @@ const DCAPContributionsTest = () => {
             </>
           )}
 
-          {/* Export & Download Buttons */}
-          <div className="flex flex-col gap-2 mt-4">
-            <button
-              onClick={exportToPDF}
-              className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
-            >
-              Export PDF Report
-            </button>
-            <button
-              onClick={downloadResultsAsCSV}
-              className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
-            >
-              Download CSV Report
-            </button>
-          </div>
         </div>
       )}
     </div>
