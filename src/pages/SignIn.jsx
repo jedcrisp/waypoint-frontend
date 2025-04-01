@@ -61,7 +61,7 @@ const SignIn = () => {
           color: "#333",
           margin: "0 0 1rem",
         }}>
-          Log In To Continue
+          Smart Compliance Tool
         </h1>
         {error && <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>}
         <form onSubmit={handleSubmit}>
@@ -110,7 +110,7 @@ const SignIn = () => {
               cursor: "pointer",
             }}
           >
-            Access Account
+            Login
           </button>
         </form>
       </div>
