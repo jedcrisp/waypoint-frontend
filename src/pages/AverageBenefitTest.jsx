@@ -26,12 +26,10 @@ const AverageBenefitTest = () => {
     })}`;
   };
 
-  const formatPercentage = (value) => {
-    if (value === null || value === undefined || isNaN(Number(value)))
-      return "N/A";
-    return `${Number(value).toFixed(2)}%`;
-  };
-
+  function formatPercentage(value) {
+  if (value == null || isNaN(value)) return "N/A";
+  return `${value.toFixed(2)}%`;
+}
   // ----- 1. Drag & Drop Logic -----
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
