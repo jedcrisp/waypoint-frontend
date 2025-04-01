@@ -155,7 +155,7 @@ const DCAPKeyEmployeeConcentrationTest = () => {
 
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "DCAP_Key_Employee_Concentration_Template.csv");
+    link.setAttribute("download", "DCAP Key Employee Concentration Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -190,7 +190,7 @@ const DCAPKeyEmployeeConcentrationTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "DCAP_Key_Employee_Concentration_Results.csv");
+    link.setAttribute("download", "DCAP Key Employee Concentration Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -213,7 +213,7 @@ const DCAPKeyEmployeeConcentrationTest = () => {
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
       pdf.text(
-        "Test Criterion: Key employee benefits must not exceed 25% of total DCAP benefits",
+        "Test Criterion: IRC §129(d)(4): No more than 25% of DCAP benefits may be provided to key employees.",
         105,
         38,
         { align: "center", maxWidth: 180 }
@@ -231,7 +231,7 @@ const DCAPKeyEmployeeConcentrationTest = () => {
       pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
       pdf.autoTable({
-        startY: 43,
+        startY: 44,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
@@ -434,7 +434,7 @@ const DCAPKeyEmployeeConcentrationTest = () => {
             </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Key Employee Benefits:</strong>{" "}
-              <span className="font-semibold text-gray-800">
+              <span className="font-semibold text-black-800">
                 {result["Key Employee Benefits"]
                   ? formatCurrency(result["Key Employee Benefits"])
                   : "N/A"}
@@ -442,7 +442,7 @@ const DCAPKeyEmployeeConcentrationTest = () => {
             </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Key Employee Benefit Percentage:</strong>{" "}
-              <span className="font-semibold text-gray-800">
+              <span className="font-semibold text-black-800">
                 {result["Key Employee Benefit Percentage"]
                   ? formatPercentage(result["Key Employee Benefit Percentage"])
                   : "N/A"}
@@ -450,7 +450,7 @@ const DCAPKeyEmployeeConcentrationTest = () => {
             </p>
             <p className="text-lg">
               <strong className="text-gray-700">Total DCAP Benefits:</strong>{" "}
-              <span className="font-semibold text-gray-800">
+              <span className="font-semibold text-black-800">
                 {result["Total DCAP Benefits"]
                   ? formatCurrency(result["Total DCAP Benefits"])
                   : "N/A"}
