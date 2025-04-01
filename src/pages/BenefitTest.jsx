@@ -75,7 +75,7 @@ const BenefitTest = () => {
 
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Benefit_Template.csv");
+    link.setAttribute("download", "Benefit Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -177,7 +177,7 @@ const BenefitTest = () => {
     pdf.setFont("helvetica", "italic");
     pdf.setTextColor(60, 60, 60); // Gray text
     pdf.text(
-      "Test Criterion: ≤ 25% of eligible participants may be HCEs",
+      "Test Criterion: Must not discriminate in favor of highly compensated participants as to the actual benefits received under the plan.",
       105,
       38,
       { align: "center", maxWidth: 180 }
@@ -185,7 +185,7 @@ const BenefitTest = () => {
 
     // Results Table
     pdf.autoTable({
-      startY: 40,
+      startY: 47,
       theme: "grid",
       head: [["Metric", "Value"]],
       body: [
@@ -254,7 +254,7 @@ const BenefitTest = () => {
     let pdfBlob;
     try {
       pdfBlob = pdf.output("blob");
-      pdf.save("Cafeteria_Benefit_Test_Results.pdf");
+      pdf.save("Cafeteria Benefit Test Results.pdf");
     } catch (error) {
       setError(`❌ Error exporting PDF: ${error.message}`);
       return;
@@ -263,7 +263,7 @@ const BenefitTest = () => {
     // Save PDF to Firebase using the helper function
     try {
       await savePdfResultToFirebase({
-        fileName: "Benefit Test",
+        fileName: "Benefit Test Results",
         pdfBlob,
         additionalData: {
           planYear,
@@ -333,7 +333,7 @@ const BenefitTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Benefit_Test_Results.csv");
+    link.setAttribute("download", "Benefit Test Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -453,13 +453,13 @@ const BenefitTest = () => {
             </p>
             <p className="text-lg">
               <strong className="text-gray-700">Total Employees:</strong>{" "}
-              <span className="font-semibold text-blue-600">
+              <span className="font-semibold text-black-600">
                 {result?.["Total Employees"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg">
               <strong className="text-gray-700">Total Participants:</strong>{" "}
-              <span className="font-semibold text-blue-600">
+              <span className="font-semibold text-black-600">
                 {result?.["Total Participants"] ?? "N/A"}
               </span>
             </p>
