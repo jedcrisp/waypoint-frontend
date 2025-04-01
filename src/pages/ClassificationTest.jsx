@@ -229,9 +229,10 @@ const ClassificationTest = () => {
       ];
 
       const consequences = [
-        "Potential loss of tax-exempt status for key employees",
-        "IRS penalties and plan disqualification risk",
-        "Employee dissatisfaction and legal risks",
+        "Mandatory employer contributions (3% of pay) for non-key employees."
+        "Loss of plan tax advantages if not corrected.",
+        "Increased IRS audit risk due to noncompliance.",
+        "Additional corrective contributions may be required.",
       ];
 
       pdf.autoTable({
