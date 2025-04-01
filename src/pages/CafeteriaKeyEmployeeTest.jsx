@@ -228,7 +228,9 @@ const CafeteriaKeyEmployeeTest = () => {
       const consequences = [
         "Loss of Tax-Exempt Status for Key Employees",
         "IRS Scrutiny and Potential Penalties",
-        "Risk of Plan Disqualification for Non-Compliance",
+        "Plan Disqualification Risks",
+        "Employee Discontent & Reduced Participation",
+        "Reputational and Legal Risks",
       ];
       pdf.autoTable({
         startY: pdf.lastAutoTable.finalY + 10,
