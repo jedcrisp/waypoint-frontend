@@ -2,7 +2,6 @@ import React, { useState, useCallback } from "react";
 import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Ensure this utility exports the helper function
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
-import CsvTemplateDownloader from "../components/CsvTemplateDownloader"; // Adjust path if needed
 import { getAuth } from "firebase/auth"; // Import Firebase Auth
 import jsPDF from "jspdf";
 import "jspdf-autotable";
@@ -19,17 +18,16 @@ const HealthFSA55AverageBenefitsTest = () => {
 
   // ---------- Formatting Helpers ----------
   const formatCurrency = (amount) => {
-    if (!amount || isNaN(amount)) return "N/A";
-    return `$${parseFloat(amount).toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
+  const number = parseFloat(amount);
+  return !isNaN(number) ? `$${number.toFixed(2)}` : "$0.00";
+};
+
 
   const formatPercentage = (value) => {
-    if (!value || isNaN(value)) return "N/A";
-    return `${parseFloat(value).toFixed(2)}%`;
-  };
+  const number = parseFloat(value);
+  return isNaN(number) ? "0.00%" : `${number.toFixed(2)}%`;
+};
+
 
   // =========================
   // 1. Drag & Drop Logic
@@ -152,7 +150,7 @@ const HealthFSA55AverageBenefitsTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Health_FSA_55_Average_Benefits_Template.csv");
+    link.setAttribute("download", "Health FSA 55% Average Benefits Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -170,32 +168,18 @@ const HealthFSA55AverageBenefitsTest = () => {
       ["Metric", "Value"],
       ["Plan Year", planYear],
       ["Total Health FSA Benefits (Avg)", result["Total Health FSA Benefits (Avg)"] ?? "N/A"],
-      ["NHCE Average Benefit", result["NHCE Average Benefit"] ?? "N/A"],
-      ["HCE Average Benefit", result["HCE Average Benefit"] ?? "N/A"],
+      ["NHCE Average Benefits", result["NHCE Average Benefits"] ?? "N/A"],
+      ["HCE Average Benefits", result["HCE Average Benefits"] ?? "N/A"],
       ["Average Benefits Ratio (%)", result["Average Benefits Ratio (%)"] ?? "N/A"],
       ["Test Result", result["Test Result"] ?? "N/A"],
     ];
 
-    if (result["Test Result"]?.toLowerCase() === "failed") {
-      const correctiveActions = [
-        "Review and adjust contributions to ensure NHCE average benefit is at least 55% of HCE average benefit.",
-        "Increase NHCE participation or modify formulas accordingly.",
-        "Reevaluate plan design to improve IRS compliance.",
-      ];
-      const consequences = [
-        "Potential reclassification of benefits as taxable.",
-        "Increased IRS scrutiny and potential penalties.",
-        "Risk of plan disqualification.",
-      ];
-      csvRows.push([], ["Corrective Actions"], ...correctiveActions.map(action => ["", action]));
-      csvRows.push([], ["Consequences"], ...consequences.map(item => ["", item]));
-    }
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Health_FSA_55_Average_Benefits_Results.csv");
+    link.setAttribute("download", "Health FSA 55% Average Benefits Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -211,6 +195,10 @@ const HealthFSA55AverageBenefitsTest = () => {
     }
     let pdfBlob;
     try {
+      const totalHealthFsaBenefits = formatCurrency(result["Total Health FSA Benefits (Avg)"]);
+      const nhceAverageBenefits = formatCurrency(result["NHCE Average Benefits"]);
+      const hceAverageBenefits = formatCurrency(result["HCE Average Benefits"]);
+      const averageBenefitsRatio = formatPercentage(result["Average Benefits Ratio (%)"]);
       const pdf = new jsPDF("p", "mm", "a4");
       pdf.setFont("helvetica", "normal");
 
@@ -227,7 +215,7 @@ const HealthFSA55AverageBenefitsTest = () => {
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
       pdf.text(
-        "Test Criterion: HCE average benefits must not exceed 125% of NHCE average benefits",
+        "Test Criterion: (IRC §105(h)): The average benefits provided to non-highly compensated employees under the Health FSA must be at least 55% of the average benefits provided to highly compensated employees.",
         105,
         38,
         { align: "center", maxWidth: 180 }
@@ -235,15 +223,15 @@ const HealthFSA55AverageBenefitsTest = () => {
 
       // Table with Results
       pdf.autoTable({
-        startY: 44,
+        startY: 52,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
-          ["Total Health FSA Benefits (Avg)", result["Total Health FSA Benefits (Avg)"] ?? "N/A"],
-          ["NHCE Average Benefit", result["NHCE Average Benefit"] ?? "N/A"],
-          ["HCE Average Benefit", result["HCE Average Benefit"] ?? "N/A"],
-          ["Average Benefits Ratio (%)", result["Average Benefits Ratio (%)"] ?? "N/A"],
-          ["Test Result", result["Test Result"] ?? "N/A"],
+                ["Total Health FSA Benefits (Avg)", totalHealthFsaBenefits ?? "N/A"],
+                ["NHCE Average Benefits", nhceAverageBenefits ?? "N/A"],
+                ["HCE Average Benefits", hceAverageBenefits ?? "N/A"],
+                ["Average Benefits Ratio", averageBenefitsRatio ?? "N/A"],
+                ["Test Result", result["Test Result"] ?? "N/A"],
         ],
         headStyles: {
           fillColor: [41, 128, 185],
@@ -258,49 +246,49 @@ const HealthFSA55AverageBenefitsTest = () => {
 
       if (result["Test Result"]?.toLowerCase() === "failed") {
         // Add Corrective Actions & Consequences
-        const y = pdf.lastAutoTable.finalY + 10;
-        pdf.setFillColor(255, 230, 230);
-        pdf.setDrawColor(255, 0, 0);
-        pdf.rect(10, y, 190, 30, "FD");
-        pdf.setFontSize(12);
-        pdf.setTextColor(0, 0, 0);
-        pdf.text("Corrective Actions:", 15, y + 7);
-        const actions = [
+        const correctiveActions = [
           "• Review and adjust contributions to ensure NHCE average benefit is at least 55% of HCE average benefit",
           "• Increase NHCE participation or modify formulas accordingly",
           "• Reevaluate plan design to improve IRS compliance",
         ];
-        actions.forEach((action, i) => pdf.text(action, 15, y + 14 + i * 5));
 
-        const y2 = y + 40;
-        pdf.setFillColor(255, 255, 204);
-        pdf.setDrawColor(255, 204, 0);
-        pdf.rect(10, y2, 190, 30, "FD");
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(14);
-        pdf.setTextColor(204, 153, 0);
-        pdf.text("Consequences:", 15, y2 + 10);
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(11);
-        pdf.setTextColor(0, 0, 0);
         const consequences = [
           "• Potential reclassification of benefits as taxable",
           "• Increased IRS scrutiny and potential penalties",
           "• Risk of plan disqualification",
         ];
-        consequences.forEach((item, i) => pdf.text(item, 15, y2 + 18 + i * 5));
+
+        pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Corrective Actions"]],
+        body: correctiveActions.map((action) => [action]),
+        headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Consequences"]],
+        body: consequences.map((consequence) => [consequence]),
+        headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
       }
 
       // Generate PDF blob and save locally
       pdfBlob = pdf.output("blob");
-      pdf.save("Health_FSA_55_Average_Benefits_Results.pdf");
+      pdf.save("Health FSA 55% Average Benefits Results.pdf");
     } catch (error) {
       setError(`❌ Error exporting PDF: ${error.message}`);
       return;
     }
     try {
       await savePdfResultToFirebase({
-        fileName: "Health_FSA_55_Average_Benefits_Test",
+        fileName: "Health FSA 55% Average Benefits",
         pdfBlob,
         additionalData: {
           planYear,
@@ -360,7 +348,7 @@ const HealthFSA55AverageBenefitsTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
@@ -424,16 +412,16 @@ const HealthFSA55AverageBenefitsTest = () => {
             <p className="text-lg mt-2">
               <strong className="text-gray-700">HCE Average Benefit:</strong>{" "}
               <span className="font-semibold text-gray-800">
-                {result?.["HCE Average Benefit"] !== undefined
-                  ? formatCurrency(result["HCE Average Benefit"])
+                {result?.["HCE Average Benefits"] !== undefined
+                  ? formatCurrency(result["HCE Average Benefits"])
                   : "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">NHCE Average Benefit:</strong>{" "}
               <span className="font-semibold text-gray-800">
-                {result?.["NHCE Average Benefit"] !== undefined
-                  ? formatCurrency(result["NHCE Average Benefit"])
+                {result?.["NHCE Average Benefits"] !== undefined
+                  ? formatCurrency(result["NHCE Average Benefits"])
                   : "N/A"}
               </span>
             </p>
