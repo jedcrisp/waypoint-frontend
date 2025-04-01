@@ -1,12 +1,12 @@
 import React, { useState, useCallback } from "react";
-import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Firebase Storage helper
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
-import { getAuth } from "firebase/auth"; // Firebase Auth
+import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { savePdfResultToFirebase } from "../utils/firebaseTestSaver";
 
-const HRABenefitsTest = () => {
+const HRA55AverageBenefitsTest = () => {
   const [file, setFile] = useState(null);
   const [planYear, setPlanYear] = useState("");
   const [loading, setLoading] = useState(false);
@@ -71,11 +71,11 @@ const HRABenefitsTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    // Ensure this value matches what your backend expects
-    formData.append("selected_tests", "hra_benefits");
+    // Make sure this value matches what your backend expects
+    formData.append("selected_tests", "hra_55_average_benefits");
 
     try {
-      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/hra_benefits`);
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/hra_55_average_benefits`);
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken(true);
       if (!token) {
@@ -85,7 +85,7 @@ const HRABenefitsTest = () => {
       }
       console.log("Firebase Token:", token);
 
-      const response = await axios.post(`${API_URL}/upload-csv/hra_benefits`, formData, {
+      const response = await axios.post(`${API_URL}/upload-csv/hra_55_average_benefits`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -93,7 +93,7 @@ const HRABenefitsTest = () => {
       });
 
       console.log("✅ API Response:", response.data);
-      setResult(response.data?.["Test Results"]?.["hra_benefits"] || {});
+      setResult(response.data?.["Test Results"]?.["hra_55_average_benefits"] || {});
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
       setError("❌ Failed to upload file. Please check the format and try again.");
@@ -105,7 +105,20 @@ const HRABenefitsTest = () => {
   // ---------- Download CSV Template ----------
   const downloadCSVTemplate = () => {
     const csvData = [
-      ["Last Name", "First Name", "Employee ID", "HRA Benefits", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test", "Plan Entry Date", "Union Employee", "Part-Time / Seasonal"],
+      [
+        "Last Name",
+        "First Name",
+        "Employee ID",
+        "HRA Benefits",
+        "HCE",
+        "DOB",
+        "DOH",
+        "Employment Status",
+        "Excluded from Test",
+        "Plan Entry Date",
+        "Union Employee",
+        "Part-Time / Seasonal",
+      ],
       ["Last", "First", "001", "2500", "No", "1980-05-10", "2010-06-01", "Active", "No", "2020-01-01", "No", "No"],
       ["Last", "First", "002", "3000", "Yes", "1975-08-15", "2008-03-10", "Active", "No", "2019-01-01", "No", "No"],
       ["Last", "First", "003", "0", "No", "1990-01-01", "2021-05-01", "Active", "No", "2022-01-01", "No", "No"],
@@ -113,16 +126,17 @@ const HRABenefitsTest = () => {
       ["Last", "First", "005", "0", "No", "2000-12-01", "2022-08-20", "Terminated", "No", "2022-01-01", "No", "No"],
       ["Last", "First", "006", "3200", "Yes", "1992-05-14", "2018-11-11", "Active", "Yes", "2020-01-01", "No", "No"],
       ["Last", "First", "007", "2800", "No", "2002-01-05", "2023-09-10", "Active", "No", "2022-01-01", "No", "No"],
-      ["Last", "First", "008", "0", "No", "1980-03-25", "2015-11-01", "Active", "No", "2022-01-01", "No", "No"],
+      ["Last", "First", "008", "0", "No", "1980-03-25", "2015-11-01", "Active", "No", "2020-01-01", "No", "No"],
       ["Last", "First", "009", "3500", "Yes", "1982-06-22", "2011-07-07", "Active", "No", "2020-01-01", "No", "No"],
       ["Last", "First", "010", "0", "No", "2003-09-12", "2023-01-10", "Active", "No", "2022-01-01", "No", "No"],
     ];
+
     const csvTemplate = csvData.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "HRA_Benefits_Template.csv");
+    link.setAttribute("download", "HRA 55% Average Benefits Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -136,135 +150,149 @@ const HRABenefitsTest = () => {
     }
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
-    const totalParticipants = result["Total Participants"] ?? "N/A";
-    const hceAvg = result["HCE Average Benefits"] ?? "N/A";
-    const nhceAvg = result["NHCE Average Benefits"] ?? "N/A";
-    const benefitRatio = result["Benefit Ratio (%)"] ?? "N/A";
+    const hceAvg = result["HCE Average Benefit (%)"] ?? "N/A";
+    const nhceAvg = result["NHCE Average Benefit (%)"] ?? "N/A";
+    const avgBenefitRatio = result["Average Benefits Ratio (%)"] ?? "N/A";
     const testRes = result["Test Result"] ?? "N/A";
 
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", plan],
       ["Total Employees", totalEmployees],
-      ["Total Participants", result["Total Participants"]],
-      ["HCE Average Benefits", hceAvg],
-      ["NHCE Average Benefits", nhceAvg],
-      ["Benefit Ratio (%)", benefitRatio],
+      ["HCE Average Benefit (%)", hceAvg],
+      ["NHCE Average Benefit (%)", nhceAvg],
+      ["Average Benefit Ratio (%)", avgBenefitRatio],
       ["Test Result", testRes],
     ];
-
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "HRA_Benefits_Results.csv");
+    link.setAttribute("download", "HRA 55% Average Benefits Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // ---------- Export to PDF with Firebase Storage Integration ----------
+  // ---------- Export Results to PDF with Save to Firebase ----------
   const exportToPDF = async () => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
-    let pdfBlob;
-    try {
-      const testRes = result["Test Result"] ?? "N/A";
-      const totalEmployees = result["Total Employees"] ?? "N/A";
-      const totalParticipants = result["Total Participants"] ?? "N/A";
-      const hceAvg = result["HCE Average Benefits"] ?? "N/A";
-      const nhceAvg = result["NHCE Average Benefits"] ?? "N/A";
-      const benefitRatio = result["Benefit Ratio (%)"] ?? "N/A";
-      const failed = testRes.toLowerCase() === "failed";
-      const pdf = new jsPDF("p", "mm", "a4");
-      pdf.setFont("helvetica", "normal");
 
-      // Header
-      pdf.setFontSize(18);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("HRA Benefits Test Results", 105, 15, { align: "center" });
-      pdf.setFontSize(12);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
-      const generatedTimestamp = new Date().toLocaleString();
-      pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
+    const plan = planYear || "N/A";
+    const hceAverageBenefits = formatCurrency(result["HCE Average Benefits"]);
+    const nhceAverageBenefits = formatCurrency(result["NHCE Average Benefits"]);
+    const avgBenefitRatio = formatPercentage(result["Average Benefit Ratio (%)"]);
+    const testCriterion = result["Test Criterion"] || "N/A";
+    const testResult = result["Test Result"] || "N/A";
+    const failed = testResult.toLowerCase() === "failed";
 
-      // Results Table
+    const pdf = new jsPDF("p", "mm", "a4");
+    pdf.setFont("helvetica", "normal");
+
+    // Header
+    pdf.setFontSize(18);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("HRA 55% Average Benefits Test Results", 105, 15, { align: "center" });
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
+    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
+
+    // Subheader with test criterion
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(60, 60, 60);
+    pdf.text(
+      "Test Criterion: IRC §105(h)(2): The average benefits provided to non-highly compensated employees under an HRA must be at least 55% of the average benefits provided to highly compensated employees.",
+      105,
+      38,
+      { align: "center", maxWidth: 180 }
+    );
+
+    // Summary Table
+    pdf.autoTable({
+      startY: 52,
+      theme: "grid",
+      head: [["Metric", "Value"]],
+      body: [
+        ["Total Employees", result["Total Employees"] || "N/A"],
+        ["Total Participants", result["Total Participants"] || "N/A"],
+        ["HCE Average Benefits", hceAverageBenefits],
+        ["NHCE Average Benefits", nhceAverageBenefits],
+        ["Average Benefit Ratio", avgBenefitRatio],
+        ["Test Result", testResult],
+      ],
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: [255, 255, 255],
+      },
+      styles: {
+        fontSize: 12,
+        font: "helvetica",
+      },
+      margin: { left: 10, right: 10 },
+    });
+
+    // Corrective actions & consequences (only if failed)
+    if (failed) {
+      const correctiveActions = [
+        "Increase NHCE benefits to meet or exceed 55% of the HCE average benefits.",
+        "Review eligibility criteria to expand NHCE participation.",
+        "Adjust benefit allocations to maintain compliance.",
+        "Consult IRS § 410(b) for specific compliance requirements.",
+      ];
+
+      const consequences = [
+        "Risk of plan failing nondiscrimination testing.",
+        "Possible mandatory corrections and employer contributions.",
+        "Potential IRS scrutiny or audits.",
+        "Loss of tax-qualified status if unresolved.",
+      ];
+
       pdf.autoTable({
-        startY: 40,
+        startY: pdf.lastAutoTable.finalY + 10,
         theme: "grid",
-        head: [["Metric", "Value"]],
-        body: [
-          ["Total Employees", totalEmployees],
-          ["Total Participants", totalParticipants],
-          ["HCE Average Benefits", formatCurrency(hceAvg)],
-          ["NHCE Average Benefits", formatCurrency(nhceAvg)],
-          ["Benefit Ratio (%)", formatPercentage(benefitRatio)],
-          ["Test Result", testRes],
-        ],
-        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
-        styles: { fontSize: 12, font: "helvetica" },
+        head: [["Corrective Actions"]],
+        body: correctiveActions.map((action) => [action]),
+        headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
         margin: { left: 10, right: 10 },
       });
 
-      if (failed) {
-        const correctiveActions = [
-          "Review HRA plan design to ensure NHCE benefits are at least 55% of HCE benefits.",
-          "Adjust employer contributions to balance HRA benefits distribution.",
-          "Enhance communication to improve NHCE participation.",
-        ];
-        const consequences = [
-          "HRA benefits for HCEs may become taxable.",
-          "Plan disqualification risk if not corrected.",
-          "Increased IRS audit risk.",
-          "Additional corrective contributions may be required.",
-        ];
-
-        pdf.autoTable({
-          startY: pdf.lastAutoTable.finalY + 10,
-          theme: "grid",
-          head: [["Corrective Actions"]],
-          body: correctiveActions.map(action => [action]),
-          headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-          styles: { fontSize: 11, font: "helvetica" },
-          margin: { left: 10, right: 10 },
-        });
-
-        pdf.autoTable({
-          startY: pdf.lastAutoTable.finalY + 10,
-          theme: "grid",
-          head: [["Consequences"]],
-          body: consequences.map(item => [item]),
-          headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-          styles: { fontSize: 11, font: "helvetica" },
-          margin: { left: 10, right: 10 },
-        });
-      }
-
-      // Footer
-      pdf.setFont("helvetica", "italic");
-      pdf.setFontSize(10);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
-
-      // Generate PDF blob and trigger local download
-      pdfBlob = pdf.output("blob");
-      pdf.save("HRA_Benefits_Test_Results.pdf");
-    } catch (error) {
-      setError(`❌ Error exporting PDF: ${error.message}`);
-      return;
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Consequences"]],
+        body: consequences.map((consequence) => [consequence]),
+        headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
     }
+
+    // Footer
+    pdf.setFont("helvetica", "italic");
+    pdf.setFontSize(10);
+    pdf.setTextColor(100, 100, 100);
+    pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
+
+    // Generate PDF blob and save locally
+    const pdfBlob = pdf.output("blob");
+    pdf.save("HRA 55% Average Benefits Test Results.pdf");
+
+    // Save PDF blob to Firebase
     try {
       await savePdfResultToFirebase({
-        fileName: "HRA Benefits",
+        fileName: "HRA 55% Average Benefits",
         pdfBlob,
         additionalData: {
           planYear,
-          testResult: result["Test Result"] ?? "Unknown",
+          testResult: result["Test Result"] || "Unknown",
         },
       });
     } catch (error) {
@@ -287,13 +315,15 @@ const HRABenefitsTest = () => {
       tabIndex="0"
     >
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
-        📂 Upload HRA Benefits File
+        📂 Upload HRA 55% Average Benefits File
       </h2>
 
       {/* Plan Year Dropdown */}
       <div className="mb-6">
         <div className="flex items-center">
-          {planYear === "" && <span className="text-red-500 text-lg mr-2">*</span>}
+          {planYear === "" && (
+            <span className="text-red-500 text-lg mr-2">*</span>
+          )}
           <select
             id="planYear"
             value={planYear}
@@ -315,18 +345,19 @@ const HRABenefitsTest = () => {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
+          isDragActive
+            ? "border-green-500 bg-blue-100"
+            : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
-        <input type="file" accept=".csv, .xlsx" onChange={(e) => setFile(e.target.files[0])} className="hidden" />
         {file ? (
           <p className="text-green-600 font-semibold">{file.name}</p>
         ) : isDragActive ? (
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
@@ -342,7 +373,7 @@ const HRABenefitsTest = () => {
       {/* "Choose File" Button */}
       <button
         type="button"
-        onClick={() => open()}
+        onClick={open}
         className="mt-4 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
       >
         Choose File
@@ -352,7 +383,9 @@ const HRABenefitsTest = () => {
       <button
         onClick={handleUpload}
         className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
-          !file || !planYear ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
+          !file || !planYear
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-green-500 hover:bg-green-400"
         }`}
         disabled={!file || !planYear || loading}
       >
@@ -365,41 +398,39 @@ const HRABenefitsTest = () => {
       {/* Display Results */}
       {result && (
         <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
-          <h3 className="font-bold text-xl text-gray-700">HRA Benefits Test Results</h3>
+          <h3 className="font-bold text-xl text-gray-700">
+            HRA 55% Average Benefits Test Results
+          </h3>
           <div className="mt-4">
             <p className="text-lg">
               <strong>Plan Year:</strong>{" "}
-              <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
+              <span className="font-semibold text-blue-600">
+                {planYear || "N/A"}
+              </span>
             </p>
-            <p className="text-lg mt-2">
-              <strong>Total Employees:</strong>{" "}
+            <p className="text-lg">
+              <strong className="text-gray-700">Total Employees:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {result?.["Total Employees"] ?? "N/A"}
               </span>
             </p>
-            <p className="text-lg mt-2">
-              <strong>Total Participants:</strong>{" "}
+            <p className="text-lg">
+              <strong className="text-gray-700">Total Participants:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {result?.["Total Participants"] ?? "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
               <strong>HCE Average Benefits:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {formatCurrency(result?.["HCE Average Benefits"]) || "N/A"}
-              </span>
+              {formatCurrency(result?.["HCE Average Benefits"]) || "N/A"}
             </p>
             <p className="text-lg mt-2">
               <strong>NHCE Average Benefits:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {formatCurrency(result?.["NHCE Average Benefits"]) || "N/A"}
-              </span>
+              {formatCurrency(result?.["NHCE Average Benefits"]) || "N/A"}
             </p>
             <p className="text-lg mt-2">
-              <strong>Benefit Ratio:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {formatPercentage(result?.["Benefit Ratio (%)"]) || "N/A"}
-              </span>
+              <strong>Average Benefit Ratio:</strong>{" "}
+              {formatPercentage(result?.["Average Benefit Ratio (%)"]) || "N/A"}
             </p>
             <p className="text-lg mt-2">
               <strong>Test Result:</strong>{" "}
@@ -431,21 +462,22 @@ const HRABenefitsTest = () => {
             </button>
           </div>
 
+          {/* Display Corrective Actions & Consequences if Test Failed */}
           {result?.["Test Result"]?.toLowerCase() === "failed" && (
             <>
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black">
                   <li>
-                    Review HRA plan design to ensure NHCE benefits are at least 55% of HCE benefits.
+                    Review and adjust HRA contributions to meet the 55% requirement.
                   </li>
                   <br />
                   <li>
-                    Adjust employer contributions to balance HRA benefits distribution.
+                    Increase NHCE participation or modify contribution formulas accordingly.
                   </li>
                   <br />
                   <li>
-                    Enhance communication to improve NHCE participation.
+                    Reevaluate plan design to ensure compliance with IRS standards.
                   </li>
                 </ul>
               </div>
@@ -468,4 +500,4 @@ const HRABenefitsTest = () => {
   );
 };
 
-export default HRABenefitsTest;
+export default HRA55AverageBenefitsTest;
