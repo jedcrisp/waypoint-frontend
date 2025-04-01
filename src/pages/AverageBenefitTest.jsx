@@ -153,8 +153,6 @@ const AverageBenefitTest = () => {
     const totalEmployees = result["Total Employees"] ?? "N/A";
     const totalParticipants = result["Total Participants"] ?? "N/A";
     const totalBenefits = result["Total Benefits"] ?? "N/A";
-    const nhceAvg = result["NHCE Average Benefit"] ?? "N/A";
-    const hceAvg = result["HCE Average Benefit"] ?? "N/A";
     const averageBenefitRatio = result["Average Benefit Ratio"] ?? "N/A";
     const testResult = result["Test Result"] ?? "N/A";
 
@@ -163,8 +161,6 @@ const AverageBenefitTest = () => {
       ["Plan Year", plan],
       ["Total Employees", totalEmployees],
       ["Total Participants", totalParticipants],
-      ["NHCE Average Benefit", nhceAvg],
-      ["HCE Average Benefit", hceAvg],
       ["Total Benefits", totalBenefits],
       ["Average Benefit Ratio", averageBenefitRatio],
       ["Test Result", testResult],
@@ -194,8 +190,6 @@ const AverageBenefitTest = () => {
       const totalBenefits = formatCurrency(result["Total Benefits"]);
       const totalEmployees = result["Total Employees"] || "N/A";
       const totalParticipants = result["Total Participants"] || "N/A";
-      const nhceAvg = formatCurrency(result["NHCE Average Benefit"]);
-      const hceAvg = formatCurrency(result["HCE Average Benefit"]);
       const averageBenefitRatio = formatPercentage(result["Average Benefit Ratio"]);
       const testResult = result["Test Result"] || "N/A";
       const failed = testResult.toLowerCase() === "failed";
@@ -230,8 +224,6 @@ const AverageBenefitTest = () => {
         body: [
           ["Total Employees", totalEmployees],
           ["Total Participants", totalParticipants],
-          ["NHCE Average Benefit", nhceAvg],
-          ["HCE Average Benefit", hceAvg],
           ["Total Benefits", totalBenefits],
           ["Average Benefit Ratio", averageBenefitRatio],
           ["Test Result", testResult],
@@ -422,18 +414,6 @@ const AverageBenefitTest = () => {
               <strong className="text-gray-700">Total Participants:</strong>{" "}
               {result["Total Participants"] ?? "N/A"}
             </p>
-              <p className="text-lg mt-2">
-                <strong>HCE Average Benefit:</strong>{" "}
-                <span className="font-semibold text-gray-800">
-                  {formatCurrency(result?.["HCE Average Benefit"])}
-                </span>
-              </p>
-              <p className="text-lg mt-2">
-                <strong>NHCE Average Benefit:</strong>{" "}
-                <span className="font-semibold text-gray-800">
-                  {formatCurrency(result?.["NHCE Average Benefit"])}
-                </span>
-              </p>
               <p className="text-lg mt-2">
                 <strong>Total Benefits:</strong>{" "}
                 <span className="font-semibold text-gray-800">
