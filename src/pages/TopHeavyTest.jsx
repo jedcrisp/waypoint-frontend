@@ -131,7 +131,7 @@ const TopHeavyTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Top_Heavy_Template.csv");
+    link.setAttribute("download", "Top Heavy Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -217,13 +217,20 @@ const TopHeavyTest = () => {
     const generatedTimestamp = new Date().toLocaleString();
     pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
-    const testCriterion = "Key employee assets should not exceed 60% of total plan assets";
-    pdf.text(`Test Criterion: ${testCriterion}`, 105, 38, { align: "center" });
+    pdf.setFontSize(12);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(
+        "Test Criterion: Under IRC §416(g), a plan is top-heavy if more than 60% of total benefits or account balances are attributable to key employees.",
+        105,
+        38,
+        { align: "center", maxWidth: 180 }
+      );
 
 
     // Section 1: Basic Results Table
     pdf.autoTable({
-      startY: 43,
+      startY: 46,
       theme: "grid", // Ensures full table grid
       head: [["Metric", "Value"]],
       body: [
@@ -250,7 +257,7 @@ const TopHeavyTest = () => {
         fontStyle: "helvetica",
         halign: "left", // Left-align header text
       },
-      margin: { left: 15, right: 15 },
+      margin: { left: 10, right: 10 },
     });
 
     // Section 2: Corrective actions & consequences (if test failed)
@@ -297,7 +304,7 @@ const TopHeavyTest = () => {
 
     try {
       const pdfBlob = pdf.output("blob");
-      pdf.save("Top_Heavy_Results.pdf");
+      pdf.save("Top Heavy Results.pdf");
       // Save the PDF blob to Firebase
       await savePdfResultToFirebase({
         fileName: "Top Heavy",
@@ -362,7 +369,7 @@ const TopHeavyTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
