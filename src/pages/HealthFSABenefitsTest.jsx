@@ -18,17 +18,17 @@ const HealthFSABenefitsTest = () => {
 
   // ---------- Formatting Helpers ----------
   const formatCurrency = (amount) => {
-    if (!amount || isNaN(amount)) return "N/A";
-    return `$${parseFloat(amount).toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
+  if (amount === null || amount === undefined || isNaN(amount)) return "N/A";
+  return `$${parseFloat(amount).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
 
   const formatPercentage = (value) => {
-    if (!value || isNaN(value)) return "N/A";
-    return `${parseFloat(value).toFixed(2)}%`;
-  };
+  if (value === null || value === undefined || isNaN(value)) return "N/A";
+  return `${parseFloat(value).toFixed(2)}%`;
+};
 
   // =========================
   // 1. Drag & Drop Logic
@@ -79,10 +79,10 @@ const HealthFSABenefitsTest = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("selected_tests", "health_fsa_average_benefits");
+    formData.append("selected_tests", "health_fsa_benefits");
 
     try {
-      console.log("🚀 Uploading file to API:", `${API_URL}/upload-health-fsa-benefits/`);
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/health-fsa-benefits`);
       console.log("📂 File Selected:", file.name);
 
       const auth = getAuth();
@@ -95,7 +95,7 @@ const HealthFSABenefitsTest = () => {
       console.log("Firebase Token:", token);
 
       const response = await axios.post(
-        `${API_URL}/upload-health-fsa-benefits/`,
+        `${API_URL}/upload-csv/health-fsa-benefits`,
         formData,
         {
           headers: { 
@@ -105,7 +105,7 @@ const HealthFSABenefitsTest = () => {
         }
       );
       console.log("✅ Response received:", response.data);
-      setResult(response.data?.["Test Results"]?.["health_fsa_average_benefits"] || {});
+      setResult(response.data?.["Test Results"]?.["health_fsa_benefits"] || {});
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err);
       setError("❌ Failed to upload file. Please check the format and try again.");
@@ -159,7 +159,7 @@ const HealthFSABenefitsTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Health_FSA_Benefits_Template.csv");
+    link.setAttribute("download", "Health FSA Benefits Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -189,7 +189,7 @@ const HealthFSABenefitsTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Health_FSA_Benefits_Results.csv");
+    link.setAttribute("download", "Health FSA Benefits Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -221,7 +221,7 @@ const HealthFSABenefitsTest = () => {
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
       pdf.text(
-        "Test Criterion: NHCE average benefits must be at least 55% of HCE average benefits",
+        "Test Criterion: IRC §105(h)(2): A Health FSA must not discriminate in favor of highly compensated individuals as to the benefits provided under the plan.",
         105,
         38,
         { align: "center", maxWidth: 180 }
@@ -229,17 +229,17 @@ const HealthFSABenefitsTest = () => {
 
       // Table with Results
       pdf.autoTable({
-        startY: 44,
+        startY: 49,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
-          ["Total Employees", result["Total Employees"] ?? "N/A"],
-          ["Total Participants", result["Total Participants"] ?? "N/A"],
-          ["HCI Average Benefits", result["HCI Average Benefits"] ?? "N/A"],
-          ["Non-HCI Average Benefits", result["Non-HCI Average Benefits"] ?? "N/A"],
-          ["Benefits Ratio (%)", result["Benefits Ratio (%)"] ?? "N/A"],
-          ["Test Result", result["Test Result"] ?? "N/A"],
-        ],
+                ["Total Employees", result["Total Employees"] ?? "N/A"],
+                ["Total Participants", result["Total Participants"] ?? "N/A"],
+                ["HCI Average Benefits", formatCurrency(result["HCI Average Benefits"])],
+                ["Non-HCI Average Benefits", formatCurrency(result["Non-HCI Average Benefits"])],
+                ["Benefits Ratio", formatPercentage(result["Benefit Ratio (%)"])],
+                ["Test Result", result["Test Result"] ?? "N/A"],
+              ],
         headStyles: {
           fillColor: [41, 128, 185],
           textColor: [255, 255, 255],
@@ -252,42 +252,43 @@ const HealthFSABenefitsTest = () => {
       });
 
       if (result["Test Result"]?.toLowerCase() === "failed") {
-        const y = pdf.lastAutoTable.finalY + 10;
-        pdf.setFillColor(255, 230, 230);
-        pdf.setDrawColor(255, 0, 0);
-        pdf.rect(10, y, 190, 30, "FD");
-        pdf.setFontSize(12);
-        pdf.setTextColor(0, 0, 0);
-        pdf.text("Corrective Actions:", 15, y + 7);
-        const actions = [
+        // Corrective Actions & Consequences
+        const correctiveActions = [
           "Adjust Benefit Levels for HCEs or Key Employees",
           "Increase Participation or Contributions for NHCEs",
           "Amend Plan Eligibility or Contribution Rules",
         ];
-        actions.forEach((action, i) => pdf.text(action, 15, y + 14 + i * 5));
 
-        const y2 = y + 40;
-        pdf.setFillColor(255, 255, 204);
-        pdf.setDrawColor(255, 204, 0);
-        pdf.rect(10, y2, 190, 30, "FD");
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(14);
-        pdf.setTextColor(204, 153, 0);
-        pdf.text("Consequences:", 15, y2 + 10);
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(11);
-        pdf.setTextColor(0, 0, 0);
         const consequences = [
           "All reimbursements made to HCEs under the FSA may become taxable income (included in Form W-2 wages)",
           "Though rare, consistent failure to comply could raise concerns about the overall integrity of the plan.",
           "A failed discrimination test may trigger IRS scrutiny or fines, especially if not documented or corrected.",
         ];
-        consequences.forEach((item, i) => pdf.text(item, 15, y2 + 18 + i * 5));
+
+        pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Corrective Actions"]],
+        body: correctiveActions.map((action) => [action]),
+        headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Consequences"]],
+        body: consequences.map((consequence) => [consequence]),
+        headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
       }
 
       // Generate PDF blob and save locally
       pdfBlob = pdf.output("blob");
-      pdf.save("Health_FSA_Benefits_Results.pdf");
+      pdf.save("Health FSA Benefits Results.pdf");
     } catch (error) {
       setError(`❌ Error exporting PDF: ${error.message}`);
       return;
@@ -295,7 +296,7 @@ const HealthFSABenefitsTest = () => {
     try {
       // Upload the PDF blob to Firebase Storage using your helper utility
       await savePdfResultToFirebase({
-        fileName: "Health FSA Benefits Test",
+        fileName: "Health FSA Benefits",
         pdfBlob,
         additionalData: {
           planYear,
@@ -356,8 +357,8 @@ const HealthFSABenefitsTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here, or{" "}
-            <span className="text-blue-500 font-semibold">click to browse</span>
+            Drag & drop a <strong>CSV file</strong> 
+            <span className="text-blue-500 font-semibold"></span>
           </p>
         )}
       </div>
@@ -383,7 +384,7 @@ const HealthFSABenefitsTest = () => {
       <button
         onClick={handleUpload}
         className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
-          !file ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"
+          !file ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
         }`}
         disabled={!file || loading}
       >
@@ -397,7 +398,7 @@ const HealthFSABenefitsTest = () => {
       {result && (
         <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
           <h3 className="font-bold text-xl text-gray-700">
-            ✅ Health FSA 55% Average Benefits Test Results
+            Health FSA Benefits Test Results
           </h3>
           <div className="mt-4">
             <p className="text-lg">
@@ -420,28 +421,30 @@ const HealthFSABenefitsTest = () => {
             </p>
             <p className="text-lg mt-2">
               <strong className="text-gray-700">HCI Average Benefits:</strong>{" "}
-              <span className="font-semibold text-gray-800">
+              <span className="font-semibold text-black-800">
                 {result?.["HCI Average Benefits"] !== undefined
                   ? formatCurrency(result["HCI Average Benefits"])
                   : "N/A"}
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Non-HCI Average Benefits:</strong>{" "}
-              <span className="font-semibold text-gray-800">
-                {result?.["Non-HCI Average Benefits"] !== undefined
-                  ? formatCurrency(result["Non-HCI Average Benefits"])
-                  : "N/A"}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Benefit Ratio:</strong>{" "}
-              <span className="font-semibold text-gray-800">
-                {result?.["Benefit Ratio (%)"] !== undefined
-                  ? formatPercentage(result["Benefit Ratio (%)"])
-                  : "N/A"}
-              </span>
-            </p>
+  <strong className="text-gray-700">Non-HCI Average Benefits:</strong>{" "}
+  <span className="font-semibold text-black-800">
+    {result?.["Non-HCI Average Benefits"] != null
+      ? formatCurrency(result["Non-HCI Average Benefits"])
+      : "N/A"}
+  </span>
+</p>
+
+<p className="text-lg mt-2">
+  <strong className="text-gray-700">Benefit Ratio:</strong>{" "}
+  <span className="font-semibold text-black-800">
+    {result?.["Benefit Ratio (%)"] != null
+      ? formatPercentage(result["Benefit Ratio (%)"])
+      : "N/A"}
+  </span>
+</p>
+
             <p className="text-lg mt-2">
               <strong className="text-gray-700">Test Result:</strong>{" "}
               <span
@@ -454,6 +457,22 @@ const HealthFSABenefitsTest = () => {
                 {result?.["Test Result"] ?? "N/A"}
               </span>
             </p>
+          </div>
+
+          {/* Export & Download Buttons */}
+          <div className="flex flex-col gap-2 mt-4">
+            <button
+              onClick={exportToPDF}
+              className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+            >
+              Export PDF Report
+            </button>
+            <button
+              onClick={downloadResultsAsCSV}
+              className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
+            >
+              Download CSV Report
+            </button>
           </div>
 
             {/* If test fails, show corrective actions & consequences */}
@@ -489,21 +508,6 @@ const HealthFSABenefitsTest = () => {
             </>
           )}
 
-          {/* Export & Download Buttons */}
-          <div className="flex flex-col gap-2 mt-4">
-            <button
-              onClick={exportToPDF}
-              className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
-            >
-              Export PDF Report
-            </button>
-            <button
-              onClick={downloadResultsAsCSV}
-              className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
-            >
-              Download CSV Report
-            </button>
-          </div>
         </div>
       )}
     </div>
