@@ -239,10 +239,10 @@ const ADPTest = () => {
           "Review and adjust contribution allocations per IRS § 410(b).",
         ];
         const consequences = [
-          "Mandatory employer contributions for non-key employees.",
-          "Potential loss of plan tax advantages.",
-          "Increased IRS audit risk.",
+          "Plan may lose tax-qualified status.",
+          "IRS penalties and plan disqualification risk.",
           "Additional corrective contributions may be required.",
+          "Employee dissatisfaction and legal risks.",
         ];
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
