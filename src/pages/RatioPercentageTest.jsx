@@ -139,7 +139,7 @@ const RatioPercentageTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Ratio_Percentage_Template.csv");
+    link.setAttribute("download", "Ratio Percentage Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -180,7 +180,7 @@ const RatioPercentageTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Ratio_Percentage_Results.csv");
+    link.setAttribute("download", "Ratio Percentage Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -222,9 +222,21 @@ const RatioPercentageTest = () => {
       const generatedTimestamp = new Date().toLocaleString();
       pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
+      // Subheader with test criterion
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(
+        "Test Criterion: IRC §410(b): The Ratio Percentage Test compares the percentage of Non-Highly Compensated Employees (NHCEs) benefiting under the plan to the percentage of Highly Compensated Employees (HCEs), requiring the ratio to be at least 70% for the plan to pass.",
+        105,
+        38,
+        { align: "center", maxWidth: 180 }
+      );
+
       // Basic Results Table
       pdf.autoTable({
-        startY: 40,
+        startY: 54,
+        theme: "grid",
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", totalEmployees],
@@ -256,6 +268,7 @@ const RatioPercentageTest = () => {
         ];
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
           head: [["Corrective Actions"]],
           body: correctiveActions.map((action) => [action]),
           headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
@@ -264,6 +277,7 @@ const RatioPercentageTest = () => {
         });
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
           head: [["Consequences"]],
           body: consequences.map((item) => [item]),
           headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
@@ -280,7 +294,7 @@ const RatioPercentageTest = () => {
 
       try {
         pdfBlob = pdf.output("blob");
-        pdf.save("Ratio_Percentage_Test_Results.pdf");
+        pdf.save("Ratio Percentage Test Results.pdf");
       } catch (error) {
         setError(`❌ Error exporting PDF: ${error.message}`);
         return;
@@ -358,7 +372,7 @@ const RatioPercentageTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
