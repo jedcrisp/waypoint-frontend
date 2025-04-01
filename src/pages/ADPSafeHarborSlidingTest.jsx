@@ -141,7 +141,7 @@ const ADPSafeHarborSlidingTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "ADP_Safe_Harbor_Sliding_Template.csv");
+    link.setAttribute("download", "ADP Safe Harbor Sliding Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -166,32 +166,12 @@ const ADPSafeHarborSlidingTest = () => {
       ["Plan Year", plan],
       ["Total Employees", totalEmployees],
       ["Total Participants", totalParticipants],
-      ["HCE ADP (%)", hceADP],
-      ["NHCE ADP (%)", nhceADP],
-      ["IRS Safe Harbor Limit (%)", safeHarborLimit],
+      ["HCE ADP", hceADP],
+      ["NHCE ADP", nhceADP],
+      ["IRS Safe Harbor Limit", safeHarborLimit],
       ["Test Result", testResult],
     ];
 
-    if (String(testResult).toLowerCase() === "failed") {
-      const correctiveActions = [
-        "Refund Excess Contributions by the required deadline.",
-        "Make Additional Contributions as required.",
-        "Recharacterize excess contributions appropriately.",
-      ];
-      const consequences = [
-        "Excess Contributions Must Be Refunded",
-        "IRS Penalties and Compliance Risks",
-        "Loss of Tax Benefits",
-        "Plan Disqualification Risk",
-        "Employee Dissatisfaction & Legal Risks",
-      ];
-      csvRows.push(["", ""]);
-      csvRows.push(["Corrective Actions", ""]);
-      correctiveActions.forEach((action) => csvRows.push(["", action]));
-      csvRows.push(["", ""]);
-      csvRows.push(["Consequences", ""]);
-      consequences.forEach((item) => csvRows.push(["", item]));
-    }
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -209,6 +189,8 @@ const ADPSafeHarborSlidingTest = () => {
       setError("❌ No results available to export.");
       return;
     }
+
+
     let pdfBlob;
     try {
       const plan = planYear || "N/A";
@@ -218,6 +200,7 @@ const ADPSafeHarborSlidingTest = () => {
       const nhceADP = result["NHCE ADP (%)"] ?? "N/A";
       const safeHarborLimit = result["IRS Safe Harbor Limit"] ?? "N/A";
       const testResult = result["Test Result"] ?? "N/A";
+      const failed = testResult?.toLowerCase() === "failed";
       const pdf = new jsPDF("p", "mm", "a4");
       pdf.setFont("helvetica", "normal");
 
@@ -231,17 +214,28 @@ const ADPSafeHarborSlidingTest = () => {
       const generatedTimestamp = new Date().toLocaleString();
       pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
+      // Subheader with test criterion
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(60, 60, 60);
+    pdf.text(
+      "Test Criterion: IRC §401(k)(3): The ADP test ensures that elective deferrals made by Highly Compensated Employees do not exceed 125 percent of the average deferral rate of Non-Highly Compensated Employees, or meet alternative safe harbor thresholds of 200 percent or 125 percent, minus two percentage points.",
+      105,
+      38,
+      { align: "center", maxWidth: 180 }
+    );
+
       // Section 1: Basic Results Table
       pdf.autoTable({
-        startY: 40,
+        startY: 56,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", totalEmployees],
           ["Total Participants", totalParticipants],
-          ["HCE ADP (%)", formatPercentage(result?.["HCE ADP (%)"])],
-          ["NHCE ADP (%)", formatPercentage(result?.["NHCE ADP (%)"])],
-          ["IRS Safe Harbor Limit (%)", formatPercentage(result?.["IRS Safe Harbor Limit"])],
+          ["HCE ADP", formatPercentage(result?.["HCE ADP (%)"])],
+          ["NHCE ADP", formatPercentage(result?.["NHCE ADP (%)"])],
+          ["IRS Safe Harbor Limit", formatPercentage(result?.["IRS Safe Harbor Limit"])],
           ["Test Result", testResult],
         ],
         headStyles: {
@@ -297,14 +291,14 @@ const ADPSafeHarborSlidingTest = () => {
 
       try {
         pdfBlob = pdf.output("blob");
-        pdf.save("Safe_Harbor_Sliding_Test_Results.pdf");
+        pdf.save("Safe Harbor Sliding Test Results.pdf");
       } catch (error) {
         setError(`❌ Error exporting PDF: ${error.message}`);
         return;
       }
       try {
         await savePdfResultToFirebase({
-          fileName: "ADP Safe Harbor Sliding Test",
+          fileName: "ADP Safe Harbor Sliding",
           pdfBlob,
           additionalData: {
             planYear,
@@ -326,7 +320,7 @@ const ADPSafeHarborSlidingTest = () => {
       tabIndex="0"
     >
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
-        📂 Upload HRA Benefits File
+        📂 Upload ADP Safe Harbor Sliding File
       </h2>
 
       {/* Plan Year Dropdown */}
@@ -374,7 +368,7 @@ const ADPSafeHarborSlidingTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
@@ -424,33 +418,33 @@ const ADPSafeHarborSlidingTest = () => {
               </span>
             </p>
             <p className="text-lg">
-              <strong className="text-gray-700">Total Employees:</strong>{" "}
+              <strong className="text-black-700">Total Employees:</strong>{" "}
               {result["Total Employees"] ?? "N/A"}
             </p>
             <p className="text-lg">
-              <strong className="text-gray-700">Total Participants:</strong>{" "}
+              <strong className="text-black-700">Total Participants:</strong>{" "}
               {result["Total Participants"] ?? "N/A"}
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">HCE ADP (%):</strong>{" "}
+              <strong className="text-black-700">HCE ADP:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {formatPercentage(result?.["HCE ADP (%)"])}
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">NHCE ADP (%):</strong>{" "}
+              <strong className="text-black-700">NHCE ADP:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {formatPercentage(result?.["NHCE ADP (%)"])}
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">IRS Safe Harbor Limit (%):</strong>{" "}
+              <strong className="text-black-700">IRS Safe Harbor Limit:</strong>{" "}
               <span className="font-semibold text-black-600">
                 {formatPercentage(result?.["IRS Safe Harbor Limit"])}
               </span>
             </p>
             <p className="text-lg mt-2">
-              <strong className="text-gray-700">Test Result:</strong>{" "}
+              <strong className="text-black-700">Test Result:</strong>{" "}
               <span
                 className={`px-3 py-1 rounded-md font-bold ${
                   result["Test Result"] === "Passed"
