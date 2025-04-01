@@ -24,8 +24,10 @@ const HRA25OwnerRuleTest = () => {
           maximumFractionDigits: 2,
         })}`;
 
-  const formatPercentage = (value) =>
-    !value || isNaN(value) ? "N/A" : `${parseFloat(value).toFixed(2)}%`;
+const formatPercentage = (value) => {
+  const number = parseFloat(value);
+  return !isNaN(number) ? `${number.toFixed(2)}%` : "0.00%";
+};
 
   // Handle Enter key for upload
   const handleKeyDown = (e) => {
@@ -145,7 +147,7 @@ const HRA25OwnerRuleTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "HRA_25_Owner_Rule_Template.csv");
+    link.setAttribute("download", "HRA 25% Owner Rule Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -181,7 +183,7 @@ const HRA25OwnerRuleTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "HRA_25_Owner_Rule_Results.csv");
+    link.setAttribute("download", "HRA 25% Owner Rule Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -195,83 +197,102 @@ const HRA25OwnerRuleTest = () => {
     }
     let pdfBlob;
     try {
-      const totalEmployees = result["Total Employees"] ?? "N/A";
-      const totalParticipants = result["Total Participants"] ?? "N/A";
-      const totalHraBenefits = result["Total HRA Benefits"] ?? "N/A";
-      const ownerAttributedBenefits = result["Owner-Attributed Benefits"] ?? "N/A";
-      const ownerRulePercentage = result["Owner Rule Percentage"] ?? "N/A";
-      const testResult = result["Test Result"] ?? "N/A";
-      const failed = testRes.toLowerCase() === "failed";
-      const pdf = new jsPDF("p", "mm", "a4");
-      pdf.setFont("helvetica", "normal");
+      const totalEmployees = result["Total Employees"] ?? 0;
+const totalParticipants = result["Total Participants"] ?? 0;
+const totalHraBenefits = result["Total HRA Benefits"] ?? 0;
+const ownerAttributedBenefits = result["Owner-Attributed Benefits"] ?? 0;
+const ownerRulePercentage = result["Owner Rule Percentage"] ?? 0;
+const testResult = result["Test Result"] ?? "N/A";
+const failed = testResult.toLowerCase() === "failed";
 
-      // Header
-      pdf.setFontSize(18);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("HRA 25% Owner Rule Test Results", 105, 15, { align: "center" });
-      pdf.setFontSize(12);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
-      const generatedTimestamp = new Date().toLocaleString();
-      pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
+const pdf = new jsPDF("p", "mm", "a4");
+pdf.setFont("helvetica", "normal");
 
-      // Results Table
-      pdf.autoTable({
-        startY: 40,
-        theme: "grid",
-        head: [["Metric", "Value"]],
-        body: [
-          ["Total Employees", result["Total Employees"]],
-          ["Total Participants", result["Total Participants"]],
-          ["Owner-Attributed Benefits", formatCurrency(result["Owner-Attributed Benefits"])],
-          ["Owner Rule Percentage", formatPercentage(result["Owner Rule Percentage"])],
-          ["Total HRA Benefits", formatCurrency(result["Total HRA Benefits"])],
-          ["Test Result", testResult],
-        ],
-        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
-        styles: { fontSize: 12 },
-        margin: { left: 10, right: 10 },
-      });
+// Header
+pdf.setFontSize(18);
+pdf.setFont("helvetica", "bold");
+pdf.text("HRA 25% Owner Rule Test Results", 105, 15, { align: "center" });
+
+pdf.setFontSize(12);
+pdf.setFont("helvetica", "normal");
+pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
+pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
+
+// Test Criterion
+pdf.setFontSize(12);
+pdf.setFont("helvetica", "italic");
+pdf.setTextColor(60, 60, 60);
+pdf.text(
+  "Test Criterion: IRC §125(b)(5): No more than 25% of total HRA benefits may be provided to Key Employees.",
+  105,
+  38,
+  { align: "center", maxWidth: 180 }
+);
+
+// Results Table
+pdf.autoTable({
+  startY: 50,
+  theme: "grid",
+  head: [["Metric", "Value"]],
+  body: [
+    ["Total Employees", totalEmployees],
+    ["Total Participants", totalParticipants],
+    ["Owner-Attributed Benefits", formatCurrency(ownerAttributedBenefits)],
+    ["Owner Rule Percentage", formatPercentage(ownerRulePercentage)],
+    ["Total HRA Benefits", formatCurrency(totalHraBenefits)],
+    ["Test Result", testResult],
+  ],
+        headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: [255, 255, 255],
+      },
+      styles: {
+        fontSize: 12,
+        font: "helvetica",
+      },
+      margin: { left: 10, right: 10 },
+    });
 
       // Corrective Actions & Consequences (if test failed)
       if (failed) {
-        const y = pdf.lastAutoTable.finalY + 10;
-        pdf.setFillColor(255, 230, 230);
-        pdf.setDrawColor(255, 0, 0);
-        pdf.rect(10, y, 190, 30, "FD");
-        pdf.setFontSize(12);
-        pdf.setTextColor(0, 0, 0);
-        pdf.text("Corrective Actions:", 15, y + 7);
-        const actions = [
+        
+        const correctiveActions = [
           "Review owner-related benefit allocations to ensure compliance with the 25% rule",
           "Adjust plan design to lower the proportion of benefits going to owners",
           "Consider additional corrective contributions if necessary",
         ];
-        actions.forEach((action, i) => pdf.text(action, 15, y + 14 + i * 5));
 
-        const y2 = y + 40;
-        pdf.setFillColor(255, 255, 204);
-        pdf.setDrawColor(255, 204, 0);
-        pdf.rect(10, y2, 190, 30, "FD");
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(14);
-        pdf.setTextColor(204, 153, 0);
-        pdf.text("Consequences:", 15, y2 + 10);
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(11);
-        pdf.setTextColor(0, 0, 0);
         const consequences = [
           "Taxation of FSA benefits for key employees",
           "Increased IRS scrutiny and potential penalties",
           "Risk of plan disqualification",
           "Retroactive correction requirements",
         ];
-        consequences.forEach((item, i) => pdf.text(item, 15, y2 + 18 + i * 5));
+
+        pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Corrective Actions"]],
+        body: correctiveActions.map((action) => [action]),
+        headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Consequences"]],
+        body: consequences.map((consequence) => [consequence]),
+        headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
       }
 
       // Generate PDF blob and trigger local download
       pdfBlob = pdf.output("blob");
-      pdf.save("HRA_25_Owner_Rule_Results.pdf");
+      pdf.save("HRA 25% Owner Rule Results.pdf");
     } catch (error) {
       setError(`❌ Error exporting PDF: ${error.message}`);
       return;
@@ -355,7 +376,7 @@ const HRA25OwnerRuleTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
