@@ -229,7 +229,7 @@ const ClassificationTest = () => {
       ];
 
       const consequences = [
-        "Mandatory employer contributions (3% of pay) for non-key employees."
+        "Mandatory employer contributions (3% of pay) for non-key employees.",
         "Loss of plan tax advantages if not corrected.",
         "Increased IRS audit risk due to noncompliance.",
         "Additional corrective contributions may be required.",
