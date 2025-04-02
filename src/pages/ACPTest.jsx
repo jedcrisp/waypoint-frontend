@@ -182,8 +182,8 @@ const ACPTest = () => {
       ["Metric", "Value"],
       ["Total Employees", totalEmployees],
       ["Total Participants", totalParticipants],
-      ["HCE ACP (%)", formatPct(hceAvg)],
-      ["NHCE ACP (%)", formatPct(nhceAvg)],
+      ["HCE ACP", formatPct(hceAvg)],
+      ["NHCE ACP", formatPct(nhceAvg)],
       ["Test Result", testResult],
     ];
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
@@ -246,8 +246,8 @@ const ACPTest = () => {
         body: [
           ["Total Employees", totalEmployees],
           ["Total Participants", totalParticipants],
-          ["HCE ACP (%)", hceAvg],
-          ["NHCE ACP (%)", nhceAvg],
+          ["HCE ACP", hceAvg],
+          ["NHCE ACP", nhceAvg],
           ["Test Result", testResult],
         ],
         headStyles: {
