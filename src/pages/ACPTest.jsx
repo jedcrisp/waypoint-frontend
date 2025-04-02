@@ -265,9 +265,9 @@ const ACPTest = () => {
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
-          head: [["AI Corrective Actions"]],
+          head: [["AI Corrective Actions (Powered by OpenAI)"]],
           body: [[aiReview]],
-          headStyles: { fillColor: [120, 120, 255], textColor: [255, 255, 255] },
+          headStyles: { fillColor: [126, 34, 206], textColor: [255, 255, 255] },
           styles: { fontSize: 11, font: "helvetica" },
           margin: { left: 10, right: 10 },
         });
