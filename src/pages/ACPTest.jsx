@@ -531,7 +531,7 @@ const ACPTest = () => {
           {aiReview && (
             <div className="mt-2 p-4 bg-indigo-50 border border-indigo-300 rounded-md">
               <h4 className="font-bold text-indigo-700">
-                AI Corrective Actions:
+                AI Corrective Actions (Powered by OpenAI):
               </h4>
               <p className="text-indigo-900">{aiReview}</p>
             </div>
