@@ -65,7 +65,7 @@ const SignIn = () => {
             margin: "0 0 1rem",
           }}
         >
-          Smart Compliance Tool
+    
         </h1>
         {error && (
           <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>
