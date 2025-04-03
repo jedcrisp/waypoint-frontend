@@ -653,7 +653,6 @@ const ACPTest = () => {
           </div>
         </Modal>
       )}
-    </div>
   );
 };
 
