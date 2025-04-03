@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { User, History, Shield, FileText, Info, BookOpen, Mail } from "lucide-react";
 import { getAuth, updateProfile } from "firebase/auth";
 import About from "./About";
+imort FAQ from "./faq";
 
 const dashboardItems = [
   { title: "Account", route: "/account", description: "Manage your profile and settings", icon: User },
