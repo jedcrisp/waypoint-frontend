@@ -1,23 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { 
-  signInWithEmailAndPassword, 
-  onAuthStateChanged 
-} from "firebase/auth";
-import { useNavigate } from "react-router-dom";
+import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { useNavigate, Link } from "react-router-dom";
 import { auth } from "../firebase";
 import waypointlogo from "../assets/waypointlogo.png";
+import { Eye, EyeOff } from "lucide-react";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  // Listen for auth state changes; if the user is already signed in, redirect to dashboard.
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
-        navigate("/dashboard"); // redirect to dashboard after successful login
+        navigate("/dashboard");
       }
     });
     return () => unsubscribe();
@@ -28,14 +26,11 @@ const SignIn = () => {
     setError("");
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Explicitly navigate to dashboard after login.
       navigate("/dashboard");
     } catch (err) {
       setError(err.message);
     }
   };
-
-  
 
   return (
     <div
@@ -70,9 +65,11 @@ const SignIn = () => {
             margin: "0 0 1rem",
           }}
         >
-          
+          Log In To Continue
         </h1>
-        {error && <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>}
+        {error && (
+          <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>
+        )}
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: "1rem" }}>
             <input
@@ -90,9 +87,9 @@ const SignIn = () => {
               }}
             />
           </div>
-          <div style={{ marginBottom: "1rem" }}>
+          <div style={{ marginBottom: "1rem", position: "relative" }}>
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="PASSWORD"
@@ -105,6 +102,18 @@ const SignIn = () => {
                 backgroundColor: "#f9f9f9",
               }}
             />
+            <div
+              style={{
+                position: "absolute",
+                top: "50%",
+                right: "0.75rem",
+                transform: "translateY(-50%)",
+                cursor: "pointer",
+              }}
+              onClick={() => setShowPassword((prev) => !prev)}
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </div>
           </div>
           <button
             type="submit"
@@ -122,6 +131,14 @@ const SignIn = () => {
             Login
           </button>
         </form>
+
+        {/* Create Account Link */}
+        <p style={{ marginTop: "1rem", fontSize: "0.875rem", color: "#666" }}>
+          Don’t have an account?{" "}
+          <Link to="/signup" style={{ color: "#0074d9", textDecoration: "underline" }}>
+            Create one
+          </Link>
+        </p>
       </div>
     </div>
   );
