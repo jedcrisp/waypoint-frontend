@@ -641,15 +641,15 @@ const ACPTest = () => {
               Cancel
             </button>
             <button
-  className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50"
-   disabled={!consentChecked || !signature.trim()}
-   onClick={async () => {
-     setShowConsentModal(false);
-     await handleRunAIReview(); // ✅ Now it's inside an async function
-   }}
- >
-   Confirm & Run AI Review
- </button>
+              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50"
+              disabled={!consentChecked || !signature.trim()}
+              onClick={async () => {
+                setShowConsentModal(false);
+                await handleRunAIReview();
+              }}
+            >
+              Confirm & Run AI Review
+            </button>
           </div>
         </Modal>
       )}
