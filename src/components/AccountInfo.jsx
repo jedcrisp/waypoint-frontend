@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { getAuth } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db } from "../firebase";
+import { enableNetwork } from "firebase/firestore";
+
 
 const AccountInfo = () => {
   const [userInfo, setUserInfo] = useState({
@@ -8,6 +12,7 @@ const AccountInfo = () => {
     company: "",
     address: "",
     email: "",
+    phone: "",
   });
 
   const [loading, setLoading] = useState(true);
@@ -15,25 +20,45 @@ const AccountInfo = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const auth = getAuth();
-    const user = auth.currentUser;
-
-    if (user) {
-      // Replace with real values as needed
-      setUserInfo({
-        firstName: "",
-        lastName: "",
-        company: "",
-        address: "",
-        email: user.email,
-        phone: "",
-      });
-    } else {
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (!user) {
       setError("User not logged in.");
+      setLoading(false);
+      return;
     }
 
-    setLoading(false);
-  }, []);
+    try {
+      await enableNetwork(db);
+      const docRef = doc(db, "users", user.uid);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setUserInfo({
+          firstName: data.firstName || "",
+          lastName: data.lastName || "",
+          company: data.company || "",
+          address: data.address || "",
+          phone: data.phone || "",
+          email: user.email,
+        });
+      } else {
+        setUserInfo((prev) => ({
+          ...prev,
+          email: user.email,
+        }));
+      }
+    } catch (err) {
+      console.error("Error loading account info:", err);
+      setError("Failed to load account info.");
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  return () => unsubscribe();
+}, []); // ✅ FIXED: constant size dependency array
+
 
   const handleChange = (field, value) => {
     setUserInfo((prev) => ({
@@ -43,9 +68,33 @@ const AccountInfo = () => {
     setSaved(false);
   };
 
-  const handleSave = () => {
-    // TODO: Save to backend
-    setSaved(true);
+  const handleSave = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      setError("User not logged in.");
+      return;
+    }
+
+    const userData = {
+      firstName: userInfo.firstName,
+      lastName: userInfo.lastName,
+      company: userInfo.company,
+      address: userInfo.address,
+      phone: userInfo.phone,
+      email: userInfo.email,
+    };
+
+    try {
+      console.log("Saving for user:", user.uid);
+      console.log("User data:", userData);
+
+      await setDoc(doc(db, "users", user.uid), userData, { merge: true });
+      setSaved(true);
+    } catch (err) {
+       console.error("Failed writing to Firestore:", err.message);
+      console.error("Error saving account info:", err);
+      setError("Failed to save account info.");
+    }
   };
 
   if (loading) return <div className="text-center mt-10">Loading account info...</div>;
@@ -65,7 +114,7 @@ const AccountInfo = () => {
               value={userInfo[field]}
               onChange={(e) => handleChange(field, e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400"
-              disabled={field === "email"} // Optional: disable editing email
+              disabled={field === "email"} // Email is not editable
             />
           </div>
         ))}
