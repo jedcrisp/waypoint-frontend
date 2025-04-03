@@ -6,6 +6,7 @@ import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import Dashboard from "./pages/Dashboard";
 import SignUp from "./pages/SignUp";
 import Home from "./pages/Home";
+import About from "./components/About"; 
 import UploadButton from "./components/UploadButton";
 import ReportPage from "./pages/ReportPage";
 import TestSelection from "./pages/TestSelection";
@@ -158,6 +159,7 @@ if (isDemoSubdomain && user && user.email !== allowedDemoUser) {
         <UploadButton />
         <Routes>
           <Route path="/signin" element={<SignIn />} />
+          <Route path="/about" element={<About />} />
           <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
