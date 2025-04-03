@@ -4,6 +4,7 @@ import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 
 // Pages
 import Dashboard from "./pages/Dashboard";
+import SignUp from "./pages/SignUp";
 import Home from "./pages/Home";
 import UploadButton from "./components/UploadButton";
 import ReportPage from "./pages/ReportPage";
@@ -72,6 +73,14 @@ function AppContent() {
   const timeoutRef = useRef(null);
   const location = useLocation();
 
+  const [showChat, setShowChat] = useState(true);
+
+  // Hide chat on specific routes
+  useEffect(() => {
+    const hideChatOnRoutes = ["/signin", "/signup", "/account", "/security"];
+    setShowChat(!hideChatOnRoutes.includes(location.pathname));
+  }, [location.pathname]);
+
   // Function to reset the idle timeout timer
   const resetTimeout = () => {
     if (timeoutRef.current) {
@@ -107,19 +116,20 @@ function AppContent() {
 
   if (loadingAuth) return <div>Loading authentication...</div>;
 
-  // Define routes where you want to hide the Navbar
-  const hideNavbarRoutes = ["/signin"];
-  const showNavbar = !hideNavbarRoutes.includes(location.pathname);
+  // Hide Navbar and ChatComponent on these routes
+  const hideComponentsRoutes = ["/signin", "/signup",];
+  const showComponents = !hideComponentsRoutes.includes(location.pathname);
 
   return (
     <TestContext.Provider value={{ selectedTests, setSelectedTests, uploadedFile, setUploadedFile }}>
       <>
-        {showNavbar && <Navbar />}
-        <ChatComponent />
+        {showComponents && <Navbar />}
+        {showChat && <ChatComponent />}
         <UploadButton />
         <Routes>
           <Route path="/signin" element={<SignIn />} />
           <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/signup" element={<SignUp />} />
           <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
           <Route path="/about" element={<PrivateRoute><h1>About Page</h1></PrivateRoute>} />
           <Route path="/test-info" element={<PrivateRoute><h1>Test Info Page</h1></PrivateRoute>} />
@@ -174,11 +184,7 @@ function AppContent() {
 }
 
 function App() {
-  return (
-    
-      <AppContent />
-  
-  );
+  return <AppContent />;
 }
 
 export { TestContext };
