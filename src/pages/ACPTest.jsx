@@ -336,6 +336,11 @@ const ACPTest = () => {
   // 6. Run AI Review for Corrective Actions
   // =========================
   const handleRunAIReview = async () => {
+  if (!result || !result.acp_summary) {
+    setError("❌ No test summary available for AI review.");
+    return;
+  }
+
   setLoading(true);
   try {
     const response = await axios.post(`${API_URL}/api/ai-review`, {
@@ -351,12 +356,6 @@ const ACPTest = () => {
   setLoading(false);
 };
 
-
-  // Show modal if not already approved
-  if (!consentChecked || !signature.trim()) {
-    setShowConsentModal(true);
-    return;
-  }
 
   setLoading(true);
   try {
