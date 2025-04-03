@@ -336,45 +336,31 @@ const ACPTest = () => {
   // 6. Run AI Review for Corrective Actions
   // =========================
   const handleRunAIReview = async () => {
-  if (!result || !result.acp_summary) {
-    setError("❌ No test summary available for AI review.");
-    return;
-  }
+    if (!result || !result.acp_summary) {
+      setError("❌ No test summary available for AI review.");
+      return;
+    }
 
-  setLoading(true);
-  try {
-    const response = await axios.post(`${API_URL}/api/ai-review`, {
-      testType: "ACP",
-      testData: result.acp_summary,
-      signature,
-    });
-    setAiReview(response.data.analysis);
-  } catch (error) {
-    console.error("Error fetching AI review:", error);
-    setAiReview("Error fetching AI review.");
-  }
-  setLoading(false);
-};
+    if (!consentChecked || !signature.trim()) {
+      setShowConsentModal(true);
+      return;
+    }
 
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/ai-review`, {
+        testType: "ACP",
+        testData: result.acp_summary,
+        signature,
+      });
+      setAiReview(response.data.analysis);
+    } catch (error) {
+      console.error("Error fetching AI review:", error);
+      setAiReview("Error fetching AI review.");
+    }
+    setLoading(false);
+  };
 
-  setLoading(true);
-  try {
-    const response = await axios.post(`${API_URL}/api/ai-review`, {
-      testType: "ACP",
-      testData: result.acp_summary,
-      signature,
-    });
-    setAiReview(response.data.analysis);
-  } catch (error) {
-    console.error("Error fetching AI review:", error);
-    setAiReview("Error fetching AI review.");
-  }
-  setLoading(false);
-};
-
-  // =========================
-  // 7. Handle Enter Key
-  // =========================
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && file && !loading) {
       e.preventDefault();
