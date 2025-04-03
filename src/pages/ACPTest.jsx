@@ -14,6 +14,10 @@ const ACPTest = () => {
   const [error, setError] = useState(null);
   const [planYear, setPlanYear] = useState("");
   const [aiReview, setAiReview] = useState(""); // State for AI review results
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
+  const [signature, setSignature] = useState("");
+
 
   const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure this is set in .env.local
 
