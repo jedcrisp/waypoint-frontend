@@ -1,8 +1,9 @@
 import React, { useState, useEffect, createContext, useRef } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 
 // Pages
+import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home";
 import UploadButton from "./components/UploadButton";
 import ReportPage from "./pages/ReportPage";
@@ -56,32 +57,36 @@ import "./index.css";
 
 const TestContext = createContext();
 
-function App() {
+function PrivateRoute({ children }) {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  return user ? children : <Navigate to="/signin" />;
+}
+
+function AppContent() {
   const [user, setUser] = useState(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
-  const [selectedTests, setSelectedTests] = useState([]); // Stores selected tests
-  const [uploadedFile, setUploadedFile] = useState(null); // Stores uploaded CSV file
+  const [selectedTests, setSelectedTests] = useState([]);
+  const [uploadedFile, setUploadedFile] = useState(null);
   const auth = getAuth();
   const timeoutRef = useRef(null);
+  const location = useLocation();
 
   // Function to reset the idle timeout timer
   const resetTimeout = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    // Set timeout for 5 minutes (300,000 milliseconds)
     timeoutRef.current = setTimeout(() => {
       signOut(auth);
     }, 300000);
   };
 
-  // Set up activity event listeners to reset timeout
   useEffect(() => {
     window.addEventListener("mousemove", resetTimeout);
     window.addEventListener("keydown", resetTimeout);
     window.addEventListener("scroll", resetTimeout);
 
-    // Initialize the timeout
     resetTimeout();
 
     return () => {
@@ -101,63 +106,76 @@ function App() {
   }, [auth]);
 
   if (loadingAuth) return <div>Loading authentication...</div>;
-  if (!user) return <SignIn />;
+
+  // Define routes where you want to hide the Navbar
+  const hideNavbarRoutes = ["/signin"];
+  const showNavbar = !hideNavbarRoutes.includes(location.pathname);
 
   return (
-    <ErrorBoundary>
-      <TestContext.Provider value={{ selectedTests, setSelectedTests, uploadedFile, setUploadedFile }}>
-        <>
-          <Navbar />
-          {/* Render ChatComponent once, either here or in your layout */}
-          <ChatComponent />
-          <UploadButton /> {/* Upload button for CSV files */}
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/select-test" element={<TestSelection />} />
-            <Route path="/test-adp" element={<AdpTest />} />
-            <Route path="/test-adp-safe-harbor-401k" element={<ADPSafeHarbor401kTest />} />
-            <Route path="/test-adp-safe-harbor-sliding" element={<ADPSafeHarborSlidingTest />} />
-            <Route path="/test-acp-standard" element={<ACPTest />} />
-            <Route path="/test-key-employee" element={<CafeteriaKeyEmployeeTest />} />
-            <Route path="/test-eligibility" element={<EligibilityTest />} />
-            <Route path="/test-classification" element={<ClassificationTest />} />
-            <Route path="/test-benefit" element={<BenefitTest />} />
-            <Route path="/test-health-fsa-eligibility" element={<HealthFSAEligibilityTest />} />
-            <Route path="/test-health-fsa-benefits" element={<HealthFSABenefitsTest />} />
-            <Route path="/dcap-tests" element={<DCAPTests />} />
-            <Route path="/health-fsa-tests" element={<HealthFSATests />} />
-            <Route path="/health-hra-tests" element={<HealthHRATests />} />
-            <Route path="/cafeteria-tests" element={<CafeteriaTests />} />
-            <Route path="/retirement-plan-tests" element={<RetirementPlanTests />} />
-            <Route path="/test-dcap-eligibility" element={<DCAPEligibilityTest />} />
-            <Route path="/test-dcap-owners" element={<DCAPOwnersTest />} />
-            <Route path="/test-dcap-55-benefits" element={<DCAP55BenefitsTest />} />
-            <Route path="/test-dcap-contributions" element={<DCAPContributionsTest />} />
-            <Route path="/test-hra-benefits" element={<HRABenefitsTest />} />
-            <Route path="/test-hra-eligibility" element={<HRAEligibilityTest />} />
-            <Route path="/test-adp-safe-harbor" element={<SafeHarborTest />} />
-            <Route path="/run-tests" element={<RunTests />} />
-            <Route path="/test-hra-key-employee-concentration" element={<HRAKeyEmployeeConcentrationTest />} />
-            <Route path="/test-coverage" element={<CoverageTest />} />
-            <Route path="/test-top-heavy" element={<TopHeavyTest />} />
-            <Route path="/test-ratio-percentage" element={<RatioPercentageTest />} />
-            <Route path="/test-simple-cafeteria-plan-eligibility" element={<SimpleCafeteriaPlanEligibilityTest />} />
-            <Route path="/test-cafeteria-contributions-benefits" element={<CafeteriaContributionsBenefitsTest />} />
-            <Route path="/test-dcap-key-employee-concentration" element={<DCAPKeyEmployeeConcentrationTest />} />
-            <Route path="/test-health-fsa-key-employee-concentration" element={<HealthFSAKeyEmployeeConcentrationTest />} />
-            <Route path="/test-health-fsa-55-average-benefits" element={<HealthFSA55AverageBenefitsTest />} />
-            <Route path="/test-hra-55-average-benefits" element={<HRA55AverageBenefitsTest />} />
-            <Route path="/test-hra-25-owner-rule" element={<HRA25OwnerRuleTest />} />
-            <Route path="/additional-ndt-tests" element={<AdditionalNDTTests />} />
-            <Route path="/test-average-benefit" element={<AverageBenefitTest />} />
-            <Route path="/report" element={<ReportPage />} />
-            <Route path="/account" element={<AccountInfo />} />
-            <Route path="/security" element={<Security />} />
-            <Route path="/test-history" element={<TestHistory />} />
-          </Routes>
-        </>
-      </TestContext.Provider>
-    </ErrorBoundary>
+    <TestContext.Provider value={{ selectedTests, setSelectedTests, uploadedFile, setUploadedFile }}>
+      <>
+        {showNavbar && <Navbar />}
+        <ChatComponent />
+        <UploadButton />
+        <Routes>
+          <Route path="/signin" element={<SignIn />} />
+          <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
+          <Route path="/about" element={<PrivateRoute><h1>About Page</h1></PrivateRoute>} />
+          <Route path="/test-info" element={<PrivateRoute><h1>Test Info Page</h1></PrivateRoute>} />
+          <Route path="/contact" element={<PrivateRoute><h1>Contact Page</h1></PrivateRoute>} />
+          <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/select-test" element={<PrivateRoute><TestSelection /></PrivateRoute>} />
+          <Route path="/test-adp" element={<PrivateRoute><AdpTest /></PrivateRoute>} />
+          <Route path="/test-adp-safe-harbor-401k" element={<PrivateRoute><ADPSafeHarbor401kTest /></PrivateRoute>} />
+          <Route path="/test-adp-safe-harbor-sliding" element={<PrivateRoute><ADPSafeHarborSlidingTest /></PrivateRoute>} />
+          <Route path="/test-acp-standard" element={<PrivateRoute><ACPTest /></PrivateRoute>} />
+          <Route path="/test-key-employee" element={<PrivateRoute><CafeteriaKeyEmployeeTest /></PrivateRoute>} />
+          <Route path="/test-eligibility" element={<PrivateRoute><EligibilityTest /></PrivateRoute>} />
+          <Route path="/test-classification" element={<PrivateRoute><ClassificationTest /></PrivateRoute>} />
+          <Route path="/test-benefit" element={<PrivateRoute><BenefitTest /></PrivateRoute>} />
+          <Route path="/test-health-fsa-eligibility" element={<PrivateRoute><HealthFSAEligibilityTest /></PrivateRoute>} />
+          <Route path="/test-health-fsa-benefits" element={<PrivateRoute><HealthFSABenefitsTest /></PrivateRoute>} />
+          <Route path="/dcap-tests" element={<PrivateRoute><DCAPTests /></PrivateRoute>} />
+          <Route path="/health-fsa-tests" element={<PrivateRoute><HealthFSATests /></PrivateRoute>} />
+          <Route path="/health-hra-tests" element={<PrivateRoute><HealthHRATests /></PrivateRoute>} />
+          <Route path="/cafeteria-tests" element={<PrivateRoute><CafeteriaTests /></PrivateRoute>} />
+          <Route path="/retirement-plan-tests" element={<PrivateRoute><RetirementPlanTests /></PrivateRoute>} />
+          <Route path="/test-dcap-eligibility" element={<PrivateRoute><DCAPEligibilityTest /></PrivateRoute>} />
+          <Route path="/test-dcap-owners" element={<PrivateRoute><DCAPOwnersTest /></PrivateRoute>} />
+          <Route path="/test-dcap-55-benefits" element={<PrivateRoute><DCAP55BenefitsTest /></PrivateRoute>} />
+          <Route path="/test-dcap-contributions" element={<PrivateRoute><DCAPContributionsTest /></PrivateRoute>} />
+          <Route path="/test-hra-benefits" element={<PrivateRoute><HRABenefitsTest /></PrivateRoute>} />
+          <Route path="/test-hra-eligibility" element={<PrivateRoute><HRAEligibilityTest /></PrivateRoute>} />
+          <Route path="/test-adp-safe-harbor" element={<PrivateRoute><SafeHarborTest /></PrivateRoute>} />
+          <Route path="/run-tests" element={<PrivateRoute><RunTests /></PrivateRoute>} />
+          <Route path="/test-hra-key-employee-concentration" element={<PrivateRoute><HRAKeyEmployeeConcentrationTest /></PrivateRoute>} />
+          <Route path="/test-coverage" element={<PrivateRoute><CoverageTest /></PrivateRoute>} />
+          <Route path="/test-top-heavy" element={<PrivateRoute><TopHeavyTest /></PrivateRoute>} />
+          <Route path="/test-ratio-percentage" element={<PrivateRoute><RatioPercentageTest /></PrivateRoute>} />
+          <Route path="/test-simple-cafeteria-plan-eligibility" element={<PrivateRoute><SimpleCafeteriaPlanEligibilityTest /></PrivateRoute>} />
+          <Route path="/test-cafeteria-contributions-benefits" element={<PrivateRoute><CafeteriaContributionsBenefitsTest /></PrivateRoute>} />
+          <Route path="/test-dcap-key-employee-concentration" element={<PrivateRoute><DCAPKeyEmployeeConcentrationTest /></PrivateRoute>} />
+          <Route path="/test-health-fsa-key-employee-concentration" element={<PrivateRoute><HealthFSAKeyEmployeeConcentrationTest /></PrivateRoute>} />
+          <Route path="/test-health-fsa-55-average-benefits" element={<PrivateRoute><HealthFSA55AverageBenefitsTest /></PrivateRoute>} />
+          <Route path="/test-hra-55-average-benefits" element={<PrivateRoute><HRA55AverageBenefitsTest /></PrivateRoute>} />
+          <Route path="/test-hra-25-owner-rule" element={<PrivateRoute><HRA25OwnerRuleTest /></PrivateRoute>} />
+          <Route path="/additional-ndt-tests" element={<PrivateRoute><AdditionalNDTTests /></PrivateRoute>} />
+          <Route path="/test-average-benefit" element={<PrivateRoute><AverageBenefitTest /></PrivateRoute>} />
+          <Route path="/report" element={<PrivateRoute><ReportPage /></PrivateRoute>} />
+          <Route path="/account" element={<PrivateRoute><AccountInfo /></PrivateRoute>} />
+          <Route path="/security" element={<PrivateRoute><Security /></PrivateRoute>} />
+          <Route path="/test-history" element={<PrivateRoute><TestHistory /></PrivateRoute>} />
+          <Route path="*" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        </Routes>
+      </>
+    </TestContext.Provider>
+  );
+}
+
+function App() {
+  return (
+      <AppContent />
   );
 }
 
