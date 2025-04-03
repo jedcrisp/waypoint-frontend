@@ -11,7 +11,7 @@ const dashboardItems = [
   { title: "Security", route: "/security", description: "Update password and secure your account", icon: Shield },
   { title: "Tests", route: "/home", description: "Start or continue available nondiscrimination tests", icon: FileText },
   { title: "About", route: "/about", description: "Learn more about this platform", icon: Info },
-  { title: "Test Info", route: "/test-info", description: "Overview of test types and their use", icon: BookOpen },
+  { title: "FAQ", route: "/faq", description: "Answers to common questions and testing support", icon: BookOpen },
   { title: "Contact", route: "/contact", description: "Get in touch with support", icon: Mail },
 ];
 
