@@ -599,7 +599,6 @@ const ACPTest = () => {
                     <li>
                       Employee Dissatisfaction &amp; Legal Risks
                     </li>
-                  </div>
                 )}
                 
     {/* Consent Modal */}
