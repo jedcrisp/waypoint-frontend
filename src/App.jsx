@@ -75,6 +75,11 @@ function AppContent() {
 
   const [showChat, setShowChat] = useState(true);
 
+  const subdomain = window.location.host.split('.')[0];
+  const allowedDemoUser = "demo@onetrack-consulting.com";
+  const isDemoSubdomain = subdomain === "demo";
+
+
   // Hide chat on specific routes
   useEffect(() => {
     const hideChatOnRoutes = ["/signin", "/signup", "/account", "/security"];
@@ -107,12 +112,37 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+  const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const isDemoUser = currentUser?.email === allowedDemoUser;
+
+    // 🚫 Sign out immediately if NOT allowed on demo subdomain
+    if (isDemoSubdomain && !isDemoUser) {
+      console.warn("Blocked access for non-demo user:", currentUser?.email);
+      signOut(auth).then(() => {
+        setUser(null);
+        setLoadingAuth(false);
+      });
+    } else {
       setUser(currentUser);
       setLoadingAuth(false);
-    });
-    return () => unsubscribe();
-  }, [auth]);
+    }
+  });
+
+  return () => unsubscribe();
+}, [auth, isDemoSubdomain]);
+
+
+
+  if (loadingAuth) return <div>Loading authentication...</div>;
+
+// ❌ Block any non-demo user if on demo subdomain
+if (isDemoSubdomain && user && user.email !== allowedDemoUser) {
+  return (
+    <div className="text-center mt-20 text-red-600 text-xl">
+      🚫 Access Denied: This subdomain is restricted to demo@onetrack-consulting.com.
+    </div>
+  );
+}
 
   if (loadingAuth) return <div>Loading authentication...</div>;
 
