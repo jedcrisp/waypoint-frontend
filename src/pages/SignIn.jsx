@@ -119,7 +119,6 @@ const SignIn = () => {
           style={{ width: "300px", margin: "0 auto 1rem", display: "block" }}
         />
         <h1 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#333" }}>
-          Log In To Continue
         </h1>
 
         {error && <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>}
