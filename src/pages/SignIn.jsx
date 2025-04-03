@@ -13,11 +13,11 @@ const SignIn = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // Listen for auth changes; if the user is already signed in, redirect to home.
+  // Listen for auth state changes; if the user is already signed in, redirect to dashboard.
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
-        navigate("/"); // redirect to home after successful login
+        navigate("/dashboard"); // redirect to dashboard after successful login
       }
     });
     return () => unsubscribe();
@@ -28,40 +28,49 @@ const SignIn = () => {
     setError("");
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // No need to navigate here because the onAuthStateChanged listener will handle it.
+      // Explicitly navigate to dashboard after login.
+      navigate("/dashboard");
     } catch (err) {
       setError(err.message);
     }
   };
 
+  
+
   return (
-    <div style={{
-      minHeight: "100vh",
-      backgroundColor: "#0074d9",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-    }}>
-      <div style={{
-        width: "400px",
-        backgroundColor: "#fff",
-        borderRadius: "8px",
-        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-        padding: "2rem",
-        textAlign: "center",
-      }}>
-        <img 
-          src={waypointlogo} 
-          alt="Waypoint Logo" 
-          style={{ width: "300px", margin: "0 auto 1rem", display: "block" }} 
+    <div
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#0074d9",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <div
+        style={{
+          width: "400px",
+          backgroundColor: "#fff",
+          borderRadius: "8px",
+          boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+          padding: "2rem",
+          textAlign: "center",
+        }}
+      >
+        <img
+          src={waypointlogo}
+          alt="Waypoint Logo"
+          style={{ width: "300px", margin: "0 auto 1rem", display: "block" }}
         />
-        <h1 style={{
-          fontSize: "1.5rem",
-          fontWeight: "bold",
-          color: "#333",
-          margin: "0 0 1rem",
-        }}>
-          Smart Compliance Tool
+        <h1
+          style={{
+            fontSize: "1.5rem",
+            fontWeight: "bold",
+            color: "#333",
+            margin: "0 0 1rem",
+          }}
+        >
+          Log In To Continue
         </h1>
         {error && <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>}
         <form onSubmit={handleSubmit}>
@@ -110,7 +119,7 @@ const SignIn = () => {
               cursor: "pointer",
             }}
           >
-            Login
+            Access Account
           </button>
         </form>
       </div>
