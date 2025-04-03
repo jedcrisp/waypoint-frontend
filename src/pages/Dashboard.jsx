@@ -20,16 +20,13 @@ export default function Dashboard() {
   const user = auth.currentUser;
 
   useEffect(() => {
-    if (user && !user.displayName) {
-      updateProfile(user, { displayName: "Jedidiah Crisp" })
-        .then(() => {
-          console.log("Display name updated!");
-        })
-        .catch((error) => {
-          console.error("Error updating display name:", error);
-        });
-    }
-  }, [user]);
+  if (user && !user.displayName && user.email === "jedidiah@example.com") {
+    updateProfile(user, { displayName: "Jedidiah Crisp" })
+      .then(() => console.log("Display name updated!"))
+      .catch((error) => console.error("Error updating display name:", error));
+  }
+}, [user]);
+
 
   const displayName = user?.displayName || "User";
 
