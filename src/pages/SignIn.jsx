@@ -13,8 +13,10 @@ const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,20 +39,17 @@ const SignIn = () => {
     }
   };
 
-  const handleForgotPassword = async () => {
-    setMessage("");
-    setError("");
-
-    if (!email) {
-      setError("Please enter your email above to reset your password.");
+  const handlePasswordReset = async () => {
+    if (!resetEmail) {
+      setResetMessage("Please enter your email.");
       return;
     }
 
     try {
-      await sendPasswordResetEmail(auth, email);
-      setMessage("📬 Reset link sent! Check your inbox.");
+      await sendPasswordResetEmail(auth, resetEmail);
+      setResetMessage("📬 Password reset email sent!");
     } catch (err) {
-      setError(err.message);
+      setResetMessage(err.message);
     }
   };
 
@@ -64,6 +63,46 @@ const SignIn = () => {
         alignItems: "center",
       }}
     >
+      {/* Modal */}
+      {showModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
+        >
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h2 className="text-xl font-semibold mb-4">Forgot Password</h2>
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={resetEmail}
+              onChange={(e) => setResetEmail(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded mb-3"
+            />
+            {resetMessage && (
+              <p className="text-sm text-gray-700 mb-2">{resetMessage}</p>
+            )}
+            <div className="flex justify-between mt-4">
+              <button
+                onClick={handlePasswordReset}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                Send Reset Email
+              </button>
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setResetEmail("");
+                  setResetMessage("");
+                }}
+                className="text-gray-600 hover:underline"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Login Form */}
       <div
         style={{
           width: "400px",
@@ -79,19 +118,11 @@ const SignIn = () => {
           alt="Waypoint Logo"
           style={{ width: "300px", margin: "0 auto 1rem", display: "block" }}
         />
-        <h1
-          style={{
-            fontSize: "1.5rem",
-            fontWeight: "bold",
-            color: "#333",
-            marginBottom: "1rem",
-          }}
-        >
-      
+        <h1 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#333" }}>
+          Log In To Continue
         </h1>
 
-        {error && <p style={{ color: "red", marginBottom: "1rem" }}>{error}</p>}
-        {message && <p style={{ color: "green", marginBottom: "1rem" }}>{message}</p>}
+        {error && <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>}
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: "1rem" }}>
@@ -100,14 +131,7 @@ const SignIn = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="USERNAME"
-              style={{
-                width: "100%",
-                padding: "0.75rem",
-                fontSize: "1rem",
-                borderRadius: "4px",
-                border: "1px solid #ccc",
-                backgroundColor: "#f9f9f9",
-              }}
+              className="w-full px-4 py-2 border border-gray-300 rounded"
             />
           </div>
           <div style={{ marginBottom: "0.5rem", position: "relative" }}>
@@ -116,14 +140,7 @@ const SignIn = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="PASSWORD"
-              style={{
-                width: "100%",
-                padding: "0.75rem",
-                fontSize: "1rem",
-                borderRadius: "4px",
-                border: "1px solid #ccc",
-                backgroundColor: "#f9f9f9",
-              }}
+              className="w-full px-4 py-2 border border-gray-300 rounded"
             />
             <div
               style={{
@@ -142,7 +159,7 @@ const SignIn = () => {
           <div style={{ textAlign: "right", marginBottom: "1rem" }}>
             <button
               type="button"
-              onClick={handleForgotPassword}
+              onClick={() => setShowModal(true)}
               style={{
                 background: "none",
                 border: "none",
@@ -159,24 +176,15 @@ const SignIn = () => {
 
           <button
             type="submit"
-            style={{
-              width: "100%",
-              padding: "0.75rem",
-              fontSize: "1rem",
-              borderRadius: "4px",
-              backgroundColor: "#0074d9",
-              color: "#fff",
-              border: "none",
-              cursor: "pointer",
-            }}
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
           >
             Login
           </button>
         </form>
 
-        <p style={{ marginTop: "1rem", fontSize: "0.875rem", color: "#666" }}>
+        <p className="mt-4 text-sm text-gray-600">
           Don’t have an account?{" "}
-          <Link to="/signup" style={{ color: "#0074d9", textDecoration: "underline" }}>
+          <Link to="/signup" className="text-blue-500 hover:underline">
             Create one
           </Link>
         </p>
