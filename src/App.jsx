@@ -6,7 +6,7 @@ import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import Dashboard from "./pages/Dashboard";
 import SignUp from "./pages/SignUp";
 import Home from "./pages/Home";
-import About from "./components/About"; 
+import About from "./pages/About"; 
 import UploadButton from "./components/UploadButton";
 import ReportPage from "./pages/ReportPage";
 import TestSelection from "./pages/TestSelection";
