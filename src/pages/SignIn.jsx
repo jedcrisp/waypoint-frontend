@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+} from "firebase/auth";
 import { useNavigate, Link } from "react-router-dom";
 import { auth } from "../firebase";
 import waypointlogo from "../assets/waypointlogo.png";
@@ -9,6 +13,7 @@ const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
@@ -27,6 +32,23 @@ const SignIn = () => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       navigate("/dashboard");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setMessage("");
+    setError("");
+
+    if (!email) {
+      setError("Please enter your email above to reset your password.");
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setMessage("📬 Reset link sent! Check your inbox.");
     } catch (err) {
       setError(err.message);
     }
@@ -62,14 +84,15 @@ const SignIn = () => {
             fontSize: "1.5rem",
             fontWeight: "bold",
             color: "#333",
-            margin: "0 0 1rem",
+            marginBottom: "1rem",
           }}
         >
-    
+      
         </h1>
-        {error && (
-          <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>
-        )}
+
+        {error && <p style={{ color: "red", marginBottom: "1rem" }}>{error}</p>}
+        {message && <p style={{ color: "green", marginBottom: "1rem" }}>{message}</p>}
+
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: "1rem" }}>
             <input
@@ -87,7 +110,7 @@ const SignIn = () => {
               }}
             />
           </div>
-          <div style={{ marginBottom: "1rem", position: "relative" }}>
+          <div style={{ marginBottom: "0.5rem", position: "relative" }}>
             <input
               type={showPassword ? "text" : "password"}
               value={password}
@@ -115,6 +138,25 @@ const SignIn = () => {
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </div>
           </div>
+
+          <div style={{ textAlign: "right", marginBottom: "1rem" }}>
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 0,
+                color: "#0074d9",
+                cursor: "pointer",
+                fontSize: "0.875rem",
+                textDecoration: "underline",
+              }}
+            >
+              Forgot password?
+            </button>
+          </div>
+
           <button
             type="submit"
             style={{
@@ -132,7 +174,6 @@ const SignIn = () => {
           </button>
         </form>
 
-        {/* Create Account Link */}
         <p style={{ marginTop: "1rem", fontSize: "0.875rem", color: "#666" }}>
           Don’t have an account?{" "}
           <Link to="/signup" style={{ color: "#0074d9", textDecoration: "underline" }}>
