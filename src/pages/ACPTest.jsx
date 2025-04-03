@@ -5,6 +5,7 @@ import { getAuth } from "firebase/auth"; // Import Firebase Auth
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Integrated from DCAP Contributions
+import Modal from "../components/Modal";
 
 const ACPTest = () => {
   const [file, setFile] = useState(null);
@@ -335,10 +336,10 @@ const ACPTest = () => {
   // 6. Run AI Review for Corrective Actions
   // =========================
   const handleRunAIReview = async () => {
-    if (!result || !result.acp_summary) {
-      setError("❌ No test summary available for AI review.");
-      return;
-    }
+  if (!result || !result.acp_summary) {
+    setError("❌ No test summary available for AI review.");
+    return;
+  }
     setLoading(true);
     try {
       const response = await axios.post(`${API_URL}/api/ai-review`, {
@@ -352,6 +353,27 @@ const ACPTest = () => {
     }
     setLoading(false);
   };
+
+  // Show modal if not already approved
+  if (!consentChecked || !signature.trim()) {
+    setShowConsentModal(true);
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const response = await axios.post(`${API_URL}/api/ai-review`, {
+      testType: "ACP",
+      testData: result.acp_summary,
+      signature,
+    });
+    setAiReview(response.data.analysis);
+  } catch (error) {
+    console.error("Error fetching AI review:", error);
+    setAiReview("Error fetching AI review.");
+  }
+  setLoading(false);
+};
 
   // =========================
   // 7. Handle Enter Key
@@ -594,11 +616,60 @@ const ACPTest = () => {
                     <li>
                       Employee Dissatisfaction &amp; Legal Risks
                     </li>
-                  </ul>
-                </div>
-              </>
-            )}
-        </div>
+                  </div>
+                )}
+                
+    {/* Consent Modal */}
+      {showConsentModal && (
+        <Modal title="AI Review Consent" onClose={() => setShowConsentModal(false)}>
+          <p className="mb-4 text-sm text-gray-700">
+            By proceeding, you acknowledge that any uploaded data may contain Personally Identifiable Information (PII)
+            and you authorize its redaction and analysis using OpenAI’s language model. This is strictly for suggesting
+            corrective actions and will not be used for any other purposes.
+          </p>
+          <div className="mb-3 flex items-center">
+            <input
+              type="checkbox"
+              id="consent"
+              checked={consentChecked}
+              onChange={(e) => setConsentChecked(e.target.checked)}
+              className="mr-2"
+            />
+            <label htmlFor="consent" className="text-sm text-gray-700">
+              I agree to the processing and redaction of PII through OpenAI
+            </label>
+          </div>
+          <div className="mb-3">
+            <label htmlFor="signature" className="text-sm text-gray-700">
+              Enter your name as a digital signature:
+            </label>
+            <input
+              id="signature"
+              value={signature}
+              onChange={(e) => setSignature(e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="Full Name"
+            />
+          </div>
+          <div className="flex justify-end gap-3">
+            <button
+              className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+              onClick={() => setShowConsentModal(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50"
+              disabled={!consentChecked || !signature.trim()}
+              onClick={() => {
+                setShowConsentModal(false);
+                handleRunAIReview();
+              }}
+            >
+              Confirm & Run AI Review
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   );
