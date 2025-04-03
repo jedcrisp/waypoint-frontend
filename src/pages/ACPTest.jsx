@@ -370,289 +370,294 @@ const ACPTest = () => {
   };
 
   return (
-    <div
-      className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
-      onKeyDown={handleKeyDown}
-      tabIndex="0"
-    >
-      <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
-        📂 Upload ACP File
-      </h2>
+  <div
+    className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
+    onKeyDown={handleKeyDown}
+    tabIndex="0"
+  >
+    <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
+      📂 Upload ACP File
+    </h2>
 
-      {/* Plan Year Dropdown */}
-      <div className="mb-6">
-        <div className="flex items-center">
-          {planYear === "" && (
-            <span className="text-red-500 text-lg mr-2">*</span>
-          )}
-          <select
-            id="planYear"
-            value={planYear}
-            onChange={(e) => setPlanYear(e.target.value)}
-            className="flex-3 px-4 py-2 border border-gray-300 rounded-md"
-            required
-          >
-            <option value="">-- Select Plan Year --</option>
-            {Array.from({ length: 41 }, (_, i) => 2010 + i).map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Drag & Drop Area */}
-      <div
-        {...getRootProps()}
-        className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive
-            ? "border-green-500 bg-blue-100"
-            : "border-gray-300 bg-gray-50"
-        }`}
-      >
-        <input {...getInputProps()} />
-        {file ? (
-          <p className="text-green-600 font-semibold">{file.name}</p>
-        ) : isDragActive ? (
-          <p className="text-blue-600">📂 Drop the file here...</p>
-        ) : (
-          <p className="text-gray-600">
-            Drag & drop a <strong>CSV file</strong> here.
-          </p>
+    {/* Plan Year Dropdown */}
+    <div className="mb-6">
+      <div className="flex items-center">
+        {planYear === "" && (
+          <span className="text-red-500 text-lg mr-2">*</span>
         )}
+        <select
+          id="planYear"
+          value={planYear}
+          onChange={(e) => setPlanYear(e.target.value)}
+          className="flex-3 px-4 py-2 border border-gray-300 rounded-md"
+          required
+        >
+          <option value="">-- Select Plan Year --</option>
+          {Array.from({ length: 41 }, (_, i) => 2010 + i).map((year) => (
+            <option key={year} value={year}>
+              {year}
+            </option>
+          ))}
+        </select>
       </div>
+    </div>
 
-      {/* Download CSV Template Button */}
-      <button
-        onClick={downloadCSVTemplate}
-        className="mt-4 w-full px-4 py-2 text-white bg-gray-500 hover:bg-gray-600 rounded-md"
-      >
-        Download CSV Template
-      </button>
-
-      {/* Choose File Button */}
-      <button
-        type="button"
-        onClick={open}
-        className="mt-2 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
-      >
-        Choose File
-      </button>
-
-      {/* Upload Button */}
-      <button
-        onClick={handleUpload}
-        className={`w-full mt-2 px-4 py-2 text-white rounded-md ${
-          !file || !planYear
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-green-500 hover:bg-green-400"
-        }`}
-        disabled={!file || !planYear || loading}
-      >
-        {loading ? "Uploading..." : "Upload"}
-      </button>
-
-      {error && <div className="mt-3 text-red-500">{error}</div>}
-
-      {result && (
-        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
-
-          {/* Specific Detailed Test Summary */}
-          {result?.acp_summary && (
-            <div className="mt-4 p-4 bg-gray-100 border border-gray-300 rounded-md">
-              <h4 className="font-bold text-lg text-gray-700 mb-2">
-                Detailed ACP Test Summary
-              </h4>
-              <div className="mb-4 flex justify-between items-center">
-                <p>
-                  <strong>Plan Year:</strong>{" "}
-                  <span className="text-blue-600">{planYear || "N/A"}</span>
-                </p>
-                <p>
-                  <strong>Test Result:</strong>{" "}
-                  <span
-                    className={`px-2 py-1 rounded-md font-semibold ${
-                      result["Test Result"] === "Passed"
-                        ? "bg-green-500 text-white"
-                        : "bg-red-500 text-white"
-                    }`}
-                  >
-                    {result["Test Result"] || "N/A"}
-                  </span>
-                </p>
-              </div>
-              <ul className="list-disc list-inside text-gray-800 mt-2">
-                <li>
-                  <strong>Total Employees:</strong>{" "}
-                  {result["Total Employees"] ?? "N/A"}
-                </li>
-                <li>
-                  <strong>Total Participants:</strong>{" "}
-                  {result["Total Participants"] ?? "N/A"}
-                </li>
-                <li>
-                  <strong>Number of HCEs:</strong>{" "}
-                  {result.acp_summary.num_hces}
-                </li>
-                <li>
-                  <strong>Number of NHCEs:</strong>{" "}
-                  {result.acp_summary.num_nhces}
-                </li>
-                <li>
-                  <strong>HCE Average Contribution:</strong>{" "}
-                  {result.acp_summary.hce_avg_contribution}%
-                </li>
-                <li>
-                  <strong>NHCE Average Contribution:</strong>{" "}
-                  {result.acp_summary.nhce_avg_contribution}%
-                </li>
-                <li>
-                  <strong>Required Ratio (1.25 x NHCE):</strong>{" "}
-                  {result.acp_summary.required_ratio}%
-                </li>
-                <li>
-                  <strong>Actual HCE Contribution:</strong>{" "}
-                  {result.acp_summary.actual_ratio}%
-                </li>
-              </ul>
-            </div>
-          )}
-
-          {/* AI Review Section */}
-          {result?.acp_summary && (
-            <div className="mt-6">
-              <button
-                onClick={handleRunAIReview}
-                className="w-full px-4 py-2 text-white bg-purple-500 hover:bg-purple-600 rounded-md"
-                disabled={loading}
-              >
-                {loading ? "Processing AI Review..." : "Run AI Review"}
-              </button>
-            </div>
-          )}
-
-          {/* Display AI Review Results */}
-          {aiReview && (
-            <div className="mt-2 p-4 bg-indigo-50 border border-indigo-300 rounded-md">
-              <h4 className="font-bold text-indigo-700">
-                AI Corrective Actions (Powered by OpenAI):
-              </h4>
-              <p className="text-indigo-900">{aiReview}</p>
-            </div>
-          )}
-
-          {/* Export & Download Buttons */}
-          <div className="flex flex-col gap-2 mt-2">
-            <button
-              onClick={exportToPDF}
-              className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
-            >
-              Export PDF Results
-            </button>
-            <button
-              onClick={downloadResultsAsCSV}
-              className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
-            >
-              Download CSV Results
-            </button>
-          </div>
-
-          {/* Static Corrective Actions & Consequences if Failed */}
-          {result["Test Result"] &&
-            result["Test Result"].toLowerCase() === "failed" && (
-              <>
-                <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
-                  <h4 className="font-bold text-black-600">
-                    Corrective Actions:
-                  </h4>
-                  <ul className="list-disc list-inside text-black-600">
-                    <li>
-                      Refund Excess Contributions to HCEs by March 15 to avoid
-                      penalties.
-                    </li>
-                    <br />
-                    <li>
-                      Make Additional Contributions to NHCEs via QNEC or QMAC.
-                    </li>
-                    <br />
-                    <li>
-                      Recharacterize Excess HCE Contributions as Employee
-                      Contributions.
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
-                  <h4 className="font-bold text-black-600">
-                    Consequences:
-                  </h4>
-                  <ul className="list-disc list-inside text-black-600">
-                    <li>Excess Contributions Must Be Refunded</li>
-                    <br />
-                    <li>IRS Penalties and Compliance Risks</li>
-                    <br />
-                    <li>Loss of Tax Benefits for HCEs</li>
-                    <br />
-                    <li>Plan Disqualification Risk</li>
-                    <br />
-                    <li>
-                      Employee Dissatisfaction &amp; Legal Risks
-                    </li>
-                )}
-                
-    {/* Consent Modal */}
-      {showConsentModal && (
-        <Modal title="AI Review Consent" onClose={() => setShowConsentModal(false)}>
-          <p className="mb-4 text-sm text-gray-700">
-            By proceeding, you acknowledge that any uploaded data may contain Personally Identifiable Information (PII)
-            and you authorize its redaction and analysis using OpenAI’s language model. This is strictly for suggesting
-            corrective actions and will not be used for any other purposes.
-          </p>
-          <div className="mb-3 flex items-center">
-            <input
-              type="checkbox"
-              id="consent"
-              checked={consentChecked}
-              onChange={(e) => setConsentChecked(e.target.checked)}
-              className="mr-2"
-            />
-            <label htmlFor="consent" className="text-sm text-gray-700">
-              I agree to the processing and redaction of PII through OpenAI
-            </label>
-          </div>
-          <div className="mb-3">
-            <label htmlFor="signature" className="text-sm text-gray-700">
-              Enter your name as a digital signature:
-            </label>
-            <input
-              id="signature"
-              value={signature}
-              onChange={(e) => setSignature(e.target.value)}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="Full Name"
-            />
-          </div>
-          <div className="flex justify-end gap-3">
-            <button
-              className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
-              onClick={() => setShowConsentModal(false)}
-            >
-              Cancel
-            </button>
-            <button
-              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50"
-              disabled={!consentChecked || !signature.trim()}
-              onClick={async () => {
-                setShowConsentModal(false);
-                await handleRunAIReview();
-              }}
-            >
-              Confirm & Run AI Review
-            </button>
-          </div>
-        </Modal>
+    {/* Drag & Drop Area */}
+    <div
+      {...getRootProps()}
+      className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
+        isDragActive
+          ? "border-green-500 bg-blue-100"
+          : "border-gray-300 bg-gray-50"
+      }`}
+    >
+      <input {...getInputProps()} />
+      {file ? (
+        <p className="text-green-600 font-semibold">{file.name}</p>
+      ) : isDragActive ? (
+        <p className="text-blue-600">📂 Drop the file here...</p>
+      ) : (
+        <p className="text-gray-600">
+          Drag & drop a <strong>CSV or Excel file</strong> here.
+        </p>
       )}
+    </div>
+
+    {/* Download CSV Template Button */}
+    <button
+      onClick={downloadCSVTemplate}
+      className="mt-4 w-full px-4 py-2 text-white bg-gray-500 hover:bg-gray-600 rounded-md"
+    >
+      Download CSV Template
+    </button>
+
+    {/* Choose File Button */}
+    <button
+      type="button"
+      onClick={open}
+      className="mt-2 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+    >
+      Choose File
+    </button>
+
+    {/* Upload Button */}
+    <button
+      onClick={handleUpload}
+      className={`w-full mt-2 px-4 py-2 text-white rounded-md ${
+        !file || !planYear
+          ? "bg-gray-400 cursor-not-allowed"
+          : "bg-green-500 hover:bg-green-400"
+      }`}
+      disabled={!file || !planYear || loading}
+    >
+      {loading ? "Uploading..." : "Upload"}
+    </button>
+
+    {error && <div className="mt-3 text-red-500">{error}</div>}
+
+    {result && (
+      <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
+        {/* Specific Detailed Test Summary */}
+        {result?.acp_summary && (
+          <div className="mt-4 p-4 bg-gray-100 border border-gray-300 rounded-md">
+            <h4 className="font-bold text-lg text-gray-700 mb-2">
+              Detailed ACP Test Summary
+            </h4>
+            <div className="mb-4 flex justify-between items-center">
+              <p>
+                <strong>Plan Year:</strong>{" "}
+                <span className="text-blue-600">{planYear || "N/A"}</span>
+              </p>
+              <p>
+                <strong>Test Result:</strong>{" "}
+                <span
+                  className={`px-2 py-1 rounded-md font-semibold ${
+                    result["Test Result"] === "Passed"
+                      ? "bg-green-500 text-white"
+                      : "bg-red-500 text-white"
+                  }`}
+                >
+                  {result["Test Result"] || "N/A"}
+                </span>
+              </p>
+            </div>
+            <ul className="list-disc list-inside text-gray-800 mt-2">
+              <li>
+                <strong>Total Employees:</strong>{" "}
+                {result["Total Employees"] ?? "N/A"}
+              </li>
+              <li>
+                <strong>Total Participants:</strong>{" "}
+                {result["Total Participants"] ?? "N/A"}
+              </li>
+              <li>
+                <strong>Number of HCEs:</strong>{" "}
+                {result.acp_summary.num_hces}
+              </li>
+              <li>
+                <strong>Number of NHCEs:</strong>{" "}
+                {result.acp_summary.num_nhces}
+              </li>
+              <li>
+                <strong>HCE Average Contribution:</strong>{" "}
+                {result.acp_summary.hce_avg_contribution}%
+              </li>
+              <li>
+                <strong>NHCE Average Contribution:</strong>{" "}
+                {result.acp_summary.nhce_avg_contribution}%
+              </li>
+              <li>
+                <strong>Required Ratio (1.25 x NHCE):</strong>{" "}
+                {result.acp_summary.required_ratio}%
+              </li>
+              <li>
+                <strong>Actual HCE Contribution:</strong>{" "}
+                {result.acp_summary.actual_ratio}%
+              </li>
+            </ul>
+          </div>
+        )}
+
+        {/* AI Review Section */}
+        {result?.acp_summary && (
+          <div className="mt-6">
+            <button
+              onClick={handleRunAIReview}
+              className="w-full px-4 py-2 text-white bg-purple-500 hover:bg-purple-600 rounded-md"
+              disabled={loading}
+            >
+              {loading ? "Processing AI Review..." : "Run AI Review"}
+            </button>
+          </div>
+        )}
+
+        {/* Display AI Review Results */}
+        {aiReview && (
+          <div className="mt-2 p-4 bg-indigo-50 border border-indigo-300 rounded-md">
+            <h4 className="font-bold text-indigo-700">
+              AI Corrective Actions (Powered by OpenAI):
+            </h4>
+            <p className="text-indigo-900">{aiReview}</p>
+          </div>
+        )}
+
+        {/* Export & Download Buttons */}
+        <div className="flex flex-col gap-2 mt-2">
+          <button
+            onClick={exportToPDF}
+            className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+          >
+            Export PDF Results
+          </button>
+          <button
+            onClick={downloadResultsAsCSV}
+            className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
+          >
+            Download CSV Results
+          </button>
+        </div>
+
+        {/* Static Corrective Actions & Consequences if Failed */}
+        {result["Test Result"] &&
+          result["Test Result"].toLowerCase() === "failed" && (
+            <>
+              <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+                <h4 className="font-bold text-black-600">
+                  Corrective Actions:
+                </h4>
+                <ul className="list-disc list-inside text-black-600">
+                  <li>
+                    Refund Excess Contributions to HCEs by March 15 to avoid
+                    penalties.
+                  </li>
+                  <br />
+                  <li>
+                    Make Additional Contributions to NHCEs via QNEC or QMAC.
+                  </li>
+                  <br />
+                  <li>
+                    Recharacterize Excess HCE Contributions as Employee
+                    Contributions.
+                  </li>
+                </ul>
+              </div>
+
+              <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
+                <h4 className="font-bold text-black-600">
+                  Consequences:
+                </h4>
+                <ul className="list-disc list-inside text-black-600">
+                  <li>Excess Contributions Must Be Refunded</li>
+                  <br />
+                  <li>IRS Penalties and Compliance Risks</li>
+                  <br />
+                  <li>Loss of Tax Benefits for HCEs</li>
+                  <br />
+                  <li>Plan Disqualification Risk</li>
+                  <br />
+                  <li>
+                    Employee Dissatisfaction & Legal Risks
+                  </li>
+                </ul>
+              </div>
+            </>
+          )}
+      </div>
+    )}
+
+    {/* Consent Modal */}
+    {showConsentModal && (
+      <Modal title="AI Review Consent" onClose={() => setShowConsentModal(false)}>
+        <p className="mb-4 text-sm text-gray-700">
+          By proceeding, you acknowledge that any uploaded data may contain Personally Identifiable Information (PII)
+          and you authorize its redaction and analysis using OpenAI’s language model. This is strictly for suggesting
+          corrective actions and will not be used for any other purposes.
+        </p>
+        <div className="mb-3 flex items-center">
+          <input
+            type="checkbox"
+            id="consent"
+            checked={consentChecked}
+            onChange={(e) => setConsentChecked(e.target.checked)}
+            className="mr-2"
+          />
+          <label htmlFor="consent" className="text-sm text-gray-700">
+            I agree to the processing and redaction of PII through OpenAI
+          </label>
+        </div>
+        <div className="mb-3">
+          <label htmlFor="signature" className="text-sm text-gray-700">
+            Enter your name as a digital signature:
+          </label>
+          <input
+            id="signature"
+            value={signature}
+            onChange={(e) => setSignature(e.target.value)}
+            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+            placeholder="Full Name"
+          />
+        </div>
+        <div className="flex justify-end gap-3">
+          <button
+            className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+            onClick={() => setShowConsentModal(false)}
+          >
+            Cancel
+          </button>
+          <button
+            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50"
+            disabled={!consentChecked || !signature.trim()}
+            onClick={async () => {
+              setShowConsentModal(false);
+              await handleRunAIReview();
+            }}
+          >
+            Confirm & Run AI Review
+          </button>
+        </div>
+      </Modal>
+    )}
+  </div>
   );
 };
 
