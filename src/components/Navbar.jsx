@@ -1,15 +1,14 @@
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../firebase"; // Adjust the path if needed
-import { ArrowLeft } from "lucide-react";
-import AccountMenu from "./AccountMenu";
-
+import { ArrowLeft, LayoutDashboard, LogOut } from "lucide-react";
+  
 export default function Navbar() {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
-
+  
   // Listen for authentication state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -17,7 +16,7 @@ export default function Navbar() {
     });
     return () => unsubscribe();
   }, []);
-
+  
   // Handle sign-out
   const handleSignOut = async () => {
     try {
@@ -27,11 +26,12 @@ export default function Navbar() {
       console.error("Error signing out:", error);
     }
   };
-
-  // Determine navbar styling based on the current route.
-  // Added missing test page paths: "/retirement-plan-tests", "/additional-ndt-tests", "/health-hra-tests", "/health-fsa-tests"
+  
+  // Determine if the current route qualifies as a special test page.
   const isSpecialTestPage =
     location.pathname.includes("/account") ||
+    location.pathname.includes("/dashboard") ||
+    location.pathname.includes("/unauthorized") ||
     location.pathname.includes("/security") ||
     location.pathname.includes("/test-history") ||
     location.pathname.includes("/dcap-tests") ||
@@ -72,25 +72,25 @@ export default function Navbar() {
     location.pathname.includes("/test-hra-25-owner-rule") ||
     location.pathname.includes("/test-adp-safe-harbor") ||
     location.pathname.includes("/test-average-benefit");
-
+  
   const navbarBgColor = isSpecialTestPage ? "#0074d9" : "white";
   const textColor = isSpecialTestPage ? "text-white" : "text-black";
-
+  
+  // Show the back button only if on a special page and not on the dashboard route
+  const showBackButton = isSpecialTestPage && !location.pathname.startsWith("/dashboard");
+  
   return (
     <nav
       className="shadow-md py-4 px-8 flex justify-between items-center relative"
       style={{ backgroundColor: navbarBgColor }}
     >
-      {/* Left: Waypoint Logo */}
-      <h1
-        className={`text-lg font-semibold cursor-pointer hover:text-gray-700 ${textColor}`}
-        onClick={() => navigate("/")}
-      >
+      {/* Left: Waypoint Logo (no onClick) */}
+      <h1 className={`text-lg font-semibold ${textColor}`}>
         Waypoint
       </h1>
-
-      {/* Center: Back Button - Only on Special Test pages */}
-      {isSpecialTestPage && (
+  
+      {/* Center: Back Button - Only show if not on a dashboard route */}
+      {showBackButton && (
         <div className="absolute left-1/2 transform -translate-x-1/2">
           <button
             className={`flex items-center ${textColor} hover:text-black`}
@@ -101,12 +101,22 @@ export default function Navbar() {
           </button>
         </div>
       )}
-
-      {/* Right: Account Menu */}
-<div className="flex items-center space-x-4">
-  {user && <AccountMenu textColor={isSpecialTestPage ? "text-white" : "text-black"} />}
-</div>
-
+  
+      {/* Right: Dashboard and Sign Out */}
+      <div className="flex items-center space-x-4">
+        <button
+          onClick={() => navigate("/dashboard")}
+          className={`flex items-center ${textColor} hover:text-gray-300`}
+        >
+          <LayoutDashboard className="w-5 h-5 mr-1" />
+        </button>
+        <button
+          onClick={handleSignOut}
+          className={`flex items-center ${textColor} hover:text-gray-300`}
+        >
+          <LogOut className="w-5 h-5 mr-1" />
+        </button>
+      </div>
     </nav>
   );
 }
