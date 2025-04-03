@@ -31,6 +31,7 @@ export default function Navbar() {
   const isSpecialTestPage =
     location.pathname.includes("/account") ||
     location.pathname.includes("/about") ||
+    location.pathname.includes("/faq") ||
     location.pathname.includes("/dashboard") ||
     location.pathname.includes("/unauthorized") ||
     location.pathname.includes("/security") ||
