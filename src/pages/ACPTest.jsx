@@ -341,8 +341,8 @@ const ACPTest = () => {
 
       // Determine download filename based on AI review presence
       const downloadFileName = finalAIText
-        ? "AI Reviewed Test Results.pdf"
-        : "ACP Test Results Download.pdf";
+        ? "AI Reviewed: ACP Test Results.pdf"
+        : "ACP Test Results.pdf";
 
       // Automatically download PDF
       pdf.save(downloadFileName);
@@ -350,7 +350,7 @@ const ACPTest = () => {
       // Generate PDF blob and upload to Firebase with appropriate metadata
       const pdfBlob = pdf.output("blob");
       await savePdfResultToFirebase({
-        fileName: finalAIText ? "AI Reviewed Test Results" : "ACP Test Results Download",
+        fileName: finalAIText ? "AI Reviewed: ACP Test Results" : "ACP Test Results",
         pdfBlob,
         additionalData: {
           planYear,
