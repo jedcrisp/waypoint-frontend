@@ -89,10 +89,8 @@ const FAQ = () => {
       {/* Submit Ticket CTA */}
       <div className="mt-8 bg-blue-50 border-l-4 border-blue-400 p-4">
         <p className="text-gray-800">
-          Still have questions?{' '}
+          Still have questions?  Please reach out to {' '}
           <a href="mailto:info@onetrack-consulting.com" className="text-blue-700 font-medium hover:underline">
-           Please reach out to 
-            </a>
             info@onetrack-consulting.com
           </a>
           , and our support team will get back to you promptly.
