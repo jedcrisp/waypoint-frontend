@@ -341,7 +341,7 @@ const ACPTest = () => {
 
       // Determine download filename based on AI review presence
       const downloadFileName = finalAIText
-        ? "ACP: AI Reviewed Test Results.pdf"
+        ? "AI Reviewed Test Results.pdf"
         : "ACP Test Results Download.pdf";
 
       // Automatically download PDF
@@ -350,7 +350,7 @@ const ACPTest = () => {
       // Generate PDF blob and upload to Firebase with appropriate metadata
       const pdfBlob = pdf.output("blob");
       await savePdfResultToFirebase({
-        fileName: finalAIText ? "AI Reviewed Test Results" : "ACP Test Results",
+        fileName: finalAIText ? "AI Reviewed Test Results" : "ACP Test Results Download",
         pdfBlob,
         additionalData: {
           planYear,
@@ -571,12 +571,14 @@ const ACPTest = () => {
           {result?.acp_summary && (
             <div className="mt-6">
               <button
-                onClick={handleRunAIReview}
-                className="w-full px-4 py-2 text-white bg-purple-500 hover:bg-purple-600 rounded-md"
-                disabled={loading}
-              >
-                {loading ? "Processing AI Review..." : "Run AI Review"}
-              </button>
+  onClick={handleRunAIReview}
+  disabled={loading}
+  className={`w-full px-4 py-2 text-white rounded-md ${
+    loading ? "bg-purple-500 animate-pulse" : "bg-purple-500 hover:bg-purple-600"
+  }`}
+>
+  {loading ? "Processing AI Review..." : "Run AI Review"}
+</button>
             </div>
           )}
 
