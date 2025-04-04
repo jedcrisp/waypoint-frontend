@@ -91,7 +91,7 @@ const FAQ = () => {
         <p className="text-gray-800">
           Still have questions?{' '}
           <a href="mailto:info@onetrack-consulting.com" className="text-blue-700 font-medium hover:underline">
-            Submit a ticket here
+           Please reach out to info@onetrack-consulting.com
           </a>
           , and our support team will get back to you promptly.
         </p>
