@@ -1,10 +1,11 @@
-import React, { useState, useCallback } from "react";
-import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Firebase PDF saver
+import React, { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { savePdfResultToFirebase, saveAIReviewConsent } from "../utils/firebaseTestSaver";
+import Modal from "../components/Modal";
 
 const ADPTest = () => {
   const [file, setFile] = useState(null);
@@ -12,13 +13,20 @@ const ADPTest = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [aiReview, setAiReview] = useState("");
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
+  const [signature, setSignature] = useState("");
+  const [normalPdfExported, setNormalPdfExported] = useState(false);
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
 
-  // --- Formatting Helpers ---
   const formatCurrency = (value) => {
     if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
-    return Number(value).toLocaleString("en-US", { style: "currency", currency: "USD" });
+    return Number(value).toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+    });
   };
 
   const formatPercentage = (value) => {
@@ -26,12 +34,21 @@ const ADPTest = () => {
     return `${Number(value).toFixed(2)}%`;
   };
 
+  // Automatically export PDF after upload if not already exported
+  useEffect(() => {
+    if (result && !normalPdfExported) {
+      exportToPDF();
+      setNormalPdfExported(true);
+    }
+  }, [result, normalPdfExported]);
+
   // --- 1. Drag & Drop Logic ---
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
       setFile(acceptedFiles[0]);
       setResult(null);
       setError(null);
+      setNormalPdfExported(false); // Reset flag for new upload
     }
   }, []);
 
@@ -71,7 +88,6 @@ const ADPTest = () => {
       console.log("🚀 Uploading file to:", `${API_URL}/upload-csv/adp`);
       console.log("📂 File Selected:", file.name);
       
-      // Get Firebase token
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken(true);
       if (!token) {
@@ -81,7 +97,6 @@ const ADPTest = () => {
       }
       console.log("Firebase Token:", token);
 
-      // POST request to your backend
       const response = await axios.post(`${API_URL}/upload-csv/adp`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -126,7 +141,9 @@ const ADPTest = () => {
   ["Last", "First", "E008", "Yes", "1300", "2700", "Yes", "1982-05-15", "2011-12-01", "Active", "No", "No", "No", "2012-01-01", "88000", "11000"],
   ["Last", "First", "E009", "Yes", "1400", "2900", "No", "1995-08-09", "2018-07-01", "Active", "No", "Yes", "No", "2018-07-15", "69000", "6500"],
   ["Last", "First", "E010", "Yes", "1600", "3100", "Yes", "1983-12-30", "2009-05-15", "Active", "No", "No", "No", "2009-06-01", "99000", "14000"]
-].map((row) => row.join(",")).join("\n");
+]
+      .map((row) => row.join(","))
+      .join("\n");
 
     const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -147,8 +164,10 @@ const ADPTest = () => {
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
     const totalParticipants = result["Total Participants"] ?? "N/A"; 
-    const hceAdp = result["HCE ADP (%)"] !== undefined ? formatPercentage(result["HCE ADP"]) : "N/A";
-    const nhceAdp = result["NHCE ADP (%)"] !== undefined ? formatPercentage(result["NHCE ADP"]) : "N/A"
+    const hceAdp =
+      result["HCE ADP (%)"] !== undefined ? formatPercentage(result["HCE ADP (%)"]) : "N/A";
+    const nhceAdp =
+      result["NHCE ADP (%)"] !== undefined ? formatPercentage(result["NHCE ADP (%)"]) : "N/A";
     const testRes = result["Test Result"] ?? "N/A";
 
     const csvRows = [
@@ -172,57 +191,68 @@ const ADPTest = () => {
     document.body.removeChild(link);
   };
 
-  // --- 6. Export Results to PDF with Firebase Storage Integration ---
-  const exportToPDF = async () => {
+  // --- 6. Export Results to PDF (with Firebase saving) ---
+  const exportToPDF = async (customAiReview) => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
-    let pdfBlob;
     try {
-      // Retrieve metrics from result and format them
+      // If AI review text is provided, use it; otherwise, use current aiReview state.
+      const finalAIText = customAiReview !== undefined ? customAiReview : aiReview;
+      const plan = planYear || "N/A";
       const totalEmployees = result["Total Employees"] ?? "N/A";
       const totalParticipants = result["Total Participants"] ?? "N/A"; 
-      const hceAdp = result["HCE ADP (%)"] !== undefined ? formatPercentage(result["HCE ADP (%)"]) : "N/A";
-      const nhceAdp = result["NHCE ADP (%)"] !== undefined ? formatPercentage(result["NHCE ADP (%)"]) : "N/A"
-      const testResult = result["Test Result"] ?? "N/A";
+      const hceAdp =
+        result["HCE ADP (%)"] !== undefined ? formatPercentage(result["HCE ADP (%)"]) : "N/A";
+      const nhceAdp =
+        result["NHCE ADP (%)"] !== undefined ? formatPercentage(result["NHCE ADP (%)"]) : "N/A";
+      const testResult = result["Test Result"] || "N/A";
+      const testCriterion = result["Test Criterion"] || "N/A";
       const failed = testResult.toLowerCase() === "failed";
 
-      // Generate the PDF
+      // Then, for the test criterion row:
+const rawNhceVal = result["NHCE ADP (%)"] ?? "";
+const parsedNhceVal = parseFloat(String(rawNhceVal).replace("%", ""));
+const testCriterionVal = isNaN(parsedNhceVal)
+  ? "N/A"
+  : (parsedNhceVal * 1.25).toFixed(2) + "%";
+
       const pdf = new jsPDF("p", "mm", "a4");
       pdf.setFont("helvetica", "normal");
 
-      // Header
+      // PDF Header
       pdf.setFontSize(18);
       pdf.setFont("helvetica", "bold");
       pdf.text("ADP Test Results", 105, 15, { align: "center" });
       pdf.setFontSize(12);
       pdf.setFont("helvetica", "normal");
-      pdf.text(`Plan Year: ${planYear || "N/A"}`, 105, 25, { align: "center" });
+      pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
       const generatedTimestamp = new Date().toLocaleString();
       pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
-
+      
       // Subheader with test criterion
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "italic");
-    pdf.setTextColor(60, 60, 60);
-    pdf.text(
-      "Test Criterion: IRC §401(k)(3): The ADP test ensures that elective deferrals made by Highly Compensated Employees (HCEs) do not exceed 125% of the average deferral rate of Non-Highly Compensated Employees (NHCEs), or meet alternative safe harbor thresholds (200%/2% or 125%/2%).",
-      105,
-      38,
-      { align: "center", maxWidth: 180 }
-    );
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(
+        "Test Criterion: IRC §401(k)(3): The ADP test ensures that elective deferrals made by HCEs do not exceed 125% of the average deferral rate of NHCEs, or meet alternative safe harbor thresholds (200%/2% or 125%/2%).",
+        105,
+        38,
+        { align: "center", maxWidth: 180 }
+      );
 
-      // Basic Results Table
+      // Results Table
       pdf.autoTable({
-         startY: 56,
+        startY: 56,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", totalEmployees],
           ["Total Participants", totalParticipants],
-          ["HCE ADP (%)", hceAdp],
-          ["NHCE ADP (%)", nhceAdp],
+          ["HCE ADP", hceAdp],
+          ["NHCE ADP", nhceAdp],
+          ["Test Criterion (1.25 × NHCE)", testCriterionVal],
           ["Test Result", testResult],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
@@ -230,8 +260,19 @@ const ADPTest = () => {
         margin: { left: 10, right: 10 },
       });
 
-      // If test failed, add corrective actions & consequences
-      if (failed) {
+      // AI Review Section: If AI review text exists, do not add corrective actions.
+      if (finalAIText) {
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["AI Corrective Actions (Powered by OpenAI)"]],
+          body: [[finalAIText]],
+          headStyles: { fillColor: [126, 34, 206], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+      } else if (failed) {
+        // If no AI review text and the test failed, add corrective actions & consequences.
         const correctiveActions = [
           "Increase NHCE participation to ensure at least 70% of HCE rate.",
           "Adjust eligibility criteria to include more NHCEs.",
@@ -239,10 +280,10 @@ const ADPTest = () => {
           "Review and adjust contribution allocations per IRS § 410(b).",
         ];
         const consequences = [
-          "Plan may lose tax-qualified status.",
-          "IRS penalties and plan disqualification risk.",
+          "Mandatory employer contributions for non-key employees.",
+          "Potential loss of plan tax advantages.",
+          "Increased IRS audit risk.",
           "Additional corrective contributions may be required.",
-          "Employee dissatisfaction and legal risks.",
         ];
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
@@ -264,37 +305,82 @@ const ADPTest = () => {
         });
       }
 
+      // Digital Signature
+      if (signature.trim()) {
+        const sigTime = new Date().toLocaleString();
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(10);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text(`Digital Signature: ${signature.trim()}`, 10, 280);
+        pdf.text(`Signed on: ${sigTime}`, 10, 285);
+      }
+
       // Footer
       pdf.setFont("helvetica", "italic");
       pdf.setFontSize(10);
       pdf.setTextColor(100, 100, 100);
       pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
-      try {
-        pdfBlob = pdf.output("blob");
-        pdf.save("ADP Test Results.pdf");
-      } catch (error) {
-        setError(`❌ Error exporting PDF: ${error.message}`);
-        return;
-      }
-      try {
-        await savePdfResultToFirebase({
-          fileName: "ADP",
-          pdfBlob,
-          additionalData: {
-            planYear,
-            testResult: testResult || "Unknown",
+      const downloadFileName = finalAIText
+        ? "AI Reviewed: ADP Test Results.pdf"
+        : "ADP Test Results.pdf";
+
+      pdf.save(downloadFileName);
+
+      const pdfBlob = pdf.output("blob");
+      await savePdfResultToFirebase({
+        fileName: finalAIText ? "AI Reviewed: ADP Test Results" : "ADP Test Results",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult,
+          aiConsent: {
+            agreed: !!signature.trim(),
+            signature: signature.trim(),
+            timestamp: new Date().toISOString(),
           },
-        });
-      } catch (error) {
-        setError(`❌ Error saving PDF to Firebase: ${error.message}`);
-      }
+        },
+      });
+
+      console.log("✅ Export and upload complete");
     } catch (error) {
-      setError(`❌ Error exporting PDF: ${error.message}`);
+      console.error("❌ Export PDF Error:", error);
+      setError(`❌ ${error.message}`);
     }
   };
 
-  // --- 8. Render ---
+  // --- 7. AI Review Handler ---
+  const handleRunAIReview = async () => {
+    if (!result || !result.adp_summary) {
+      setError("❌ No test summary available for AI review.");
+      return;
+    }
+    if (!consentChecked || !signature.trim()) {
+      setShowConsentModal(true);
+      return;
+    }
+    setLoading(true);
+    try {
+      await saveAIReviewConsent({
+        fileName: "ADP Test",
+        signature: signature.trim(),
+      });
+      const response = await axios.post(`${API_URL}/api/ai-review`, {
+        testType: "ADP",
+        testData: result.adp_summary,
+        signature: signature.trim(),
+      });
+      const aiText = response.data.analysis;
+      setAiReview(aiText);
+      // Automatically export PDF with AI review text.
+      await exportToPDF(aiText);
+    } catch (error) {
+      console.error("Error fetching AI review:", error);
+      setAiReview("Error fetching AI review.");
+    }
+    setLoading(false);
+  };
+
   return (
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
@@ -308,7 +394,9 @@ const ADPTest = () => {
       {/* Plan Year Dropdown */}
       <div className="mb-6">
         <div className="flex items-center">
-          {planYear === "" && <span className="text-red-500 text-lg mr-2">*</span>}
+          {planYear === "" && (
+            <span className="text-red-500 text-lg mr-2">*</span>
+          )}
           <select
             id="planYear"
             value={planYear}
@@ -362,7 +450,7 @@ const ADPTest = () => {
       {/* Choose File Button */}
       <button
         type="button"
-        onClick={() => open()}
+        onClick={open}
         className="mt-4 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
       >
         Choose File
@@ -372,57 +460,101 @@ const ADPTest = () => {
       <button
         onClick={handleUpload}
         className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
-          !file || !planYear ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
+          !file || !planYear
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-green-500 hover:bg-green-400"
         }`}
         disabled={!file || !planYear || loading}
       >
-        {loading ? "Uploading..." : "Upload"}
+        {loading ? "Uploading..." : "Upload & Save PDF"}
       </button>
 
       {/* Display Errors */}
       {error && <div className="mt-3 text-red-500">{error}</div>}
 
-      {/* Display Results */}
+      {/* All result content only shown after upload */}
       {result && (
-        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-md">
-          <h3 className="font-bold text-xl text-gray-700">ADP Test Results</h3>
-          <div className="mt-4">
-            <p className="text-lg">
-              <strong>Plan Year:</strong>{" "}
-              <span className="font-semibold text-blue-600">{planYear || "N/A"}</span>
-            </p>
-            <p className="text-lg">
-              <strong className="text-black-700">Total Employees:</strong>{" "}
-              {result["Total Employees"] ?? "N/A"}
-            </p>
-            <p className="text-lg">
-              <strong className="text-black-700">Total Participants:</strong>{" "}
-              {result["Total Participants"] ?? "N/A"}
-            </p>
-            <p className="text-lg mt-2">
-              <strong>HCE ADP:</strong>{" "}
-              {formatPercentage(result["HCE ADP (%)"])}
-            </p>
-            <p className="text-lg mt-2">
-              <strong>NHCE ADP:</strong>{" "}
-              {formatPercentage(result["NHCE ADP (%)"])}
-            </p>
-            <p className="text-lg mt-2">
-              <strong>Test Result:</strong>{" "}
-              <span
-                className={`px-3 py-1 rounded-md font-bold ${
-                  result["Test Result"] === "Passed" ? "bg-green-500 text-white" : "bg-red-500 text-white"
+        <>
+          {/* Detailed ADP Test Summary */}
+          {result?.adp_summary && (
+            <div className="mt-4 p-4 bg-gray-100 border border-gray-300 rounded-md">
+              <h4 className="font-bold text-lg text-gray-700 mb-2">
+                Detailed ADP Test Summary
+              </h4>
+              <div className="mb-4 flex justify-between items-center">
+                <p>
+                  <strong>Plan Year:</strong>{" "}
+                  <span className="text-blue-600">{planYear || "N/A"}</span>
+                </p>
+                <p>
+                  <strong>Test Result:</strong>{" "}
+                  <span
+                    className={`px-2 py-1 rounded-md font-semibold ${
+                      result?.["Test Result"] === "Passed"
+                        ? "bg-green-500 text-white"
+                        : "bg-red-500 text-white"
+                    }`}
+                  >
+                    {result?.["Test Result"] || "N/A"}
+                  </span>
+                </p>
+              </div>
+              <ul className="list-disc list-inside text-gray-800 mt-2">
+                <li>
+                  <strong>Total Employees:</strong>{" "}
+                  {result?.["Total Employees"] ?? "N/A"}
+                </li>
+                <li>
+                  <strong>Total Participants:</strong>{" "}
+                  {result?.["Total Participants"] ?? "N/A"}
+                </li>
+                <li>
+                  <strong>HCE ADP:</strong>{" "}
+                  {formatPercentage(result?.["HCE ADP (%)"])}
+                </li>
+                <li>
+                  <strong>NHCE ADP:</strong>{" "}
+                  {formatPercentage(result?.["NHCE ADP (%)"])}
+                </li>
+                 <li>
+    <strong>Test Criterion (1.25 × NHCE):</strong>{" "}
+    {result?.["NHCE ADP (%)"] !== undefined
+      ? `${(Number(result["NHCE ADP (%)"]) * 1.25).toFixed(2)}%`
+      : "N/A"}
+  </li>
+              </ul>
+            </div>
+          )}
+
+          {/* AI Review Section */}
+          {result?.adp_summary && (
+            <div className="mt-6">
+              <button
+                onClick={handleRunAIReview}
+                disabled={loading}
+                className={`w-full px-4 py-2 text-white rounded-md ${
+                  loading ? "bg-purple-500 animate-pulse" : "bg-purple-500 hover:bg-purple-600"
                 }`}
               >
-                {result["Test Result"] || "N/A"}
-              </span>
-            </p>
-          </div>
+                {loading ? "Processing AI Review..." : "Run AI Review"}
+              </button>
+            </div>
+          )}
 
-          {/* Export & Download Buttons */}
+          {/* Display AI Review Results */}
+          {aiReview && (
+            <div className="mt-2 p-4 bg-indigo-50 border border-indigo-300 rounded-md">
+              <h4 className="font-bold text-indigo-700">
+                AI Corrective Actions (Powered by OpenAI):
+              </h4>
+              <p className="text-indigo-900">{aiReview}</p>
+            </div>
+          )}
+
+          {/* Export & Download Buttons (shown only after upload) */}
           <div className="flex flex-col gap-2 mt-4">
             <button
-              onClick={exportToPDF}
+              onClick={() => exportToPDF()}
               className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
             >
               Export PDF Report
@@ -435,27 +567,19 @@ const ADPTest = () => {
             </button>
           </div>
 
-          {/* Corrective Actions & Consequences if Test Failed */}
-          {result["Test Result"]?.toLowerCase() === "failed" && (
+          {/* Corrective Actions & Consequences if Test Failed (only if AI review not performed) */}
+          {result?.["Test Result"]?.toLowerCase() === "failed" && !aiReview && (
             <>
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black">Corrective Actions:</h4>
                 <ul className="list-disc list-inside text-black">
-                  <li>
-                    Increase NHCE participation to ensure at least 70% of the HCE rate.
-                  </li>
+                  <li>Increase NHCE participation to ensure at least 70% of HCE rate.</li>
                   <br />
-                  <li>
-                    Adjust eligibility criteria to include more NHCEs.
-                  </li>
+                  <li>Adjust eligibility criteria to include more NHCEs.</li>
                   <br />
-                  <li>
-                    Modify plan structure or incentives to encourage NHCE participation.
-                  </li>
+                  <li>Modify plan structure or incentives to encourage NHCE participation.</li>
                   <br />
-                  <li>
-                    Review plan design to ensure compliance with IRC § 410(b).
-                  </li>
+                  <li>Review plan design to ensure compliance with IRC § 410(b).</li>
                 </ul>
               </div>
 
@@ -473,7 +597,67 @@ const ADPTest = () => {
               </div>
             </>
           )}
-        </div>
+        </>
+      )}
+
+      {/* Consent Modal for AI Review */}
+      {showConsentModal && (
+        <Modal title="AI Review Consent" onClose={() => setShowConsentModal(false)}>
+          <p className="mb-4 text-sm text-gray-700">
+            By proceeding, you acknowledge that any uploaded data may contain PII and you authorize its redaction and analysis using OpenAI’s language model. This is strictly for suggesting corrective actions.
+          </p>
+          <div className="mb-3 flex items-center">
+            <input
+              type="checkbox"
+              id="consent"
+              checked={consentChecked}
+              onChange={(e) => setConsentChecked(e.target.checked)}
+              className="mr-2"
+            />
+            <label htmlFor="consent" className="text-sm text-gray-700">
+              I agree to the processing and redaction of PII through OpenAI.
+            </label>
+          </div>
+          <div className="mb-3">
+            <label htmlFor="signature" className="text-sm text-gray-700">
+              Enter your name as a digital signature:
+            </label>
+            <input
+              id="signature"
+              value={signature}
+              onChange={(e) => setSignature(e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="Full Name"
+            />
+          </div>
+          <div className="flex justify-end gap-3">
+            <button
+              className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+              onClick={() => setShowConsentModal(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50"
+              disabled={!consentChecked || !signature.trim()}
+              onClick={async () => {
+                setShowConsentModal(false);
+                try {
+                  await saveAIReviewConsent({
+                    fileName: "ADP Test",
+                    signature: signature.trim(),
+                  });
+                  await handleRunAIReview();
+                } catch (err) {
+                  console.error("Error saving consent or running AI review:", err);
+                  setError("❌ Error processing AI review consent.");
+                }
+              }}
+            >
+              Confirm & Run AI Review
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   );
