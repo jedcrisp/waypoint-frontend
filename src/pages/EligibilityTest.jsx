@@ -1,12 +1,12 @@
-import React, { useState, useCallback } from "react";
-import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Use the external helper
+import React, { useState, useCallback, useEffect } from "react";
+import { savePdfResultToFirebase, saveAIReviewConsent } from "../utils/firebaseTestSaver";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
-import { getStorage, ref, uploadBytes } from "firebase/storage"; // Firebase Storage import (if needed elsewhere)
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import html2canvas from "html2canvas";
+import html2canvas from "html2canvas"; // Optional: for graph export
+import Modal from "../components/Modal";
 
 const EligibilityTest = () => {
   const [file, setFile] = useState(null);
@@ -14,6 +14,13 @@ const EligibilityTest = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [normalPdfExported, setNormalPdfExported] = useState(false);
+
+  // States for AI Review
+  const [aiReview, setAiReview] = useState("");
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
+  const [signature, setSignature] = useState("");
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -31,6 +38,14 @@ const EligibilityTest = () => {
     return `${Number(value).toFixed(2)}%`;
   };
 
+  // Auto-export PDF once results are available (if not already exported)
+  useEffect(() => {
+    if (result && !normalPdfExported) {
+      exportToPDF();
+      setNormalPdfExported(true);
+    }
+  }, [result, normalPdfExported]);
+
   // =========================
   // 1. Drag & Drop Logic
   // =========================
@@ -39,6 +54,8 @@ const EligibilityTest = () => {
       setFile(acceptedFiles[0]);
       setResult(null);
       setError(null);
+      setNormalPdfExported(false); // Reset export flag for new upload
+      setAiReview("");
     }
   }, []);
 
@@ -58,14 +75,14 @@ const EligibilityTest = () => {
       setError("❌ Please select a file before uploading.");
       return;
     }
+    if (!planYear) {
+      setError("❌ Please select a plan year.");
+      return;
+    }
     const validFileTypes = ["csv", "xlsx"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
-      return;
-    }
-    if (!planYear) {
-      setError("❌ Please select a plan year.");
       return;
     }
 
@@ -76,6 +93,7 @@ const EligibilityTest = () => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("selected_tests", "eligibility");
+    formData.append("plan_year", planYear);
 
     try {
       const auth = getAuth();
@@ -108,7 +126,42 @@ const EligibilityTest = () => {
   };
 
   // =========================
-  // 3. Handle Enter Key
+  // 3. AI Review Handler
+  // =========================
+  const handleRunAIReview = async () => {
+    // Assuming your backend sends the test summary in eligibility_summary
+    if (!result || !result.eligibility_summary) {
+      setError("❌ No test summary available for AI review.");
+      return;
+    }
+    if (!consentChecked || !signature.trim()) {
+      setShowConsentModal(true);
+      return;
+    }
+    setLoading(true);
+    try {
+      await saveAIReviewConsent({
+        fileName: "Eligibility Test",
+        signature: signature.trim(),
+      });
+      const response = await axios.post(`${API_URL}/api/ai-review`, {
+        testType: "Eligibility",
+        testData: result.eligibility_summary,
+        signature: signature.trim(),
+      });
+      const aiText = response.data.analysis;
+      setAiReview(aiText);
+      // Automatically export PDF with AI review text
+      await exportToPDF(aiText);
+    } catch (error) {
+      console.error("Error fetching AI review:", error);
+      setAiReview("Error fetching AI review.");
+    }
+    setLoading(false);
+  };
+
+  // =========================
+  // 4. Handle Enter Key
   // =========================
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && file && !loading) {
@@ -119,7 +172,7 @@ const EligibilityTest = () => {
   };
 
   // =========================
-  // 4. Download CSV Template
+  // 5. Download CSV Template
   // =========================
   const downloadCSVTemplate = () => {
     const csvTemplate = [
@@ -153,7 +206,6 @@ const EligibilityTest = () => {
 
     const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-
     const link = document.createElement("a");
     link.href = url;
     link.setAttribute("download", "Cafeteria Eligibility Template.csv");
@@ -163,14 +215,13 @@ const EligibilityTest = () => {
   };
 
   // =========================
-  // 5. Download Results as CSV
+  // 6. Download Results as CSV
   // =========================
   const downloadResultsAsCSV = () => {
     if (!result) {
       setError("❌ No results to download.");
       return;
     }
-
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", planYear],
@@ -179,11 +230,12 @@ const EligibilityTest = () => {
       ["HCE Count", result["HCE Count"] ?? "N/A"],
       [
         "HCE Percentage",
-        result["HCE Percentage (%)"] !== undefined ? result["HCE Percentage (%)"] + "%" : "N/A"
+        result["HCE Percentage (%)"] !== undefined
+          ? result["HCE Percentage (%)"] + "%"
+          : "N/A"
       ],
       ["Test Result", result["Test Result"] ?? "N/A"],
     ];
-
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -196,16 +248,17 @@ const EligibilityTest = () => {
   };
 
   // =========================
-  // 6. Export to PDF with Firebase Save
+  // 7. Export to PDF (with Firebase saving)
   // =========================
-  const exportToPDF = async () => {
+  // Accepts an optional customAiReview string to include in the PDF.
+  const exportToPDF = async (customAiReview) => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
-
     const failed = result["Test Result"]?.toLowerCase() === "failed";
-    let pdfBlob;
+    const finalAIText = customAiReview !== undefined ? customAiReview : aiReview;
+
     try {
       const pdf = new jsPDF("p", "mm", "a4");
       pdf.setFont("helvetica", "normal");
@@ -217,9 +270,9 @@ const EligibilityTest = () => {
       pdf.setFontSize(12);
       pdf.setFont("helvetica", "normal");
       pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
-      const generatedTimestamp = new Date().toLocaleString();
-      pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
+      pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
 
+      // Subheader with test criterion
       pdf.setFontSize(12);
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
@@ -230,7 +283,7 @@ const EligibilityTest = () => {
         { align: "center", maxWidth: 180 }
       );
 
-      // Table with Results
+      // Results Table
       pdf.autoTable({
         startY: 50,
         theme: "grid",
@@ -239,28 +292,39 @@ const EligibilityTest = () => {
           ["Total Employees", result["Total Employees"] ?? "N/A"],
           ["Total Participants", result["Total Participants"] ?? "N/A"],
           ["HCE Count", result["HCE Count"] ?? "N/A"],
-          ["HCE Percentage", result["HCE Percentage (%)"] !== undefined ? result["HCE Percentage (%)"] + "%" : "N/A"],
+          [
+            "HCE Percentage",
+            result["HCE Percentage (%)"] !== undefined
+              ? result["HCE Percentage (%)"] + "%"
+              : "N/A"
+          ],
           ["Test Result", result["Test Result"] ?? "N/A"],
         ],
-        headStyles: {
-          fillColor: [41, 128, 185],
-          textColor: [255, 255, 255],
-        },
-        styles: {
-          fontSize: 12,
-          font: "helvetica",
-        },
+        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+        styles: { fontSize: 12, font: "helvetica" },
         margin: { left: 10, right: 10 },
       });
 
-      // Corrective actions & consequences (only if failed)
-      if (failed) {
+      // Insert AI Review Section if available
+      if (finalAIText) {
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["AI Corrective Actions (Powered by OpenAI)"]],
+          body: [[finalAIText]],
+          headStyles: { fillColor: [126, 34, 206], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+      }
+
+      // Corrective Actions & Consequences (if test failed)
+      if (failed && !finalAIText) {
         const correctiveActions = [
           "Reallocate benefits to balance distributions",
           "Adjust classifications of key employees",
           "Update contribution policies",
         ];
-
         const consequences = [
           "Loss of tax-exempt status for key employees",
           "IRS penalties and fines",
@@ -288,7 +352,7 @@ const EligibilityTest = () => {
         });
       }
 
-      // Add Graphs after Corrective Actions
+      // Optionally, add graphs using html2canvas if an element with ID "graphContainer" exists
       const graphElement = document.getElementById("graphContainer");
       if (graphElement) {
         try {
@@ -302,6 +366,16 @@ const EligibilityTest = () => {
         }
       }
 
+      // Digital Signature with Timestamp (if provided)
+      if (signature.trim()) {
+        const sigTime = new Date().toLocaleString();
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(10);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text(`Digital Signature: ${signature.trim()}`, 10, 280);
+        pdf.text(`Signed on: ${sigTime}`, 10, 285);
+      }
+
       // Footer
       pdf.setFontSize(10);
       pdf.setFont("helvetica", "italic");
@@ -309,15 +383,12 @@ const EligibilityTest = () => {
       pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
       // Generate blob and save locally
-      pdfBlob = pdf.output("blob");
+      const pdfBlob = pdf.output("blob");
       pdf.save("Cafeteria Eligibility Test Results.pdf");
-    } catch (error) {
-      setError(`❌ Error exporting PDF: ${error.message}`);
-      return;
-    }
-    try {
+
+      // Save PDF to Firebase
       await savePdfResultToFirebase({
-        fileName: "Cafeteria Eligibility",
+        fileName: "Cafeteria Eligibility Test Results",
         pdfBlob,
         additionalData: {
           planYear,
@@ -325,12 +396,13 @@ const EligibilityTest = () => {
         },
       });
     } catch (error) {
-      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+      setError(`❌ Error exporting PDF: ${error.message}`);
+      return;
     }
   };
 
   // =========================
-  // 7. RENDER
+  // 8. RENDER
   // =========================
   return (
     <div
@@ -350,7 +422,7 @@ const EligibilityTest = () => {
             id="planYear"
             value={planYear}
             onChange={(e) => setPlanYear(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md"
+            className="flex-3 px-4 py-2 border border-gray-300 rounded-md"
             required
           >
             <option value="">-- Select Plan Year --</option>
@@ -367,7 +439,9 @@ const EligibilityTest = () => {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
+          isDragActive
+            ? "border-green-500 bg-blue-100"
+            : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
@@ -377,7 +451,7 @@ const EligibilityTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV file</strong> here.
+            Drag & drop a <strong>CSV or Excel file</strong> here.
           </p>
         )}
       </div>
@@ -394,7 +468,7 @@ const EligibilityTest = () => {
       <button
         type="button"
         onClick={open}
-        className="mt-4 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+        className="mt-2 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
       >
         Choose File
       </button>
@@ -402,70 +476,95 @@ const EligibilityTest = () => {
       {/* Upload Button */}
       <button
         onClick={handleUpload}
-        className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
-          !file ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
+        className={`w-full mt-2 px-4 py-2 text-white rounded-md ${
+          !file || !planYear
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-green-500 hover:bg-green-400"
         }`}
-        disabled={!file || loading}
+        disabled={!file || !planYear || loading}
       >
-        {loading ? "Uploading..." : "Upload"}
+        {loading ? "Uploading..." : "Upload & Save PDF"}
       </button>
 
-      {/* Display Errors */}
       {error && <div className="mt-3 text-red-500">{error}</div>}
 
-      {/* Display Results */}
       {result && (
         <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
-          <h3 className="font-bold text-xl text-gray-700">
-            ✅ Cafeteria Eligibility Test Results
-          </h3>
-          <div className="mt-4">
-            <p className="text-lg">
-              <strong className="text-gray-700">Plan Year:</strong>{" "}
-              <span className="font-semibold text-blue-600">
-                {planYear || "N/A"}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Total Employees:</strong>{" "}
-              <span className="font-semibold text-black-600">
+          {/* Detailed Benefit Test Summary */}
+          <div className="mt-4 p-4 bg-gray-100 border border-gray-300 rounded-md">
+            <h4 className="font-bold text-lg text-gray-700 mb-2">
+              Detailed Benefit Test Summary
+            </h4>
+            {/* Subheader with Plan Year & Test Result */}
+            <div className="mb-4 flex justify-between items-center">
+              <p>
+                <strong>Plan Year:</strong>{" "}
+                <span className="text-blue-600">{planYear || "N/A"}</span>
+              </p>
+              <p>
+                <strong>Test Result:</strong>{" "}
+                <span
+                  className={`px-2 py-1 rounded-md font-semibold ${
+                    result?.["Test Result"] === "Passed"
+                      ? "bg-green-500 text-white"
+                      : "bg-red-500 text-white"
+                  }`}
+                >
+                  {result?.["Test Result"] || "N/A"}
+                </span>
+              </p>
+            </div>
+
+            {/* Bullet Points with Data */}
+            <ul className="list-disc list-inside text-gray-800">
+              <li>
+                <strong>Total Employees:</strong>{" "}
                 {result?.["Total Employees"] ?? "N/A"}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Total Participants:</strong>{" "}
-              <span className="font-semibold text-black-600">
+              </li>
+              <li>
+                <strong>Total Participants:</strong>{" "}
                 {result?.["Total Participants"] ?? "N/A"}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">HCE Count:</strong>{" "}
-              <span className="font-semibold text-black-600">
+              </li>
+              <li>
+                <strong>HCE Count:</strong>{" "}
                 {result?.["HCE Count"] ?? "N/A"}
-              </span>
-            </p>
-            <p className="text-lg">
-              <strong className="text-gray-700">HCE Percentage:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {formatPercentage(result?.["HCE Percentage (%)"])}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Test Result:</strong>{" "}
-              <span
-                className={`px-3 py-1 rounded-md font-bold ${
-                  result["Test Result"] === "Passed"
-                    ? "bg-green-500 text-white"
-                    : "bg-red-500 text-white"
-                }`}
-              >
-                {result["Test Result"] ?? "N/A"}
-              </span>
-            </p>
+              </li>
+              <li>
+                <strong>HCE Percentage:</strong>{" "}
+                {result?.["HCE Percentage (%)"] !== undefined
+                  ? `${parseFloat(result["HCE Percentage (%)"]).toFixed(2)}%`
+                  : "N/A"}
+              </li>
+            </ul>
           </div>
 
+          {/* AI Review Section */}
+          {result?.eligibility_summary && (
+            <div className="mt-6">
+              <button
+                onClick={handleRunAIReview}
+                disabled={loading}
+                className={`w-full px-4 py-2 text-white rounded-md ${
+                  loading ? "bg-purple-500 animate-pulse" : "bg-purple-500 hover:bg-purple-600"
+                }`}
+              >
+                {loading ? "Processing AI Review..." : "Run AI Review"}
+              </button>
+            </div>
+          )}
+
+          {/* Display AI Review Results */}
+          {aiReview && (
+            <div className="mt-2 p-4 bg-indigo-50 border border-indigo-300 rounded-md">
+              <h4 className="font-bold text-indigo-700">
+                AI Corrective Actions (Powered by OpenAI):
+              </h4>
+              <p className="text-indigo-900">{aiReview}</p>
+            </div>
+          )}
+
           {/* Export & Download Buttons */}
-          <div className="flex flex-col gap-2 mt-4">
+          <div className="flex flex-col gap-2 mt-2">
             <button
               onClick={exportToPDF}
               className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
@@ -480,12 +579,12 @@ const EligibilityTest = () => {
             </button>
           </div>
 
-          {/* If test fails, show corrective actions & consequences */}
-          {result["Test Result"]?.toLowerCase() === "failed" && (
+          {/* Corrective Actions & Consequences if Test Failed */}
+          {result?.["Test Result"]?.toLowerCase() === "failed" && (
             <>
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
-                <h4 className="font-bold text-black-600">Corrective Actions:</h4>
-                <ul className="list-disc list-inside text-black-600">
+                <h4 className="font-bold text-gray-700">Corrective Actions:</h4>
+                <ul className="list-disc list-inside text-gray-700">
                   <li>Reallocate benefits to balance distributions.</li>
                   <br />
                   <li>Adjust classifications of key employees.</li>
@@ -495,8 +594,8 @@ const EligibilityTest = () => {
               </div>
 
               <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
-                <h4 className="font-bold text-black-600">Consequences:</h4>
-                <ul className="list-disc list-inside text-black-600">
+                <h4 className="font-bold text-gray-700">Consequences:</h4>
+                <ul className="list-disc list-inside text-gray-700">
                   <li>Loss of tax-exempt status for key employees.</li>
                   <br />
                   <li>IRS penalties and fines.</li>
@@ -507,6 +606,66 @@ const EligibilityTest = () => {
             </>
           )}
         </div>
+      )}
+
+      {/* Consent Modal for AI Review */}
+      {showConsentModal && (
+        <Modal title="AI Review Consent" onClose={() => setShowConsentModal(false)}>
+          <p className="mb-4 text-sm text-gray-700">
+            By proceeding, you acknowledge that any uploaded data may contain PII and you authorize its redaction and analysis using OpenAI’s language model. This is strictly for suggesting corrective actions.
+          </p>
+          <div className="mb-3 flex items-center">
+            <input
+              type="checkbox"
+              id="consent"
+              checked={consentChecked}
+              onChange={(e) => setConsentChecked(e.target.checked)}
+              className="mr-2"
+            />
+            <label htmlFor="consent" className="text-sm text-gray-700">
+              I agree to the processing and redaction of PII through OpenAI.
+            </label>
+          </div>
+          <div className="mb-3">
+            <label htmlFor="signature" className="text-sm text-gray-700">
+              Enter your name as a digital signature:
+            </label>
+            <input
+              id="signature"
+              value={signature}
+              onChange={(e) => setSignature(e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="Full Name"
+            />
+          </div>
+          <div className="flex justify-end gap-3">
+            <button
+              className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+              onClick={() => setShowConsentModal(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50"
+              disabled={!consentChecked || !signature.trim()}
+              onClick={async () => {
+                setShowConsentModal(false);
+                try {
+                  await saveAIReviewConsent({
+                    fileName: "Eligibility Test",
+                    signature: signature.trim(),
+                  });
+                  await handleRunAIReview();
+                } catch (err) {
+                  console.error("Error saving consent or running AI review:", err);
+                  setError("❌ Error processing AI review consent.");
+                }
+              }}
+            >
+              Confirm & Run AI Review
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   );
