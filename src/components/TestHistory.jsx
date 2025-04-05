@@ -12,7 +12,7 @@ import { storage } from "../firebase";
 import { toast } from "react-toastify";
 import { Filter } from "lucide-react";
 import Modal from "../components/Modal";
-import { saveDeletionConsent } from "./firebaseTestSaver";
+import { saveDeletionConsent } from "../firebaseTestSaver";
 
 const TestHistory = () => {
   const [tests, setTests] = useState([]);
