@@ -22,6 +22,11 @@ const Home = () => {
 
   const sections = [
     {
+      title: "Top 5 Non-Discrimination Tests",
+      route: "/additional-ndt-tests",
+      icon: <Gavel className="w-12 h-12 text-blue-600 mb-4" />,
+    },
+    {
       title: "Cafeteria Plan Testing",
       route: "/cafeteria-tests",
       icon: <Globe className="w-12 h-12 text-blue-600 mb-4" />,
@@ -45,11 +50,6 @@ const Home = () => {
       title: "401(k) & Retirement Plan Testing",
       route: "/retirement-plan-tests",
       icon: <DollarSign className="w-12 h-12 text-blue-600 mb-4" />,
-    },
-    {
-      title: "Additional IRS Testing",
-      route: "/additional-ndt-tests",
-      icon: <Gavel className="w-12 h-12 text-blue-600 mb-4" />,
     },
   ];
 
