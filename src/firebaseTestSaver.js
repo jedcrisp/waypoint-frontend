@@ -64,6 +64,8 @@ export const saveDeletionConsent = async ({ testId, signature }) => {
   const user = auth.currentUser;
   if (!user) throw new Error("User not authenticated");
 
+  const uid = user.uid;
+
   const docRef = doc(db, `users/${user.uid}/deletedTests/${testId}`);
 
   await setDoc(docRef, {
@@ -72,5 +74,5 @@ export const saveDeletionConsent = async ({ testId, signature }) => {
     email: user.email,
   });
 
-  console.log("✅ Deletion approval saved to Firestore");
+   console.log("✅ Deletion consent saved to Firestore at:", `users/${uid}/deletedTests/${testId}`);
 };
