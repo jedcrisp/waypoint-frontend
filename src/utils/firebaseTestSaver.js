@@ -2,7 +2,7 @@
 import { getAuth } from "firebase/auth";
 import { getFirestore, doc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "../firebase";
+import { storage, db } from "../firebase";
 
 export const savePdfResultToFirebase = async ({ fileName, pdfBlob, additionalData = {} }) => {
   const auth = getAuth();
@@ -20,7 +20,6 @@ export const savePdfResultToFirebase = async ({ fileName, pdfBlob, additionalDat
     customMetadata: {
       planYear: additionalData?.planYear || "N/A",
       testResult: additionalData?.testResult || "Unknown",
-      // You can include consent info as JSON-string if you wish:
       aiConsent: JSON.stringify(additionalData?.aiConsent || {}),
     },
   });
@@ -28,7 +27,6 @@ export const savePdfResultToFirebase = async ({ fileName, pdfBlob, additionalDat
   const pdfURL = await getDownloadURL(pdfRef);
 
   // Save document metadata in Firestore
-  const db = getFirestore();
   const resultDoc = doc(db, `users/${uid}/pdfResults/${fileName}-${timestamp}`);
   await setDoc(resultDoc, {
     fileName,
@@ -47,10 +45,9 @@ export const saveAIReviewConsent = async ({ fileName, signature }) => {
   const user = auth.currentUser;
   if (!user) throw new Error("User not authenticated.");
 
-  const db = getFirestore();
   const timestamp = Date.now();
   const consentDoc = doc(db, `users/${user.uid}/aiReviewConsents/${fileName}-${timestamp}`);
-  
+
   await setDoc(consentDoc, {
     fileName,
     signature,
@@ -60,4 +57,22 @@ export const saveAIReviewConsent = async ({ fileName, signature }) => {
   });
 
   console.log("✅ AI Review consent saved to Firestore");
+};
+
+export const saveDeletionConsent = async ({ testId, signature }) => {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (!user) throw new Error("User not authenticated");
+
+  const uid = user.uid;
+
+  const docRef = doc(db, `users/${user.uid}/deletedTests/${testId}`);
+
+  await setDoc(docRef, {
+    signature,
+    deletedAt: new Date().toISOString(),
+    email: user.email,
+  });
+
+   console.log("✅ Deletion consent saved to Firestore at:", `users/${uid}/deletedTests/${testId}`);
 };
