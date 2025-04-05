@@ -11,6 +11,31 @@ export default function AdditionalNDTTests() {
   };
 
   const tests = [
+
+    {
+      name: "ADP Standard Test",
+      route: "/test-adp",
+      description:
+        "Ensures that the average deferral percentage for HCEs does not exceed that for NHCEs by more than a specified limit.",
+    },
+    {
+      name: "ACP Standard Test",
+      route: "/test-acp-standard",
+      description:
+        "Ensures that the average contribution percentage for HCEs does not exceed that for NHCEs by more than a specified limit.",
+    },
+    {
+      name: "Coverage Test",
+      route: "/test-coverage",
+      description:
+        "Ensures that the plan covers a sufficient percentage of employees as required by IRS guidelines.",
+    },
+    {
+      name: "Top Heavy Test",
+      route: "/test-top-heavy",
+      description:
+        "Evaluates whether key employees hold more than 60% of the total plan assets.",
+    },
     {
       name: "Average Benefit Test",
       route: "/test-average-benefit",
@@ -22,7 +47,7 @@ export default function AdditionalNDTTests() {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center py-16 px-6">
       <h1 className="text-5xl font-light text-[#0074d9] mb-8">
-        Additional NDT Tests
+        Top 5 Non-Discrimination Tests
       </h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl">
         {tests.map((test) => (
