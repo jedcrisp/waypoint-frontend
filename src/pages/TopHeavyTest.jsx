@@ -1,30 +1,47 @@
-import React, { useState, useCallback } from "react";
-import { savePdfResultToFirebase } from "../utils/firebaseTestSaver"; // Firebase PDF saver
+import React, { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
-import { getAuth } from "firebase/auth"; // Import Firebase Auth
+import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
-import "jspdf-autotable"; // For table generation
+import "jspdf-autotable";
+import { savePdfResultToFirebase, saveAIReviewConsent } from "../utils/firebaseTestSaver";
+import Modal from "../components/Modal";
 
 const TopHeavyTest = () => {
   const [file, setFile] = useState(null);
+  const [planYear, setPlanYear] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [planYear, setPlanYear] = useState(""); // Plan year state
+  const [aiReview, setAiReview] = useState("");
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
+  const [signature, setSignature] = useState("");
+  const [normalPdfExported, setNormalPdfExported] = useState(false);
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
 
-   // --- Formatting Helpers ---
+  // Formatting helpers for both UI and PDF output.
   const formatCurrency = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
-    return Number(value).toLocaleString("en-US", { style: "currency", currency: "USD" });
+    if (value === "N/A" || value === undefined || isNaN(Number(value))) return "N/A";
+    return `$${parseFloat(value).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
   };
 
   const formatPercentage = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
-    return `${Number(value).toFixed(2)}%`;
+    if (value === "N/A" || value === undefined || isNaN(Number(value))) return "N/A";
+    return `${parseFloat(value).toFixed(2)}%`;
   };
+
+  // Automatically export PDF once results are available (if not already exported)
+  useEffect(() => {
+    if (result && !normalPdfExported) {
+      exportToPDF();
+      setNormalPdfExported(true);
+    }
+  }, [result, normalPdfExported]);
 
   // ----- 1. Drag & Drop Logic -----
   const onDrop = useCallback((acceptedFiles) => {
@@ -32,6 +49,7 @@ const TopHeavyTest = () => {
       setFile(acceptedFiles[0]);
       setResult(null);
       setError(null);
+      setNormalPdfExported(false); // Reset export flag for new upload
     }
   }, []);
 
@@ -49,20 +67,16 @@ const TopHeavyTest = () => {
       setError("❌ Please select a file before uploading.");
       return;
     }
-
-    // Validate file type
+    if (!planYear) {
+      setError("❌ Please select a plan year.");
+      return;
+    }
     const validFileTypes = ["csv", "xlsx"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
     }
-
-    if (!planYear) {
-      setError("❌ Please select a plan year.");
-      return;
-    }
-
     setLoading(true);
     setError(null);
     setResult(null);
@@ -70,10 +84,10 @@ const TopHeavyTest = () => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("selected_tests", "top_heavy");
+    formData.append("plan_year", planYear);
 
     try {
       console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/top_heavy`);
-      // 1. Get Firebase token
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken(true);
       if (!token) {
@@ -81,36 +95,28 @@ const TopHeavyTest = () => {
         setLoading(false);
         return;
       }
-      console.log("Firebase Token:", token);
-
-      // 2. Send POST request with Bearer token
       const response = await axios.post(`${API_URL}/upload-csv/top_heavy`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       });
-
       console.log("✅ API Response:", response.data);
-      setResult(response.data?.["Test Results"]?.["top_heavy"] || {});
+      const topHeavyResults = response.data?.["Test Results"]?.["top_heavy"];
+      if (!topHeavyResults) {
+        setError("❌ No Top Heavy test results found in response.");
+      } else {
+        setResult(topHeavyResults);
+      }
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
-      setError(err.response?.data?.error || "❌ Failed to upload file. Please check the format and try again.");
+      setError("❌ Failed to upload file. Please check the format and try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // ----- 3. Handle Enter Key -----
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && file && !loading) {
-      e.preventDefault();
-      e.stopPropagation();
-      handleUpload();
-    }
-  };
-
-  // ----- 4. Download CSV Template -----
+  // ----- 3. Download CSV Template -----
   const downloadCSVTemplate = () => {
     const csvTemplate = [
       ["Last Name", "First Name", "Employee ID", "Plan Assets", "Key Employee", "Ownership %", "Family Member", "DOB", "DOH", "Excluded from Test", "Employment Status"],
@@ -137,14 +143,14 @@ const TopHeavyTest = () => {
     document.body.removeChild(link);
   };
 
-  // ----- 5. Download Results as CSV (with corrective actions & consequences if failed) -----
+  // ----- 4. Download Results as CSV -----
   const downloadResultsAsCSV = () => {
     if (!result) {
       setError("❌ No results to download.");
       return;
     }
     const plan = planYear || "N/A";
-    const totalEmployees = result["Total Employees"] ?? "N/A"; // Added for completeness
+    const totalEmployees = result["Total Employees"] ?? "N/A";
     const totalParticipants = result["Total Participants"] ?? "N/A";
     const totalAssets = result["Total Plan Assets"] ?? "N/A";
     const keyEmployeeAssets = result["Key Employee Assets"] ?? "N/A";
@@ -153,9 +159,9 @@ const TopHeavyTest = () => {
 
     const csvRows = [
       ["Metric", "Value"],
+      ["Plan Year", plan],
       ["Total Employees", totalEmployees],
       ["Total Participants", totalParticipants],
-      ["Plan Year", plan],
       ["Total Plan Assets", totalAssets],
       ["Key Employee Assets", keyEmployeeAssets],
       ["Top Heavy Percentage (%)", topHeavyPct],
@@ -167,159 +173,195 @@ const TopHeavyTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "top_heavy_Results.csv");
+    link.setAttribute("download", "Top Heavy Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // ----- 6. Export to PDF (with Firebase Storage Integration) -----
-  // (Redefine formatCurrency & formatPercentage for PDF formatting if needed)
-  const pdfFormatCurrency = (amount) => {
-    if (amount === "N/A") return "N/A"; // Handle missing values
-    return `$${parseFloat(amount).toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
-
-  const pdfFormatPercentage = (percent) => {
-    if (percent === "N/A") return "N/A";
-    return `${parseFloat(percent).toFixed(2)}%`;
-  };
-
-  const exportToPDF = async () => {
+  // ----- 5. Export Results to PDF (with Firebase saving) -----
+  // If AI review text is provided, omit corrective actions.
+  const exportToPDF = async (customAiReview) => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
+    try {
+      const finalAIText = customAiReview !== undefined ? customAiReview : aiReview;
+      const plan = planYear || "N/A";
+      const totalEmployees = result["Total Employees"] ?? "N/A";
+      const totalParticipants = result["Total Participants"] ?? "N/A";
+      const totalAssets = result["Total Plan Assets"] ?? "N/A";
+      const keyEmployeeAssets = result["Key Employee Assets"] ?? "N/A";
+      const topHeavyPct = result["Top Heavy Percentage (%)"] ?? "N/A";
+      const testResult = result["Test Result"] ?? "N/A";
+      const failed = testResult.toLowerCase() === "failed";
 
-    const plan = planYear || "N/A";
-    const totalEmployees = result["Total Employees"] ?? "N/A"; // Added for completeness
-    const totalParticipants = result["Total Participants"] ?? "N/A";
-    const totalAssets = result["Total Plan Assets"] ?? "N/A";
-    const keyEmployeeAssets = result["Key Employee Assets"] ?? "N/A";
-    const topHeavyPct = result["Top Heavy Percentage (%)"] ?? "N/A";
-    const testResult = result["Test Result"] ?? "N/A";
+      const pdf = new jsPDF("p", "mm", "a4");
+      pdf.setFont("helvetica", "normal");
 
-    const failed = testResult.toLowerCase() === "failed"; // Define `failed` here
+      // PDF Header
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Top Heavy Test Results", 105, 15, { align: "center" });
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
+      const generatedTimestamp = new Date().toLocaleString();
+      pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
-    const pdf = new jsPDF("p", "mm", "a4");
-    pdf.setFont("helvetica", "normal");
-
-    // Header
-    pdf.setFontSize(18);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Top Heavy Test Results", 105, 15, { align: "center" });
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
-    const generatedTimestamp = new Date().toLocaleString();
-    pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
-
-    pdf.setFontSize(12);
+      // Subheader with test criterion
+      pdf.setFontSize(12);
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
       pdf.text(
-        "Test Criterion: Under IRC §416(g), a plan is top-heavy if more than 60% of total benefits or account balances are attributable to key employees.",
+        "Test Criterion: Under IRC §416(g), a plan is top-heavy if more than 60% of total plan assets are attributable to key employees.",
         105,
         38,
         { align: "center", maxWidth: 180 }
       );
 
-
-    // Section 1: Basic Results Table
-    pdf.autoTable({
-      startY: 46,
-      theme: "grid", // Ensures full table grid
-      head: [["Metric", "Value"]],
-      body: [
-        ["Total Employees", totalEmployees],
-        ["Total Participants", totalParticipants],
-        ["Total Plan Assets", pdfFormatCurrency(totalAssets)],
-        ["Key Employee Assets", pdfFormatCurrency(keyEmployeeAssets)],
-        ["Top Heavy Percentage (%)", pdfFormatPercentage(topHeavyPct)],
-        ["Test Result", testResult],
-      ],
-      styles: {
-        fontSize: 12,
-        textColor: [0, 0, 0], // Black text for table body
-        halign: "right", // Right-align numeric values
-      },
-      columnStyles: {
-        0: { halign: "left", fontStyle: "bold" }, // Left-align metric names & bold
-        1: { halign: "left" }, // Left-align values
-      },
-      headStyles: {
-        fillColor: [41, 128, 185], // Dark Blue Header
-        textColor: [255, 255, 255], // White text
-        fontSize: 12,
-        fontStyle: "helvetica",
-        halign: "left", // Left-align header text
-      },
-      margin: { left: 10, right: 10 },
-    });
-
-    // Section 2: Corrective actions & consequences (if test failed)
-    if (failed) {
-      const correctiveActions = [
-        "Ensure key employees hold no more than 60% of total plan assets.",
-        "Provide additional employer contributions for non-key employees.",
-        "Review and adjust contribution allocations per IRS § 416.",
-      ];
-
-      const consequences = [
-        "Mandatory employer contributions (3% of pay) for non-key employees.",
-        "Loss of plan tax advantages if not corrected.",
-        "Increased IRS audit risk.",
-        "Additional corrective contributions may be required.",
-      ];
-
+      // Results Table
       pdf.autoTable({
-        startY: pdf.lastAutoTable.finalY + 10,
+        startY: 46,
         theme: "grid",
-        head: [["Corrective Actions"]],
-        body: correctiveActions.map((action) => [action]),
-        headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-        styles: { fontSize: 11, font: "helvetica" },
+        head: [["Metric", "Value"]],
+        body: [
+          ["Total Employees", totalEmployees],
+          ["Total Participants", totalParticipants],
+          ["Total Plan Assets", formatCurrency(totalAssets)],
+          ["Key Employee Assets", formatCurrency(keyEmployeeAssets)],
+          ["Top Heavy Percentage", formatPercentage(topHeavyPct)],
+          ["Test Result", testResult],
+        ],
+        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+        styles: { fontSize: 12, font: "helvetica" },
         margin: { left: 10, right: 10 },
       });
 
-      pdf.autoTable({
-        startY: pdf.lastAutoTable.finalY + 10,
-        theme: "grid",
-        head: [["Consequences"]],
-        body: consequences.map((item) => [item]),
-        headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-        styles: { fontSize: 11, font: "helvetica" },
-        margin: { left: 10, right: 10 },
-      });
-    }
+      // AI Review Section or Corrective Actions (if test failed)
+      if (finalAIText) {
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["AI Corrective Actions (Powered by OpenAI)"]],
+          body: [[finalAIText]],
+          headStyles: { fillColor: [126, 34, 206], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+      } else if (failed) {
+        const correctiveActions = [
+          "Ensure key employees hold no more than 60% of total plan assets.",
+          "Provide additional employer contributions for non-key employees.",
+          "Review and adjust contribution allocations per IRS §416.",
+        ];
+        const consequences = [
+          "Mandatory employer contributions for non-key employees.",
+          "Potential loss of plan tax advantages.",
+          "Increased IRS audit risk.",
+          "Additional corrective contributions may be required.",
+        ];
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Corrective Actions"]],
+          body: correctiveActions.map((action) => [action]),
+          headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Consequences"]],
+          body: consequences.map((item) => [item]),
+          headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+      }
 
-    // Footer
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "italic");
-    pdf.setTextColor(100, 100, 100);
-    pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
+      // Digital Signature with Timestamp (if provided)
+      if (signature.trim()) {
+        const sigTime = new Date().toLocaleString();
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(10);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text(`Digital Signature: ${signature.trim()}`, 10, 280);
+        pdf.text(`Signed on: ${sigTime}`, 10, 285);
+      }
 
-    try {
+      // Footer
+      pdf.setFont("helvetica", "italic");
+      pdf.setFontSize(10);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
+
+      const downloadFileName = finalAIText
+        ? "AI Reviewed: Top Heavy Test Results.pdf"
+        : "Top Heavy Test Results.pdf";
+
+      pdf.save(downloadFileName);
+
       const pdfBlob = pdf.output("blob");
-      pdf.save("Top Heavy Results.pdf");
-      // Save the PDF blob to Firebase
       await savePdfResultToFirebase({
-        fileName: "Top Heavy",
+        fileName: finalAIText ? "AI Reviewed: Top Heavy Test Results" : "Top Heavy Test Results",
         pdfBlob,
         additionalData: {
           planYear,
-          testResult: testResult || "Unknown",
+          testResult,
         },
       });
+
+      console.log("✅ Export and upload complete");
     } catch (error) {
-      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+      console.error("❌ Export PDF Error:", error);
+      setError(`❌ ${error.message}`);
     }
   };
 
-  // ----- 7. Render -----
+  // ----- 6. AI Review Handler -----
+  const handleRunAIReview = async () => {
+    if (!result || !result.top_heavy_summary) {
+      setError("❌ No test summary available for AI review.");
+      return;
+    }
+    if (!consentChecked || !signature.trim()) {
+      setShowConsentModal(true);
+      return;
+    }
+    setLoading(true);
+    try {
+      await saveAIReviewConsent({
+        fileName: "Top Heavy Test",
+        signature: signature.trim(),
+      });
+      const response = await axios.post(`${API_URL}/api/ai-review`, {
+        testType: "Top Heavy",
+        testData: result.top_heavy_summary,
+        signature: signature.trim(),
+      });
+      const aiText = response.data.analysis;
+      setAiReview(aiText);
+      // Automatically export PDF with AI review text (this will exclude corrective actions)
+      await exportToPDF(aiText);
+    } catch (error) {
+      console.error("Error fetching AI review:", error);
+      setAiReview("Error fetching AI review.");
+    }
+    setLoading(false);
+  };
+
+  // ----- 7. Handle Enter Key -----
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && file && !loading) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleUpload();
+    }
+  };
+
   return (
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
@@ -357,12 +399,16 @@ const TopHeavyTest = () => {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive
-            ? "border-green-500 bg-blue-100"
-            : "border-gray-300 bg-gray-50"
+          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
+        <input
+          type="file"
+          accept=".csv, .xlsx"
+          onChange={(e) => setFile(e.target.files[0])}
+          className="hidden"
+        />
         {file ? (
           <p className="text-green-600 font-semibold">{file.name}</p>
         ) : isDragActive ? (
@@ -382,11 +428,11 @@ const TopHeavyTest = () => {
         Download CSV Template
       </button>
 
-      {/* "Choose File" Button */}
+      {/* Choose File Button */}
       <button
         type="button"
         onClick={open}
-        className="mt-4 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+        className="mt-2 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
       >
         Choose File
       </button>
@@ -394,76 +440,104 @@ const TopHeavyTest = () => {
       {/* Upload Button */}
       <button
         onClick={handleUpload}
-        className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
+        className={`w-full mt-2 px-4 py-2 text-white rounded-md ${
           !file ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
         }`}
         disabled={!file || loading}
       >
-        {loading ? "Uploading..." : "Upload"}
+        {loading ? "Uploading..." : "Upload & Save PDF"}
       </button>
 
       {/* Display Errors */}
       {error && <div className="mt-3 text-red-500">{error}</div>}
 
-      {/* Display Results */}
+      {/* Display results once available */}
       {result && (
-        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
-          <h3 className="font-bold text-xl text-gray-700">Top Heavy Test Results</h3>
-          <div className="mt-4">
-            <p className="text-lg">
-              <strong className="text-gray-700">Plan Year:</strong>{" "}
-              <span className="font-semibold text-blue-600">
-                {planYear || "N/A"}
-              </span>
-            </p>
-            <p className="text-lg">
-              <strong className="text-gray-700">Total Employees:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {result?.["Total Employees"] ?? "N/A"}
-              </span>
-            </p>
-            <p className="text-lg">
-              <strong className="text-gray-700">Total Participants:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {result?.["Total Participants"] ?? "N/A"}
-              </span>
-            </p>
-            <p className="text-lg">
-              <strong className="text-gray-700">Total Plan Assets:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {formatCurrency(result?.["Total Plan Assets"])}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Key Employee Assets:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {formatCurrency(result?.["Key Employee Assets"])}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Top Heavy Percentage:</strong>{" "}
-              <span className="font-semibold text-black-600">
-                {formatPercentage(result?.["Top Heavy Percentage (%)"])}
-              </span>
-            </p>
-            <p className="text-lg mt-2">
-              <strong className="text-gray-700">Test Result:</strong>{" "}
-              <span
-                className={`px-3 py-1 rounded-md font-bold ${
-                  result["Test Result"] === "Passed"
-                    ? "bg-green-500 text-white"
-                    : "bg-red-500 text-white"
+        <>
+          {/* Detailed Top Heavy Test Summary */}
+          {result?.top_heavy_summary && (
+            <div className="mt-4 p-4 bg-gray-100 border border-gray-300 rounded-md">
+              <h4 className="font-bold text-lg text-gray-700 mb-2">
+                Detailed Top Heavy Test Summary
+              </h4>
+              <div className="mb-4 flex justify-between items-center">
+                <p>
+                  <strong>Plan Year:</strong>{" "}
+                  <span className="text-blue-600">{planYear || "N/A"}</span>
+                </p>
+                <p>
+                  <strong>Test Result:</strong>{" "}
+                  <span
+                    className={`px-2 py-1 rounded-md font-semibold ${
+                      result?.["Test Result"] === "Passed"
+                        ? "bg-green-500 text-white"
+                        : "bg-red-500 text-white"
+                    }`}
+                  >
+                    {result?.["Test Result"] || "N/A"}
+                  </span>
+                </p>
+              </div>
+              <ul className="list-disc list-inside text-gray-800 mt-2">
+                <li>
+                  <strong>Total Employees:</strong>{" "}
+                  {result?.["Total Employees"] ?? "N/A"}
+                </li>
+                <li>
+                  <strong>Total Participants:</strong>{" "}
+                  {result?.["Total Participants"] ?? "N/A"}
+                </li>
+                <li>
+                  <strong>Total Plan Assets:</strong>{" "}
+                  {result?.["Total Plan Assets"] !== undefined 
+                    ? formatCurrency(result["Total Plan Assets"]) 
+                    : "N/A"}
+                </li>
+                <li>
+                  <strong>Key Employee Assets:</strong>{" "}
+                  {result?.["Key Employee Assets"] !== undefined 
+                    ? formatCurrency(result["Key Employee Assets"]) 
+                    : "N/A"}
+                </li>
+                <li>
+                  <strong>Top Heavy Percentage:</strong>{" "}
+                  {result?.["Top Heavy Percentage (%)"] !== undefined 
+                    ? formatPercentage(result["Top Heavy Percentage (%)"]) 
+                    : "N/A"}
+                </li>
+              </ul>
+            </div>
+          )}
+
+          {/* AI Review Section */}
+          {result?.top_heavy_summary && (
+            <div className="mt-6">
+              <button
+                onClick={handleRunAIReview}
+                disabled={loading}
+                className={`w-full px-4 py-2 text-white rounded-md ${
+                  loading ? "bg-purple-500 animate-pulse" : "bg-purple-500 hover:bg-purple-600"
                 }`}
               >
-                {result["Test Result"] ?? "N/A"}
-              </span>
-            </p>
-          </div>
+                {loading ? "Processing AI Review..." : "Run AI Review"}
+              </button>
+            </div>
+          )}
+
+          {/* Display AI Review Results */}
+          {aiReview && (
+            <div className="mt-2 p-4 bg-indigo-50 border border-indigo-300 rounded-md">
+              <h4 className="font-bold text-indigo-700">
+                AI Corrective Actions (Powered by OpenAI):
+              </h4>
+              <p className="text-indigo-900">{aiReview}</p>
+            </div>
+          )}
 
           {/* Export & Download Buttons */}
-          <div className="flex flex-col gap-2 mt-4">
+          <div className="flex flex-col gap-2 mt-2">
             <button
-              onClick={exportToPDF}
+              onClick={() => exportToPDF()}
               className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
             >
               Export PDF Report
@@ -475,42 +549,67 @@ const TopHeavyTest = () => {
               Download CSV Report
             </button>
           </div>
+        </>
+      )}
 
-          {/* If test fails, show corrective actions & consequences in the UI */}
-          {result["Test Result"]?.toLowerCase() === "failed" && (
-            <>
-              <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
-                <h4 className="font-bold text-black-600">Corrective Actions:</h4>
-                <ul className="list-disc list-inside text-black-600">
-                  <li>
-                    Ensure key employees hold no more than 60% of total plan assets.
-                  </li>
-                  <br />
-                  <li>
-                    Provide additional employer contributions for non-key employees.
-                  </li>
-                  <br />
-                  <li>
-                    Review and adjust contribution allocations per IRS § 416.
-                  </li>
-                </ul>
-              </div>
-
-              <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
-                <h4 className="font-bold text-black-600">Consequences:</h4>
-                <ul className="list-disc list-inside text-black-600">
-                  <li>Mandatory employer contributions (3% of pay) for non-key employees.</li>
-                  <br />
-                  <li>Loss of plan tax advantages if not corrected.</li>
-                  <br />
-                  <li>Increased IRS audit risk due to noncompliance.</li>
-                  <br />
-                  <li>Additional corrective contributions may be required.</li>
-                </ul>
-              </div>
-            </>
-          )}
-        </div>
+      {/* Consent Modal for AI Review */}
+      {showConsentModal && (
+        <Modal title="AI Review Consent" onClose={() => setShowConsentModal(false)}>
+          <p className="mb-4 text-sm text-gray-700">
+            By proceeding, you acknowledge that any uploaded data may contain PII and you authorize its redaction and analysis using OpenAI’s language model. This is strictly for suggesting corrective actions.
+          </p>
+          <div className="mb-3 flex items-center">
+            <input
+              type="checkbox"
+              id="consent"
+              checked={consentChecked}
+              onChange={(e) => setConsentChecked(e.target.checked)}
+              className="mr-2"
+            />
+            <label htmlFor="consent" className="text-sm text-gray-700">
+              I agree to the processing and redaction of PII through OpenAI.
+            </label>
+          </div>
+          <div className="mb-3">
+            <label htmlFor="signature" className="text-sm text-gray-700">
+              Enter your name as a digital signature:
+            </label>
+            <input
+              id="signature"
+              value={signature}
+              onChange={(e) => setSignature(e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="Full Name"
+            />
+          </div>
+          <div className="flex justify-end gap-3">
+            <button
+              className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+              onClick={() => setShowConsentModal(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50"
+              disabled={!consentChecked || !signature.trim()}
+              onClick={async () => {
+                setShowConsentModal(false);
+                try {
+                  await saveAIReviewConsent({
+                    fileName: "Top Heavy Test",
+                    signature: signature.trim(),
+                  });
+                  await handleRunAIReview();
+                } catch (err) {
+                  console.error("Error saving consent or running AI review:", err);
+                  setError("❌ Error processing AI review consent.");
+                }
+              }}
+            >
+              Confirm & Run AI Review
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   );
