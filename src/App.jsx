@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import SignUp from "./pages/SignUp";
 import Home from "./pages/Home";
 import FAQ from "./pages/FAQ";
+import Contact from "./components/Contact";
 import About from "./pages/About"; 
 import UploadButton from "./components/UploadButton";
 import ReportPage from "./pages/ReportPage";
@@ -162,6 +163,7 @@ if (isDemoSubdomain && user && user.email !== allowedDemoUser) {
           <Route path="/signin" element={<SignIn />} />
           <Route path="/about" element={<About />} />
           <Route path="/faq" element={<FAQ />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
