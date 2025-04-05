@@ -30,6 +30,7 @@ export default function Navbar() {
   // Determine if the current route qualifies as a special test page.
   const isSpecialTestPage =
     location.pathname.includes("/account") ||
+    location.pathname.includes("/contact") ||
     location.pathname.includes("/about") ||
     location.pathname.includes("/faq") ||
     location.pathname.includes("/dashboard") ||
