@@ -26,7 +26,7 @@ const Contact = () => {
     setError(null);
 
     try {
-      await axios.post("/api/send-contact-email", formData);
+      await axios.post("/api/contact", formData);
       setSubmitted(true);
       setFormData({
         firstName: "",
