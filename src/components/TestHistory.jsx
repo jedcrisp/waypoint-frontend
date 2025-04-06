@@ -10,9 +10,10 @@ import {
 } from "firebase/storage";
 import { storage } from "../firebase";
 import { toast } from "react-toastify";
-import { Filter } from "lucide-react";
+import { Search, Filter } from "lucide-react";
 import Modal from "../components/Modal";
 import { saveDeletionConsent } from "../utils/firebaseTestSaver";
+
 
 const TestHistory = () => {
   const [tests, setTests] = useState([]);
@@ -140,69 +141,96 @@ const TestHistory = () => {
   const uniqueTestNames = [...new Set(tests.map((t) => t.name))].sort();
 
   return (
-    <div className="w-full mt-10 px-6 bg-white rounded shadow">
-      <h2 className="text-2xl font-bold mb-4">Test History</h2>
+  <div className="w-full mt-10 px-6 bg-white rounded shadow">
+    <h2 className="text-2xl font-bold mb-4">Test History</h2>
 
-      <div className="flex items-center justify-between mb-4">
-        <input
-          type="text"
-          placeholder="Search by test name or year..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full mr-4 px-4 py-2 border border-gray-300 rounded"
-        />
-        <button
-          onClick={() => setShowFilterBox(!showFilterBox)}
-          className="p-2 border border-gray-300 rounded hover:bg-gray-100"
-        >
-          <Filter className="w-5 h-5 text-gray-600" />
-        </button>
-      </div>
+
+    <div className="flex items-center mb-4">
+  {/* Search input with icon inside a container */}
+  <div className="relative w-full max-w-md">
+    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+    <input
+      type="text"
+      placeholder="Search ..."
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded"
+    />
+  </div>
+
+  {/* Filter icon on the right */}
+  <button
+    onClick={() => setShowFilterBox(!showFilterBox)}
+    className="ml-2 p-2 border border-gray-300 rounded hover:bg-gray-100"
+    title="Filter"
+  >
+    <Filter className="w-5 h-5 text-gray-600" />
+  </button>
+</div>
 
       {showFilterBox && (
-        <div className="mb-4 p-4 border border-gray-300 rounded bg-gray-50">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Test Name</label>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded"
-              >
-                <option value="all">All</option>
-                {uniqueTestNames.map((name) => (
-                  <option key={name} value={name}>{name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Plan Year</label>
-              <select
-                value={filterYear}
-                onChange={(e) => setFilterYear(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded"
-              >
-                <option value="all">All</option>
-                {uniqueYears.map((year) => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Test Result</label>
-              <select
-                value={filterResult}
-                onChange={(e) => setFilterResult(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded"
-              >
-                <option value="all">All</option>
-                <option value="pass">Passed</option>
-                <option value="fail">Failed</option>
-              </select>
-            </div>
-          </div>
+  <div className="mb-6 p-4 border border-gray-300 rounded bg-gray-50 shadow">
+    <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+      <div className="flex flex-col md:flex-row gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Test Name</label>
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded"
+          >
+            <option value="all">All</option>
+            {uniqueTestNames.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
         </div>
-      )}
+        <div>
+          <label className="block text-sm font-medium mb-1">Plan Year</label>
+          <select
+            value={filterYear}
+            onChange={(e) => setFilterYear(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded"
+          >
+            <option value="all">All</option>
+            {uniqueYears.map((year) => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Test Result</label>
+          <select
+            value={filterResult}
+            onChange={(e) => setFilterResult(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded"
+          >
+            <option value="all">All</option>
+            <option value="pass">Passed</option>
+            <option value="fail">Failed</option>
+          </select>
+        </div>
+      </div>
+
+      {/* ✅ Reset button aligned to right of filters */}
+      <div>
+        <button
+          onClick={() => {
+            setFilterType("all");
+            setFilterYear("all");
+            setFilterResult("all");
+            setSearchQuery("");
+          }}
+          className="text-sm px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+        >
+          Reset Filters
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
 
       {loading ? (
         <p>Loading test history...</p>
