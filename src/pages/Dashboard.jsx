@@ -3,16 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { User, History, Shield, FileText, Info, BookOpen, Mail } from "lucide-react";
 import { getAuth, updateProfile } from "firebase/auth";
-import About from "./About";
-import FAQ from "./FAQ";
 
 const dashboardItems = [
   { title: "Account", route: "/account", description: "Manage your profile and settings", icon: User },
-  { title: "Test History", route: "/test-history", description: "View saved and past test results", icon: History },
-  { title: "Security", route: "/security", description: "Update password and secure your account", icon: Shield },
   { title: "Tests", route: "/home", description: "Start or continue available nondiscrimination tests", icon: FileText },
+  { title: "Test History", route: "/test-history", description: "View saved and past test results", icon: History },
+  { title: "Test Info", route: "/test-info", description: "Overview of test types and their use", icon: BookOpen },
   { title: "About", route: "/about", description: "Learn more about this platform", icon: Info },
-  { title: "FAQ", route: "/faq", description: "Answers to common questions and testing support", icon: BookOpen },
+  { title: "Security", route: "/security", description: "Update password and secure your account", icon: Shield },
   { title: "Contact", route: "/contact", description: "Get in touch with support", icon: Mail },
 ];
 
@@ -20,14 +18,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const auth = getAuth();
   const user = auth.currentUser;
-
-  useEffect(() => {
-  if (user && !user.displayName && user.email === "jedidiah@example.com") {
-    updateProfile(user, { displayName: "Jedidiah Crisp" })
-      .then(() => console.log("Display name updated!"))
-      .catch((error) => console.error("Error updating display name:", error));
-  }
-}, [user]);
 
 
   const displayName = user?.displayName || "User";
