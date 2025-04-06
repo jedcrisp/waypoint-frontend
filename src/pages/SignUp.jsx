@@ -24,6 +24,8 @@ export default function SignUp() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -31,43 +33,44 @@ export default function SignUp() {
   };
 
   const validateForm = () => {
-  const requiredFields = [
-    "firstName",
-    "lastName",
-    "email",
-    "password",
-    "confirmPassword",
-  ];
+    const requiredFields = [
+      "firstName",
+      "lastName",
+      "email",
+      "password",
+      "confirmPassword",
+    ];
 
-  for (let field of requiredFields) {
-    if (!form[field]) {
-      return { valid: false, message: `${field} is required` };
+    for (let field of requiredFields) {
+      if (!form[field]) {
+        return { valid: false, message: `${field} is required` };
+      }
     }
-  }
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-    return { valid: false, message: "Invalid email format" };
-  }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      return { valid: false, message: "Invalid email format" };
+    }
 
-  // Strong password regex
-  const passwordRegex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 
-  if (!passwordRegex.test(form.password)) {
-    return {
-      valid: false,
-      message:
-        "Password must be at least 8 characters and include uppercase, lowercase, number, and special character",
-    };
-  }
+    if (!passwordRegex.test(form.password)) {
+      return {
+        valid: false,
+        message:
+          "Password must be at least 8 characters and include uppercase, lowercase, number, and special character",
+      };
+    }
 
-  if (form.password !== form.confirmPassword) {
-    return { valid: false, message: "Passwords do not match" };
-  }
+    if (form.password !== form.confirmPassword) {
+      return { valid: false, message: "Passwords do not match" };
+    }
 
-  return { valid: true };
-};
+    if (!agreedToTerms) {
+      return { valid: false, message: "You must agree to the Terms and Conditions" };
+    }
 
+    return { valid: true };
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -162,9 +165,27 @@ export default function SignUp() {
             )}
           </div>
 
+          <div className="text-sm text-left">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={() => setAgreedToTerms(!agreedToTerms)}
+              />
+              I agree to the
+              <button
+                type="button"
+                onClick={() => setShowTermsModal(true)}
+                className="text-blue-500 underline hover:text-blue-700"
+              >
+                Terms and Conditions
+              </button>
+            </label>
+          </div>
+
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
             disabled={loading}
           >
             {loading ? "Creating..." : "Sign Up"}
@@ -172,12 +193,37 @@ export default function SignUp() {
         </form>
 
         <p className="mt-4 text-sm text-gray-600">
-          Already have an account?{" "}
+          Already have an account?{' '}
           <Link to="/signin" className="text-blue-500 hover:underline">
             Sign In
           </Link>
         </p>
       </div>
+
+      {showTermsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-md max-w-md w-full relative">
+            <h2 className="text-lg font-semibold mb-2">Terms and Conditions</h2>
+            <p className="text-sm text-gray-700 max-h-60 overflow-y-auto">
+              By signing up for this platform, you agree to use it responsibly and in accordance with all applicable laws. Your data will be handled according to our privacy policy. We may update these terms at any time.
+            </p>
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-black"
+              onClick={() => setShowTermsModal(false)}
+            >
+              ✕
+            </button>
+            <div className="mt-4 text-right">
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                onClick={() => setShowTermsModal(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
