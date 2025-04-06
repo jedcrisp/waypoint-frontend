@@ -45,8 +45,9 @@ const ChatComponent = () => {
     : "bg-[#0074d9] text-white";
 
   return (
+    // Changed bottom-5 to bottom-20 so the chat box is placed above the footer.
     <div
-      className={`fixed bottom-5 right-5 z-50 ${
+      className={`fixed bottom-20 right-5 z-50 ${
         isOpen ? "w-80 h-96 bg-white" : `w-25 h-12 ${minimizedBoxStyles}`
       } rounded-lg shadow-lg`}
     >
@@ -77,7 +78,9 @@ const ChatComponent = () => {
                 <div
                   key={index}
                   className={`p-2 my-1 rounded ${
-                    msg.role === "user" ? "bg-blue-200 text-right" : "bg-gray-200 text-left"
+                    msg.role === "user"
+                      ? "bg-blue-200 text-right"
+                      : "bg-gray-200 text-left"
                   }`}
                 >
                   {msg.content}
