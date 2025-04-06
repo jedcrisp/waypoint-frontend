@@ -1,7 +1,7 @@
 // src/firebase.js
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -21,20 +21,11 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
-
-// Enable offline persistence
-enableIndexedDbPersistence(db)
-  .catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn("Persistence failed because multiple tabs are open");
-    } else if (err.code === 'unimplemented') {
-      console.warn("Persistence is not supported");
-    }
-  });
+const provider = new GoogleAuthProvider(); 
 
 // Optional: attach auth to window for debugging
 if (typeof window !== "undefined") {
   window.firebaseAuth = auth;
 }
 
-export { app, auth, db, storage };
+export { app, auth, db, storage, provider };
