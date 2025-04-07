@@ -15,7 +15,7 @@ import Home from "./pages/Home";
 import FAQ from "./pages/FAQ";
 import Contact from "./components/Contact";
 import About from "./pages/About";
-import TestInfoPage from "./components/TestInforPage";
+import TestInfoPage from "./components/TestInfoPage";
 import UploadButton from "./components/UploadButton";
 import ReportPage from "./pages/ReportPage";
 import TestSelection from "./pages/TestSelection";
