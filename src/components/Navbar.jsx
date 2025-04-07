@@ -33,6 +33,7 @@ export default function Navbar() {
     location.pathname.includes("/contact") ||
     location.pathname.includes("/about") ||
     location.pathname.includes("/faq") ||
+    location.pathname.includes("/test-info-page") ||
     location.pathname.includes("/dashboard") ||
     location.pathname.includes("/unauthorized") ||
     location.pathname.includes("/security") ||
