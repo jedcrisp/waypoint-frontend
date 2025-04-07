@@ -15,7 +15,7 @@ import Home from "./pages/Home";
 import FAQ from "./pages/FAQ";
 import Contact from "./components/Contact";
 import About from "./pages/About";
-import TestInfoPage from "./components/TestInfoPage";
+import TestInfo from "./components/TestInfo";
 import UploadButton from "./components/UploadButton";
 import ReportPage from "./pages/ReportPage";
 import TestSelection from "./pages/TestSelection";
@@ -156,7 +156,7 @@ function AppContent() {
             <Route path="/signup" element={<SignUp />} />
             <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
             <Route path="/about" element={<About />} />
-            <Route path="/test-info-page" element={<TestInfoPage />} />
+            <Route path="/test-info" element={<TestInfo />} />
             <Route path="/faq" element={<FAQ />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
