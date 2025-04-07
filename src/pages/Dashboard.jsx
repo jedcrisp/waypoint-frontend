@@ -1,8 +1,8 @@
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { User, History, Shield, FileText, Info, BookOpen, Mail } from "lucide-react";
-import { getAuth, updateProfile } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 const dashboardItems = [
   { title: "Account", route: "/account", description: "Manage your profile and settings", icon: User },
@@ -17,9 +17,17 @@ const dashboardItems = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const auth = getAuth();
-  const user = auth.currentUser;
+  const [user, setUser] = useState(auth.currentUser);
 
+  // Listen for changes to the authentication state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, [auth]);
 
+  // Read the displayName from the Auth user object
   const displayName = user?.displayName || "User";
 
   return (
