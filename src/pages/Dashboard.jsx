@@ -19,15 +19,13 @@ export default function Dashboard() {
   const auth = getAuth();
   const [user, setUser] = useState(auth.currentUser);
 
-  // Listen for changes to the authentication state
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = onAuthStateChanged(auth, (updatedUser) => {
+      setUser(updatedUser);
     });
     return () => unsubscribe();
   }, [auth]);
 
-  // Read the displayName from the Auth user object
   const displayName = user?.displayName || "User";
 
   return (
