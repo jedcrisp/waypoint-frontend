@@ -8,40 +8,36 @@ import { TEST_CATALOG } from "../data/testCatalog.js";
 export default function YourTests() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-  const [purchasedTests, setPurchasedTests] = useState([]);
+  const [allTests, setAllTests] = useState([]);
   const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-  const fetchPurchasedTests = async () => {
-    try {
-      console.log("Reading from path:", `users/${currentUser.uid}/purchasedTests`);
-      console.log("User ID from auth:", currentUser.uid);
-
-      const purchasedRef = collection(db, `users/${currentUser.uid}/purchasedTests`);
-      const snapshot = await getDocs(purchasedRef);
-
-      const unlockedTests = snapshot.docs
-        .filter((doc) => {
-          const data = doc.data();
-          console.log("Purchased test entry:", data); // 👈 log each entry
-          return data.unlocked === true && data.used === false;
-        })
-        .map((doc) => doc.id);
-
-      setPurchasedTests(unlockedTests);
-    } catch (error) {
-      console.error("❌ Error fetching purchased tests:", error);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    async function fetchPurchasedTests() {
+      if (!currentUser) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const purchasedRef = collection(db, `users/${currentUser.uid}/purchasedTests`);
+        const snapshot = await getDocs(purchasedRef);
+        const all = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setAllTests(all);
+      } catch (error) {
+        console.error("Error fetching purchased tests:", error);
+      } finally {
+        setLoading(false);
+      }
     }
-  };
+    fetchPurchasedTests();
+  }, [currentUser]);
 
-  fetchPurchasedTests();
-}, [currentUser]);
-
-
-  const testsToShow = TEST_CATALOG.filter((test) =>
-    purchasedTests.includes(test.id)
+  // Only show tests that are unlocked and not yet used
+  const activeTests = allTests.filter(t => t.unlocked && !t.used);
+  const testsToShow = TEST_CATALOG.filter(test =>
+    activeTests.some(t => t.id === test.id)
   );
 
   if (loading) {
@@ -53,9 +49,7 @@ useEffect(() => {
       <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">Your Tests</h2>
 
       {testsToShow.length === 0 ? (
-        <p className="text-gray-600 text-center">
-          You haven't purchased any tests yet, or they've already been used.
-        </p>
+        <p className="text-gray-600 text-center">You have no active tests available right now.</p>
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {testsToShow.map((test) => (
