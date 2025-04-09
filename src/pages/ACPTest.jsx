@@ -358,14 +358,11 @@ const ACPTest = () => {
     });
     const aiText = response.data.analysis;
     setAiReview(aiText);
-    // Export the PDF with AI review results
     await exportToPDF(aiText);
-    // Once the PDF export succeeds, remove test access so that the test becomes locked again.
-    await removeTestFromPurchased(userId, testId);
-    // Update local state immediately to reflect the locked state
+    await removeTestFromPurchased(userId, testId); // This call
     setHasAccess(false);
   } catch (error) {
-    setAiReview("Error fetching AI review.");
+    setError(`❌ Error during AI review or test removal: ${error.message}`);
   }
   setLoading(false);
 };
