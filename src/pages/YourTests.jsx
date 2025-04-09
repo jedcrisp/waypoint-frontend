@@ -19,6 +19,38 @@ export default function YourTests() {
       }
 
       try {
+        useEffect(() => {
+  async function fetchPurchasedTests() {
+    if (!currentUser) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // 🔍 ADD THESE TWO LINES RIGHT HERE:
+      console.log("Reading from path:", `users/${currentUser?.uid}/purchasedTests`);
+      console.log("User ID from auth:", currentUser?.uid);
+
+      const purchasedRef = collection(db, `users/${currentUser.uid}/purchasedTests`);
+      const snapshot = await getDocs(purchasedRef);
+      const unlockedTests = snapshot.docs
+        .filter(doc => {
+          const data = doc.data();
+          return data.unlocked === true && data.used === false;
+        })
+        .map(doc => doc.id);
+
+      setPurchasedTests(unlockedTests);
+    } catch (error) {
+      console.error("Error fetching purchased tests:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  fetchPurchasedTests();
+}, [currentUser]);
+
         const purchasedRef = collection(db, `users/${currentUser.uid}/purchasedTests`);
         const snapshot = await getDocs(purchasedRef);
         const unlockedTests = snapshot.docs
