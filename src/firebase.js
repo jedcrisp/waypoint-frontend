@@ -3,6 +3,7 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { setLogLevel } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA3FN_gLEYuQMOip49SLrFnfdXPAU9orp0",
@@ -13,6 +14,8 @@ const firebaseConfig = {
   appId: "1:439038166520:web:4a17884a515c2245af020d",
   measurementId: "G-TPQS4R0ZFT"
 };
+
+setLogLevel("debug");
 
 // Prevent reinitialization
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
