@@ -1,5 +1,5 @@
 // src/pages/ACPTest.jsx
-import React, { useState, useCallback, useEffect, } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
@@ -11,20 +11,20 @@ import "jspdf-autotable";
 import { 
   savePdfResultToFirebase, 
   saveAIReviewConsent
-        } from "../utils/firebaseTestSaver";
+} from "../utils/firebaseTestSaver";
 import Modal from "../components/Modal";
 import { useCart } from "../contexts/CartContext";
 import { ShoppingCart } from "lucide-react";
 import ACPTestBlockedView from "../components/ACPTestBlockedView";
-// import { removeTestFromPurchased } from "../utils/firebaseTestSaver.js";
-import { useAuth } from "../contexts/AuthContext";
+import { removeTestFromPurchased } from "../utils/firebaseTestSaver.js";
+
+
 
 const ACPTest = () => {
-  const { currentUser } = useAuth(); // ✅ Use your context
-  const userId = user?.uid;
   const navigate = useNavigate();
   const auth = getAuth();
   const user = auth.currentUser;
+  const userId = user?.uid;
   const testId = "acpTest"; // Must match the test ID used in your test catalog and purchase flow
 
   // ---------- Access Control ----------
@@ -32,30 +32,21 @@ const ACPTest = () => {
   const [cartMsg, setCartMsg] = useState("");
 
   useEffect(() => {
-  async function checkAccess() {
-    if (!currentUser?.uid) return;
-
-    try {
-      const testRef = doc(db, `users/${currentUser.uid}/purchasedTests/acpTest`);
-      const snap = await getDoc(testRef);
-
-      if (snap.exists()) {
-        const data = snap.data();
-        setHasAccess(data.unlocked && !data.used);
+    async function checkPurchase() {
+      if (!userId) {
+        setHasAccess(false);
+        return;
+      }
+      const userDoc = await getDoc(doc(db, "users", userId));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        setHasAccess(data.purchasedTests && data.purchasedTests.includes(testId));
       } else {
-        console.warn("ACP Test not found.");
         setHasAccess(false);
       }
-    } catch (err) {
-      console.error("Firestore error:", err.message);
-      setHasAccess(false);
     }
-  }
-
-  checkAccess();
-}, [currentUser]);
-
-
+    checkPurchase();
+  }, [userId, testId, user]); // Ensure user is included
 
   // ---------- Cart Setup ----------
   const { addToCart } = useCart();
@@ -338,8 +329,8 @@ const ACPTest = () => {
         },
       });
       // Remove test and lock access after PDF export
-     // await removeTestFromPurchased(userId, testId);
-      // setHasAccess(false);
+     await removeTestFromPurchased(userId, testId);
+      setHasAccess(false);
     } catch (error) {
       setError(`❌ ${error.message}`);
     }
