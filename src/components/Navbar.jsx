@@ -2,7 +2,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../firebase"; // Adjust the path if needed
-import { ArrowLeft, LayoutDashboard, LogOut } from "lucide-react";
+import { useCart } from "../contexts/CartContext";
+import { ArrowLeft, ShoppingCart, LayoutDashboard, LogOut } from "lucide-react";
   
 export default function Navbar() {
   const [user, setUser] = useState(null);
@@ -27,15 +28,18 @@ export default function Navbar() {
     }
   };
   
+  // Get cart data from CartContext
+  const { cartItems } = useCart();
+  
   // Determine if the current route qualifies as a special test page.
   const isSpecialTestPage =
     location.pathname.includes("/account") ||
     location.pathname.includes("/contact") ||
     location.pathname.includes("/about") ||
     location.pathname.includes("/faq") ||
-    location.pathname.includes("/test-info") ||
     location.pathname.includes("/dashboard") ||
     location.pathname.includes("/unauthorized") ||
+    location.pathname.includes("/cart") ||
     location.pathname.includes("/security") ||
     location.pathname.includes("/test-history") ||
     location.pathname.includes("/dcap-tests") ||
@@ -88,12 +92,12 @@ export default function Navbar() {
       className="shadow-md py-4 px-8 flex justify-between items-center relative"
       style={{ backgroundColor: navbarBgColor }}
     >
-      {/* Left: Waypoint Logo (no onClick) */}
+      {/* Left: Waypoint Logo */}
       <h1 className={`text-lg font-semibold ${textColor}`}>
         Waypoint
       </h1>
   
-      {/* Center: Back Button - Only show if not on a dashboard route */}
+      {/* Center: Back Button (if applicable) */}
       {showBackButton && (
         <div className="absolute left-1/2 transform -translate-x-1/2">
           <button
@@ -106,13 +110,24 @@ export default function Navbar() {
         </div>
       )}
   
-      {/* Right: Dashboard and Sign Out */}
+      {/* Right: Dashboard, Cart, and Sign Out */}
       <div className="flex items-center space-x-4">
         <button
           onClick={() => navigate("/dashboard")}
           className={`flex items-center ${textColor} hover:text-gray-300`}
         >
           <LayoutDashboard className="w-5 h-5 mr-1" />
+        </button>
+        <button
+          onClick={() => navigate("/cart")}
+          className={`relative flex items-center ${textColor} hover:text-gray-300`}
+        >
+          <ShoppingCart className="w-5 h-5" />
+          {cartItems.length > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              {cartItems.length}
+            </span>
+          )}
         </button>
         <button
           onClick={handleSignOut}
