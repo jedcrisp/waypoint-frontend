@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import { Lock } from "lucide-react";
 import testCatalog from "../data/testCatalog";
@@ -40,6 +41,7 @@ const CheckoutButton = ({ selectedTests, userId, testsData }) => {
 };
 
 const TestCatalog = ({ userId, purchasedTests }) => {
+  const navigate = useNavigate();
   const tests = testCatalog;
   const [selectedTests, setSelectedTests] = useState([]);
 
@@ -77,12 +79,12 @@ const TestCatalog = ({ userId, purchasedTests }) => {
               </div>
               <div className="mt-4 z-20 relative">
                 {isPurchased ? (
-                  <a
-                    href={`/dashboard/tests/${test.id}`}
-                    className="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  <button
+                    onClick={() => navigate(`/dashboard/tests/${test.id}`)}
+                    className="w-full text-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
                     Run Test
-                  </a>
+                  </button>
                 ) : (
                   <label className="flex items-center">
                     <input
