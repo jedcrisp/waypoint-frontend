@@ -32,21 +32,29 @@ const ACPTest = () => {
   const [cartMsg, setCartMsg] = useState("");
 
   useEffect(() => {
-    async function checkPurchase() {
-      if (!userId) {
-        setHasAccess(false);
-        return;
-      }
-      const userDoc = await getDoc(doc(db, "users", userId));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        setHasAccess(data.purchasedTests && data.purchasedTests.includes(testId));
-      } else {
-        setHasAccess(false);
-      }
+  async function checkPurchase() {
+    if (!userId) {
+      setHasAccess(false);
+      return;
     }
-    checkPurchase();
-  }, [userId, testId, user]); // Ensure user is included
+
+    const testDocRef = doc(db, `users/${userId}/purchasedTests/${testId}`);
+    const testSnap = await getDoc(testDocRef);
+
+    if (testSnap.exists()) {
+      const data = testSnap.data();
+      console.log("✅ Purchased test entry:", data);
+      const isValid = data.unlocked === true && data.used === false;
+      setHasAccess(isValid);
+    } else {
+      console.log("🚫 Test not found in purchasedTests subcollection");
+      setHasAccess(false);
+    }
+  }
+
+  checkPurchase();
+}, [userId, testId]);
+ // Ensure user is included
 
   // ---------- Cart Setup ----------
   const { addToCart } = useCart();
