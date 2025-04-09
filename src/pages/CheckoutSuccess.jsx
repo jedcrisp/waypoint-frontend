@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
 import { useCart } from "../contexts/CartContext";
+import { savePurchasedTestToFirestore } from "../utils/firebaseTestSaver";  // <-- New import
 
 export default function CheckoutSuccess() {
   const [searchParams] = useSearchParams();
@@ -42,6 +43,10 @@ export default function CheckoutSuccess() {
             },
           }
         );
+
+        // NEW: Save purchase data to Firestore for the purchased test.
+        // Ensure that your helper function writes the document to Firestore under the correct path.
+        await savePurchasedTestToFirestore(user.uid, "acpTest");
 
         // Clear the cart
         clearCart();
