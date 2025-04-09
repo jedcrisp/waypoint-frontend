@@ -34,17 +34,21 @@ export default function CheckoutSuccess() {
         const token = await user.getIdToken();
 
         await axios.post(
-          `${import.meta.env.VITE_BACKEND_URL}/stripe/confirm`,
-          { session_id: sessionId },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+  `${import.meta.env.VITE_BACKEND_URL}/stripe/confirm`,
+  { session_id: sessionId },
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
 
-        clearCart(); // ✅ Clear cart after successful confirmation
-        setLoading(false);
+// ✅ Set skip flag BEFORE clearCart
+sessionStorage.setItem("skipCartRehydration", "true");
+clearCart();
+
+setLoading(false);
+setTimeout(() => navigate("/dashboard"), 2000);
 
         setTimeout(() => navigate("/dashboard"), 2000);
       } catch (err) {
