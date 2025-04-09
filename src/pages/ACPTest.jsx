@@ -8,10 +8,10 @@ import { db } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-// import { 
-//  savePdfResultToFirebase, 
-//  saveAIReviewConsent
-// } from "../utils/firebaseTestSaver";
+import { 
+  savePdfResultToFirebase, 
+  saveAIReviewConsent
+        } from "../utils/firebaseTestSaver";
 import Modal from "../components/Modal";
 import { useCart } from "../contexts/CartContext";
 import { ShoppingCart } from "lucide-react";
