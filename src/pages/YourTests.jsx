@@ -31,10 +31,10 @@ export default function YourTests() {
         setLoading(false);
       }
     }
-
     fetchPurchasedTests();
   }, [currentUser]);
 
+  // Use TEST_CATALOG directly to filter purchased tests
   const testsToShow = TEST_CATALOG.filter((test) =>
     purchasedTests.includes(test.id)
   );
@@ -46,7 +46,7 @@ export default function YourTests() {
   return (
     <div className="max-w-3xl mx-auto mt-10 px-4 py-6 bg-white shadow rounded-lg border border-gray-200">
       <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">Your Tests</h2>
-
+      
       {testsToShow.length === 0 ? (
         <p className="text-gray-600 text-center">You haven't purchased any tests yet.</p>
       ) : (
@@ -55,6 +55,7 @@ export default function YourTests() {
             <div key={test.id} className="p-4 border rounded-lg shadow-sm bg-gray-50">
               <h3 className="text-xl font-semibold text-gray-800">{test.name}</h3>
               <p className="text-gray-600 mt-2">{test.description}</p>
+              {/* When "Run Test" is clicked, navigate to the test page */}
               <button
                 onClick={() => navigate(`/${test.id}`)}
                 className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
