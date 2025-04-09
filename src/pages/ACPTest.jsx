@@ -338,6 +338,7 @@ const ACPTest = () => {
       });
       // Remove test and lock access after PDF export
      await removeTestFromPurchased(userId, testId);
+      console.log("✅ Test marked as used and locked in Firestore.");
       setHasAccess(false);
     } catch (error) {
       setError(`❌ ${error.message}`);
