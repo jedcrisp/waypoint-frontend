@@ -95,10 +95,6 @@ export const saveDeletionConsent = async ({ testId, signature }) => {
   console.log("✅ Deletion consent saved to Firestore at:", `users/${uid}/deletedTests/${testId}`);
 };
 
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "../firebase";
-
-// Lock the test after it's been run and exported
 export async function removeTestFromPurchased(userId, testId) {
   try {
     const testRef = doc(db, `users/${userId}/purchasedTests/${testId}`);
