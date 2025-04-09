@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from "react";
+// src/pages/Dashboard.jsx
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { User, History, Shield, FileText, Info, BookOpen, Mail } from "lucide-react";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { getAuth } from "firebase/auth";
+import { useTests } from "../hooks/useTests";
+import YourTests from "./YourTests"; // Adjust the import path if needed
 
 const dashboardItems = [
   { title: "Account", route: "/account", description: "Manage your profile and settings", icon: User },
@@ -17,22 +20,19 @@ const dashboardItems = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const auth = getAuth();
-  const [user, setUser] = useState(auth.currentUser);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (updatedUser) => {
-      setUser(updatedUser);
-    });
-    return () => unsubscribe();
-  }, [auth]);
-
+  const user = auth.currentUser;
   const displayName = user?.displayName || "User";
+
+  // Fetch all available tests using the custom hook.
+  const { tests, loading } = useTests();
 
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-2">Welcome back, {displayName} 👋</h1>
       <p className="text-gray-600 mb-6">Choose an option to get started.</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      {/* Dashboard Items Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         {dashboardItems.map(({ title, route, description, icon: Icon }) => (
           <motion.div
             key={title}
@@ -47,6 +47,14 @@ export default function Dashboard() {
           </motion.div>
         ))}
       </div>
+
+      {/* Purchased Tests Section */}
+      {loading ? (
+        <div>Loading your tests...</div>
+      ) : (
+        // Pass user.uid and the full list of tests to YourTests
+        <YourTests userId={user?.uid} allTests={tests} />
+      )}
     </div>
   );
 }
