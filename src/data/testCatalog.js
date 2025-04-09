@@ -1,28 +1,22 @@
-const testCatalog = [
+// src/data/testCatalog.js
+export const TEST_CATALOG = [
   {
     id: "acpTest",
     name: "ACP Test",
+    description: "Average Contribution Percentage Test",
     price: 2999,
-    description: "Average Contribution Percentage test",
   },
   {
     id: "adpTest",
     name: "ADP Test",
+    description: "Average Deferral Percentage Test",
     price: 2999,
-    description: "Actual Deferral Percentage test",
   },
   {
-    id: "cafeteriaTest",
-    name: "Cafeteria Plan Test",
-    price: 1999,
-    description: "Section 125 Compliance for Cafeteria Plans",
+    id: "topHeavyTest",
+    name: "Top Heavy Test",
+    description: "Checks if key employees hold more than 60% of plan assets.",
+    price: 2999,
   },
-  {
-    id: "dcapEligibility",
-    name: "DCAP Eligibility Test",
-    price: 1499,
-    description: "Eligibility test for Dependent Care Assistance Program",
-  },
+  // Add other tests here...
 ];
-
-export default testCatalog;
