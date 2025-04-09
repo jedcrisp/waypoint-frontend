@@ -41,6 +41,7 @@ export default function YourTests() {
 }, [currentUser]);
 
 
+
     try {
       // 🔍 ADD THESE TWO LINES RIGHT HERE:
       console.log("Reading from path:", `users/${currentUser?.uid}/purchasedTests`);
