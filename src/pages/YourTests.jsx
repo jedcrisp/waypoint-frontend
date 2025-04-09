@@ -10,8 +10,7 @@ export default function YourTests() {
   const navigate = useNavigate();
   const [purchasedTests, setPurchasedTests] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
+useEffect(() => {
   if (!currentUser) return;
 
   const fetchPurchasedTests = async () => {
@@ -23,11 +22,11 @@ export default function YourTests() {
       const snapshot = await getDocs(purchasedRef);
 
       const unlockedTests = snapshot.docs
-        .filter(doc => {
+        .filter((doc) => {
           const data = doc.data();
           return data.unlocked === true && data.used === false;
         })
-        .map(doc => doc.id);
+        .map((doc) => doc.id);
 
       setPurchasedTests(unlockedTests);
     } catch (error) {
@@ -39,6 +38,7 @@ export default function YourTests() {
 
   fetchPurchasedTests();
 }, [currentUser]);
+
 
 
 
