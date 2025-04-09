@@ -43,15 +43,12 @@ export default function CheckoutSuccess() {
           }
         );
 
-        // Clear the cart and then force a full page reload so that
-        // the CartProvider reinitializes with an empty cart.
+        // Clear the cart
         clearCart();
-        setLoading(false);
-        window.location.reload(); // Force full reload
 
-        // Alternatively, if you don't want to reload but navigate,
-        // you may delay navigation a little to let the state settle:
-        // setTimeout(() => navigate("/dashboard"), 2000);
+        // Force a full reload so that the CartProvider re-initializes from an empty cart.
+        window.location.reload();
+
       } catch (err) {
         console.error("Error confirming purchase:", err);
         setError("Something went wrong while confirming your purchase.");
