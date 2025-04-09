@@ -32,21 +32,32 @@ const ACPTest = () => {
   const [cartMsg, setCartMsg] = useState("");
 
   useEffect(() => {
-    async function checkPurchase() {
-      if (!userId) {
-        setHasAccess(false);
-        return;
-      }
-      const userDoc = await getDoc(doc(db, "users", userId));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        setHasAccess(data.purchasedTests && data.purchasedTests.includes(testId));
-      } else {
-        setHasAccess(false);
-      }
+  async function checkPurchase() {
+    if (!userId) {
+      setHasAccess(false);
+      return;
     }
-    checkPurchase();
-  }, [userId, testId, user]); // Ensure user is included
+
+    try {
+      const testDocRef = doc(db, `users/${userId}/purchasedTests/${testId}`);
+      const testDocSnap = await getDoc(testDocRef);
+
+      if (testDocSnap.exists()) {
+        const data = testDocSnap.data();
+        setHasAccess(data.unlocked && !data.used);
+      } else {
+        console.warn("Test not found in Firestore.");
+        setHasAccess(false);
+      }
+    } catch (err) {
+      console.error("Error checking test access:", err.message);
+      setHasAccess(false);
+    }
+  }
+
+  checkPurchase();
+}, [userId, testId]);
+
 
   // ---------- Cart Setup ----------
   const { addToCart } = useCart();
