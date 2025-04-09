@@ -338,7 +338,6 @@ const ACPTest = () => {
       });
       // Remove test and lock access after PDF export
      await removeTestFromPurchased(userId, testId);
-      console.log("✅ Test marked as used and locked in Firestore.");
       setHasAccess(false);
     } catch (error) {
       setError(`❌ ${error.message}`);
@@ -385,13 +384,23 @@ const ACPTest = () => {
   };
 
   // ---------- Conditional Rendering ----------
-  if (hasAccess === null) return <div>Loading...</div>;
-  // If access is not available, show the blocked view
-  if (!hasAccess) {
-    return (
-      <ACPTestBlockedView addToCart={addToCart} testId="acpTest" />
-    );
-  }
+if (hasAccess === null) return <div>Loading...</div>;
+
+if (!hasAccess) {
+  return (
+    <div className="max-w-lg mx-auto mt-10 p-8 bg-white shadow rounded text-center text-gray-700">
+      <h2 className="text-2xl font-semibold mb-4">Test Completed</h2>
+      <p className="mb-4">You've already completed this test. It is now locked.</p>
+      <button
+        className="bg-blue-600 text-white px-4 py-2 rounded"
+        onClick={() => navigate("/dashboard")}
+      >
+        Back to Dashboard
+      </button>
+    </div>
+  );
+}
+
 
   // ---------- Render ACP Test Content if Access Granted ----------
   return (
