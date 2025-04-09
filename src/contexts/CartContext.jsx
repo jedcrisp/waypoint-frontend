@@ -1,15 +1,23 @@
-// src/contexts/CartContext.jsx (simplified version)
+// src/contexts/CartContext.jsx
 import React, { createContext, useState, useEffect, useContext } from "react";
 
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState(() => {
+    // If we’re returning from checkout (Stripe redirect typically includes session_id),
+    // ignore any stored cart and start with an empty array.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("session_id")) {
+      return [];
+    }
+
+    // Otherwise, initialize from localStorage as usual.
     const storedCart = localStorage.getItem("cartItems");
     return storedCart ? JSON.parse(storedCart) : [];
   });
 
-  // Persist cart state changes to localStorage
+  // Whenever cartItems changes, persist it to localStorage.
   useEffect(() => {
     localStorage.setItem("cartItems", JSON.stringify(cartItems));
     console.log("💾 Updated localStorage with cartItems:", cartItems);
@@ -26,16 +34,11 @@ export const CartProvider = ({ children }) => {
   };
 
   const clearCart = () => {
-  console.log("🧹 clearCart() called");
-  // Use a function update to ensure we set state to empty array
-  setCartItems(() => {
-    const newCart = [];
-    localStorage.setItem("cartItems", JSON.stringify(newCart));
+    console.log("🧹 clearCart() called");
+    setCartItems([]);
+    localStorage.setItem("cartItems", JSON.stringify([]));
     console.log("💾 localStorage after clearCart:", localStorage.getItem("cartItems"));
-    return newCart;
-  });
-};
-
+  };
 
   return (
     <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, clearCart }}>
