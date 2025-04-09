@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
-import { useCart } from "../contexts/CartContext"; // ✅ Import your cart context
+import { useCart } from "../contexts/CartContext";
 
 export default function CheckoutSuccess() {
   const [searchParams] = useSearchParams();
@@ -11,7 +11,7 @@ export default function CheckoutSuccess() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const { clearCart } = useCart(); // ✅ Grab clearCart from context
+  const { clearCart } = useCart();
 
   useEffect(() => {
     const confirmPurchase = async () => {
@@ -34,24 +34,24 @@ export default function CheckoutSuccess() {
         const token = await user.getIdToken();
 
         await axios.post(
-  `${import.meta.env.VITE_BACKEND_URL}/stripe/confirm`,
-  { session_id: sessionId },
-  {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  }
-);
+          `${import.meta.env.VITE_BACKEND_URL}/stripe/confirm`,
+          { session_id: sessionId },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-clearCart();
-// Force a reload so that CartProvider re-initializes
-window.location.reload();
+        // Clear the cart and then force a full page reload so that
+        // the CartProvider reinitializes with an empty cart.
+        clearCart();
+        setLoading(false);
+        window.location.reload(); // Force full reload
 
-
-setLoading(false);
-setTimeout(() => navigate("/dashboard"), 2000);
-
-        setTimeout(() => navigate("/dashboard"), 2000);
+        // Alternatively, if you don't want to reload but navigate,
+        // you may delay navigation a little to let the state settle:
+        // setTimeout(() => navigate("/dashboard"), 2000);
       } catch (err) {
         console.error("Error confirming purchase:", err);
         setError("Something went wrong while confirming your purchase.");
