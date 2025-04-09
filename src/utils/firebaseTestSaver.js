@@ -95,13 +95,20 @@ export const saveDeletionConsent = async ({ testId, signature }) => {
   console.log("✅ Deletion consent saved to Firestore at:", `users/${uid}/deletedTests/${testId}`);
 };
 
-export const removeTestFromPurchased = async (userId, testId) => {
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../firebase";
+
+// Lock the test after it's been run and exported
+export async function removeTestFromPurchased(userId, testId) {
   try {
     const testRef = doc(db, `users/${userId}/purchasedTests/${testId}`);
-    await deleteDoc(testRef);
-    console.log(`✅ Removed purchased test document: ${testId}`);
-  } catch (error) {
-    console.error("❌ Error removing test document:", error);
-    throw error;
+    await updateDoc(testRef, {
+      used: true,
+      unlocked: false,
+    });
+    console.log("✅ Test marked as used and locked.");
+  } catch (err) {
+    console.error("❌ Failed to lock test after use:", err);
   }
-};
+}
+
