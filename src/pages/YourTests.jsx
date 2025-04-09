@@ -12,19 +12,25 @@ export default function YourTests() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchPurchasedTests() {
-      if (!currentUser) {
-        setLoading(false);
-        return;
-      }
+  if (!currentUser) return; // Prevent hook from running too early
 
-      try {
-        useEffect(() => {
-  async function fetchPurchasedTests() {
-    if (!currentUser) {
+  const fetchPurchasedTests = async () => {
+    try {
+      const purchasedRef = collection(db, `users/${currentUser.uid}/purchasedTests`);
+      const snapshot = await getDocs(purchasedRef);
+      const testIds = snapshot.docs.map((doc) => doc.id);
+      console.log("✅ Fetched purchased tests:", testIds);
+      setPurchasedTests(testIds);
+    } catch (error) {
+      console.error("❌ Error fetching purchased tests:", error);
+    } finally {
       setLoading(false);
-      return;
     }
+  };
+
+  fetchPurchasedTests();
+}, [currentUser]);
+
 
     try {
       // 🔍 ADD THESE TWO LINES RIGHT HERE:
