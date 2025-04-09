@@ -32,21 +32,18 @@ const ACPTest = () => {
   const [cartMsg, setCartMsg] = useState("");
 
   useEffect(() => {
-    async function checkPurchase() {
-      if (!userId) {
-        setHasAccess(false);
-        return;
-      }
-      const userDoc = await getDoc(doc(db, "users", userId));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        setHasAccess(data.purchasedTests && data.purchasedTests.includes(testId));
-      } else {
-        setHasAccess(false);
-      }
+  async function checkPurchase() {
+    if (!userId) {
+      setHasAccess(false);
+      return;
     }
-    checkPurchase();
-  }, [userId, testId, user]); // Ensure user is included
+    // Use the purchasedTests subcollection as defined by your security rules:
+    const purchaseRef = doc(db, "users", userId, "purchasedTests", testId);
+    const purchaseDoc = await getDoc(purchaseRef);
+    setHasAccess(purchaseDoc.exists());
+  }
+  checkPurchase();
+}, [userId, testId, user]);
 
   // ---------- Cart Setup ----------
   const { addToCart } = useCart();
