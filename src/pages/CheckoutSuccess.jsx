@@ -43,9 +43,10 @@ export default function CheckoutSuccess() {
   }
 );
 
-// ✅ Set skip flag BEFORE clearCart
-sessionStorage.setItem("skipCartRehydration", "true");
 clearCart();
+// Force a reload so that CartProvider re-initializes
+window.location.reload();
+
 
 setLoading(false);
 setTimeout(() => navigate("/dashboard"), 2000);
