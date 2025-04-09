@@ -32,31 +32,21 @@ const ACPTest = () => {
   const [cartMsg, setCartMsg] = useState("");
 
  useEffect(() => {
-  if (!userId) {
-    setHasAccess(false);
-    return;
-  }
-  const purchaseRef = doc(db, "users", userId, "purchasedTests", testId);
-  const unsubscribe = onSnapshot(
-    purchaseRef,
-    (docSnapshot) => {
-      if (docSnapshot.exists()) {
-        console.log("Purchase document exists, granting access");
-        setHasAccess(true);
-      } else {
-        console.log("No purchase document found, access denied");
-        setHasAccess(false);
-      }
-    },
-    (error) => {
-      console.error("Error fetching purchased tests:", error);
-      setHasAccess(false);
-    }
-  );
-  return () => {
-    unsubscribe();
+  const checkPurchase = async () => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user) return setHasAccess(false);
+
+    const userId = user.uid;
+    const testId = "acpTest";
+    const docRef = doc(db, "users", userId, "purchasedTests", testId);
+    const docSnap = await getDoc(docRef);
+
+    setHasAccess(docSnap.exists());
   };
-}, [userId, testId]);
+
+  checkPurchase();
+}, []);
 
   // ---------- Cart Setup ----------
   const { addToCart } = useCart();
