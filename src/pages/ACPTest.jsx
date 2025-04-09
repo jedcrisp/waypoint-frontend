@@ -16,7 +16,7 @@ import Modal from "../components/Modal";
 import { useCart } from "../contexts/CartContext";
 import { ShoppingCart } from "lucide-react";
 import ACPTestBlockedView from "../components/ACPTestBlockedView";
-import { removeTestFromPurchased } from "../utils/firebaseTestSaver.js";
+// import { removeTestFromPurchased } from "../utils/firebaseTestSaver.js";
 import { useAuth } from "../contexts/AuthContext";
 
 const ACPTest = () => {
