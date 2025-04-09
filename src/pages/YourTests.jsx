@@ -10,79 +10,32 @@ export default function YourTests() {
   const navigate = useNavigate();
   const [purchasedTests, setPurchasedTests] = useState([]);
   const [loading, setLoading] = useState(true);
-useEffect(() => {
-  if (!currentUser) return;
 
-  const fetchPurchasedTests = async () => {
-    try {
-      console.log("Reading from path:", `users/${currentUser.uid}/purchasedTests`);
-      console.log("User ID from auth:", currentUser.uid);
+  useEffect(() => {
+    if (!currentUser) return;
 
-      const purchasedRef = collection(db, `users/${currentUser.uid}/purchasedTests`);
-      const snapshot = await getDocs(purchasedRef);
-
-      const unlockedTests = snapshot.docs
-        .filter((doc) => {
-          const data = doc.data();
-          return data.unlocked === true && data.used === false;
-        })
-        .map((doc) => doc.id);
-
-      setPurchasedTests(unlockedTests);
-    } catch (error) {
-      console.error("❌ Error fetching purchased tests:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchPurchasedTests();
-}, [currentUser]);
-
-
-
-
-    try {
-      // 🔍 ADD THESE TWO LINES RIGHT HERE:
-      console.log("Reading from path:", `users/${currentUser?.uid}/purchasedTests`);
-      console.log("User ID from auth:", currentUser?.uid);
-
-      const purchasedRef = collection(db, `users/${currentUser.uid}/purchasedTests`);
-      const snapshot = await getDocs(purchasedRef);
-      const unlockedTests = snapshot.docs
-        .filter(doc => {
-          const data = doc.data();
-          return data.unlocked === true && data.used === false;
-        })
-        .map(doc => doc.id);
-
-      setPurchasedTests(unlockedTests);
-    } catch (error) {
-      console.error("Error fetching purchased tests:", error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  fetchPurchasedTests();
-}, [currentUser]);
+    const fetchPurchasedTests = async () => {
+      try {
+        console.log("Reading from path:", `users/${currentUser.uid}/purchasedTests`);
+        console.log("User ID from auth:", currentUser.uid);
 
         const purchasedRef = collection(db, `users/${currentUser.uid}/purchasedTests`);
         const snapshot = await getDocs(purchasedRef);
+
         const unlockedTests = snapshot.docs
-          .filter(doc => {
+          .filter((doc) => {
             const data = doc.data();
             return data.unlocked === true && data.used === false;
           })
-          .map(doc => doc.id);
+          .map((doc) => doc.id);
 
         setPurchasedTests(unlockedTests);
       } catch (error) {
-        console.error("Error fetching purchased tests:", error);
+        console.error("❌ Error fetching purchased tests:", error);
       } finally {
         setLoading(false);
       }
-    }
+    };
 
     fetchPurchasedTests();
   }, [currentUser]);
@@ -100,7 +53,9 @@ useEffect(() => {
       <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">Your Tests</h2>
 
       {testsToShow.length === 0 ? (
-        <p className="text-gray-600 text-center">You haven't purchased any tests yet, or they've already been used.</p>
+        <p className="text-gray-600 text-center">
+          You haven't purchased any tests yet, or they've already been used.
+        </p>
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {testsToShow.map((test) => (
