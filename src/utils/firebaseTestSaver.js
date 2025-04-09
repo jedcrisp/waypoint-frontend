@@ -56,6 +56,25 @@ export const saveAIReviewConsent = async ({ fileName, signature }) => {
   console.log("✅ AI Review consent saved to Firestore");
 };
 
+export const savePurchasedTestToFirestore = async (testId) => {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (!user) throw new Error("User not authenticated.");
+
+  const uid = user.uid;
+  const purchaseRef = doc(db, `users/${uid}/purchases/${testId}`);
+
+  await setDoc(purchaseRef, {
+    testId,
+    purchased: true,
+    purchasedAt: new Date().toISOString(),
+    email: user.email,
+  });
+
+  console.log(`✅ Test purchase "${testId}" saved to Firestore.`);
+};
+
+
 export const saveDeletionConsent = async ({ testId, signature }) => {
   const auth = getAuth();
   const user = auth.currentUser;
