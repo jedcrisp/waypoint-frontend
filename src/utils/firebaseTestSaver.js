@@ -2,6 +2,7 @@ import { getAuth } from "firebase/auth";
 import { getFirestore, doc, setDoc, updateDoc, arrayRemove } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage, db } from "../firebase";
+import { deleteDoc } from "firebase/firestore";
 
 export const savePdfResultToFirebase = async ({ fileName, pdfBlob, additionalData = {} }) => {
   const auth = getAuth();
@@ -96,12 +97,11 @@ export const saveDeletionConsent = async ({ testId, signature }) => {
 
 export const removeTestFromPurchased = async (userId, testId) => {
   try {
-    await updateDoc(doc(db, "users", userId), {
-      purchasedTests: arrayRemove(testId),
-    });
-    console.log(`✅ Removed test ${testId} from user's purchased tests`);
+    const testRef = doc(db, `users/${userId}/purchasedTests/${testId}`);
+    await deleteDoc(testRef);
+    console.log(`✅ Removed purchased test document: ${testId}`);
   } catch (error) {
-    console.error("❌ Error removing test from purchasedTests:", error);
-    throw error; // Optional: rethrow for error handling in ACPTest.jsx
+    console.error("❌ Error removing test document:", error);
+    throw error;
   }
 };
