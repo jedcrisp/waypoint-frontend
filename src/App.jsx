@@ -1,3 +1,4 @@
+// src/App.jsx
 import React, { useState, useEffect, createContext, useRef } from "react";
 import {
   BrowserRouter as Router,
@@ -7,6 +8,8 @@ import {
   useLocation,
 } from "react-router-dom";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+import { CartProvider } from "./contexts/CartContext";
+import { AuthProvider } from "./contexts/AuthContext";
 
 // Pages
 import Dashboard from "./pages/Dashboard";
@@ -15,10 +18,11 @@ import Home from "./pages/Home";
 import FAQ from "./pages/FAQ";
 import Contact from "./components/Contact";
 import About from "./pages/About";
-import TestInfo from "./components/TestInfo";
 import UploadButton from "./components/UploadButton";
 import ReportPage from "./pages/ReportPage";
 import TestSelection from "./pages/TestSelection";
+import CartPage from "./pages/CartPage";
+import CheckoutButton from "./components/CheckoutButton";
 import AdpTest from "./pages/AdpTest";
 import ADPSafeHarbor401kTest from "./pages/ADPSafeHarbor401kTest";
 import ADPSafeHarborSlidingTest from "./pages/ADPSafeHarborSlidingTest";
@@ -67,14 +71,17 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Footer from "./components/Footer";
 import "./index.css";
 
+// Optional: a context for additional app-level state
 const TestContext = createContext();
 
+// Private route wrapper that checks if a user is authenticated
 function PrivateRoute({ children }) {
   const auth = getAuth();
   const user = auth.currentUser;
   return user ? children : <Navigate to="/signin" />;
 }
 
+// Main application content wrapped with layout components
 function AppContent() {
   const [user, setUser] = useState(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
@@ -156,11 +163,12 @@ function AppContent() {
             <Route path="/signup" element={<SignUp />} />
             <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
             <Route path="/about" element={<About />} />
-            <Route path="/test-info" element={<TestInfo />} />
             <Route path="/faq" element={<FAQ />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
             <Route path="/select-test" element={<PrivateRoute><TestSelection /></PrivateRoute>} />
+            <Route path="/cart" element={<PrivateRoute><CartPage /></PrivateRoute>} />
+            <Route path="/checkout-button" element={<PrivateRoute><CheckoutButton /></PrivateRoute>} />
             <Route path="/test-adp" element={<PrivateRoute><AdpTest /></PrivateRoute>} />
             <Route path="/test-adp-safe-harbor-401k" element={<PrivateRoute><ADPSafeHarbor401kTest /></PrivateRoute>} />
             <Route path="/test-adp-safe-harbor-sliding" element={<PrivateRoute><ADPSafeHarborSlidingTest /></PrivateRoute>} />
@@ -212,9 +220,13 @@ function AppContent() {
 
 function App() {
   return (
-    <ErrorBoundary>
-        <AppContent />
-    </ErrorBoundary>
+  <AuthProvider>
+    <CartProvider>
+      <ErrorBoundary>
+          <AppContent />
+      </ErrorBoundary>
+    </CartProvider>
+  </AuthProvider>
   );
 }
 
