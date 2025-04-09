@@ -26,11 +26,16 @@ export const CartProvider = ({ children }) => {
   };
 
   const clearCart = () => {
-    console.log("🧹 clearCart() called");
-    setCartItems([]);
-    localStorage.setItem("cartItems", JSON.stringify([]));
+  console.log("🧹 clearCart() called");
+  // Use a function update to ensure we set state to empty array
+  setCartItems(() => {
+    const newCart = [];
+    localStorage.setItem("cartItems", JSON.stringify(newCart));
     console.log("💾 localStorage after clearCart:", localStorage.getItem("cartItems"));
-  };
+    return newCart;
+  });
+};
+
 
   return (
     <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, clearCart }}>
