@@ -4,30 +4,27 @@ import React, { createContext, useState, useEffect, useContext } from "react";
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
+  // Initial state: read from localStorage if available
   const [cartItems, setCartItems] = useState(() => {
     const storedCart = localStorage.getItem("cartItems");
     return storedCart ? JSON.parse(storedCart) : [];
   });
 
-  // Rehydrate cart from localStorage unless skip flag is set in localStorage
+  // Rehydrate cart from localStorage only if the stored value is not empty ("[]")
   useEffect(() => {
-    const skip = localStorage.getItem("skipCartRehydration");
-    if (skip === "true") {
-      localStorage.removeItem("skipCartRehydration"); // Remove flag so future rehydrations work as expected
-      console.log("🚫 Skipping cart rehydration after checkout");
-      return;
-    }
-
     const storedCart = localStorage.getItem("cartItems");
-    const parsedCart = storedCart ? JSON.parse(storedCart) : [];
-
-    if (parsedCart.length > 0) {
-      setCartItems(parsedCart);
-      console.log("🛒 Cart rehydrated from localStorage:", parsedCart);
+    if (storedCart && storedCart !== "[]") {
+      const parsedCart = JSON.parse(storedCart);
+      if (parsedCart.length > 0) {
+        setCartItems(parsedCart);
+        console.log("🛒 Cart rehydrated from localStorage:", parsedCart);
+      }
+    } else {
+      console.log("No cart items to rehydrate");
     }
   }, []);
 
-  // Persist cart state changes to localStorage
+  // Persist cart state to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem("cartItems", JSON.stringify(cartItems));
   }, [cartItems]);
@@ -46,9 +43,8 @@ export const CartProvider = ({ children }) => {
     console.log("🧹 clearCart() called");
     setCartItems([]);
     localStorage.setItem("cartItems", JSON.stringify([]));
-    // Set flag in localStorage so we skip rehydration on app reload
-    localStorage.setItem("skipCartRehydration", "true");
 
+    // Debug log: (state updates in React are asynchronous so this may log the old value)
     setTimeout(() => {
       console.log("🛒 After clearCart:");
       console.log("  - cartItems (state):", cartItems);
@@ -57,9 +53,7 @@ export const CartProvider = ({ children }) => {
   };
 
   return (
-    <CartContext.Provider
-      value={{ cartItems, addToCart, removeFromCart, clearCart }}
-    >
+    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, clearCart }}>
       {children}
     </CartContext.Provider>
   );
