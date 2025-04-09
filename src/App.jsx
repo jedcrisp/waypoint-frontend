@@ -210,6 +210,7 @@ function AppContent() {
             <Route path="/security" element={<PrivateRoute><Security /></PrivateRoute>} />
             <Route path="/test-history" element={<PrivateRoute><TestHistory /></PrivateRoute>} />
             <Route path="*" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+            <Route path="/acpTest" element={<PrivateRoute><ACPTest /></PrivateRoute>} />
           </Routes>
         </main>
         {showComponents && <Footer />}
