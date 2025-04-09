@@ -4,27 +4,13 @@ import React, { createContext, useState, useEffect, useContext } from "react";
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-  // Initial state: read from localStorage if available
+  // Read cart from localStorage only once when the provider mounts
   const [cartItems, setCartItems] = useState(() => {
     const storedCart = localStorage.getItem("cartItems");
     return storedCart ? JSON.parse(storedCart) : [];
   });
 
-  // Rehydrate cart from localStorage only if the stored value is not empty ("[]")
-  useEffect(() => {
-    const storedCart = localStorage.getItem("cartItems");
-    if (storedCart && storedCart !== "[]") {
-      const parsedCart = JSON.parse(storedCart);
-      if (parsedCart.length > 0) {
-        setCartItems(parsedCart);
-        console.log("🛒 Cart rehydrated from localStorage:", parsedCart);
-      }
-    } else {
-      console.log("No cart items to rehydrate");
-    }
-  }, []);
-
-  // Persist cart state to localStorage whenever it changes
+  // Persist cart state changes to localStorage
   useEffect(() => {
     localStorage.setItem("cartItems", JSON.stringify(cartItems));
   }, [cartItems]);
@@ -41,19 +27,17 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
     console.log("🧹 clearCart() called");
-    setCartItems([]);
+    // Overwrite localStorage with an empty array
     localStorage.setItem("cartItems", JSON.stringify([]));
-
-    // Debug log: (state updates in React are asynchronous so this may log the old value)
-    setTimeout(() => {
-      console.log("🛒 After clearCart:");
-      console.log("  - cartItems (state):", cartItems);
-      console.log("  - localStorage:", localStorage.getItem("cartItems"));
-    }, 200);
+    console.log("After clearCart, localStorage:", localStorage.getItem("cartItems"));
+    // Update the state to an empty array
+    setCartItems([]);
   };
 
   return (
-    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, clearCart }}>
+    <CartContext.Provider
+      value={{ cartItems, addToCart, removeFromCart, clearCart }}
+    >
       {children}
     </CartContext.Provider>
   );
