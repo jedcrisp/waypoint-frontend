@@ -32,6 +32,8 @@ export default function CheckoutSuccess() {
           return;
         }
 
+        console.log("User UID being used:", user.uid);
+
         const token = await user.getIdToken();
 
         await axios.post(
