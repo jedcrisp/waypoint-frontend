@@ -337,38 +337,39 @@ const ACPTest = () => {
   };
 
   const handleRunAIReview = async () => {
-    if (!result || !result.acp_summary) {
-      setError("❌ No test summary available for AI review.");
-      return;
-    }
-    if (!consentChecked || !signature.trim()) {
-      setShowConsentModal(true);
-      return;
-    }
-    setLoading(true);
-    try {
-      await saveAIReviewConsent({
-        fileName: "ACP Test",
-        signature: signature.trim(),
-      });
-      const response = await axios.post(`${API_URL}/api/ai-review`, {
-        testType: "ACP",
-        testData: result.acp_summary,
-        signature: signature.trim(),
-      });
-      const aiText = response.data.analysis;
-      setAiReview(aiText);
-      await exportToPDF(aiText);
-      // Once the test has run and the PDF exported successfully,
-      // remove the test access so it will lock again
-      await removeTestFromPurchased(userId, testId);
-      // Optionally update the local state to reflect the locked status immediately:
-      setHasAccess(false);
-    } catch (error) {
-      setAiReview("Error fetching AI review.");
-    }
-    setLoading(false);
-  };
+  if (!result || !result.acp_summary) {
+    setError("❌ No test summary available for AI review.");
+    return;
+  }
+  if (!consentChecked || !signature.trim()) {
+    setShowConsentModal(true);
+    return;
+  }
+  setLoading(true);
+  try {
+    await saveAIReviewConsent({
+      fileName: "ACP Test",
+      signature: signature.trim(),
+    });
+    const response = await axios.post(`${API_URL}/api/ai-review`, {
+      testType: "ACP",
+      testData: result.acp_summary,
+      signature: signature.trim(),
+    });
+    const aiText = response.data.analysis;
+    setAiReview(aiText);
+    // Export the PDF with AI review results
+    await exportToPDF(aiText);
+    // Once the PDF export succeeds, remove test access so that the test becomes locked again.
+    await removeTestFromPurchased(userId, testId);
+    // Update local state immediately to reflect the locked state
+    setHasAccess(false);
+  } catch (error) {
+    setAiReview("Error fetching AI review.");
+  }
+  setLoading(false);
+};
+
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && file && !loading) {
