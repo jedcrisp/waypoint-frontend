@@ -17,17 +17,25 @@ export default function YourTests() {
         setLoading(false);
         return;
       }
+
       try {
         const purchasedRef = collection(db, `users/${currentUser.uid}/purchasedTests`);
         const snapshot = await getDocs(purchasedRef);
-        const testIds = snapshot.docs.map((doc) => doc.id);
-        setPurchasedTests(testIds);
+        const unlockedTests = snapshot.docs
+          .filter(doc => {
+            const data = doc.data();
+            return data.unlocked === true && data.used === false;
+          })
+          .map(doc => doc.id);
+
+        setPurchasedTests(unlockedTests);
       } catch (error) {
         console.error("Error fetching purchased tests:", error);
       } finally {
         setLoading(false);
       }
     }
+
     fetchPurchasedTests();
   }, [currentUser]);
 
@@ -44,7 +52,7 @@ export default function YourTests() {
       <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">Your Tests</h2>
 
       {testsToShow.length === 0 ? (
-        <p className="text-gray-600 text-center">You haven't purchased any tests yet.</p>
+        <p className="text-gray-600 text-center">You haven't purchased any tests yet, or they've already been used.</p>
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {testsToShow.map((test) => (
