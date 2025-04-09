@@ -1,13 +1,53 @@
+// src/pages/ACPTest.jsx
 import React, { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase";
+import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { savePdfResultToFirebase, saveAIReviewConsent } from "../utils/firebaseTestSaver";
 import Modal from "../components/Modal";
+import { useCart } from "../contexts/CartContext";
+import { ShoppingCart } from "lucide-react";
+import ACPTestBlockedView from "../components/ACPTestBlockedView";
 
 const ACPTest = () => {
+  const navigate = useNavigate();
+  const auth = getAuth();
+  const user = auth.currentUser;
+  const userId = user?.uid;
+  const testId = "acpTest"; // Must match the test ID used in your test catalog and purchase flow
+
+  // ---------- Access Control ----------
+  const [hasAccess, setHasAccess] = useState(null);
+  const [cartMsg, setCartMsg] = useState("");
+
+  useEffect(() => {
+  async function checkPurchase() {
+    if (!userId) {
+      setHasAccess(false);
+      return;
+    }
+    const userDoc = await getDoc(doc(db, "users", userId));
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      setHasAccess(data.purchasedTests && data.purchasedTests.includes(testId));
+    } else {
+      setHasAccess(false);
+    }
+  }
+
+  checkPurchase();
+}, [userId, testId, user]); // ✅ include user
+
+
+  // ---------- Cart Setup ----------
+  const { addToCart } = useCart();
+
+  // ---------- Component State & Helpers ----------
   const [file, setFile] = useState(null);
   const [planYear, setPlanYear] = useState("");
   const [result, setResult] = useState(null);
@@ -18,41 +58,9 @@ const ACPTest = () => {
   const [consentChecked, setConsentChecked] = useState(false);
   const [signature, setSignature] = useState("");
   const [normalPdfExported, setNormalPdfExported] = useState(false); // flag to export normal PDF only once
-
   const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure this is set in .env.local
 
-  // Auto-export the normal PDF when result is set (if AI review hasn't been triggered)
-  useEffect(() => {
-    if (result && !normalPdfExported) {
-      exportToPDF(); // call without AI text parameter for normal PDF
-      setNormalPdfExported(true);
-    }
-  }, [result, normalPdfExported]);
-
-  // Reset export flag when a new file is chosen
-  useEffect(() => {
-    if (!file) {
-      setNormalPdfExported(false);
-    }
-  }, [file]);
-
-  // ---------- Formatting Helpers ----------
-  const formatCurrency = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
-    return Number(value).toLocaleString("en-US", {
-      style: "currency",
-      currency: "USD",
-    });
-  };
-
-  const formatPercentage = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
-    return `${Number(value).toFixed(2)}%`;
-  };
-
-  // =========================
-  // 1. Drag & Drop Logic
-  // =========================
+  // Dropzone setup
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
       setFile(acceptedFiles[0]);
@@ -71,70 +79,16 @@ const ACPTest = () => {
     noKeyboard: true,
   });
 
-  // =========================
-  // 2. Upload File to Backend
-  // =========================
-  const handleUpload = async () => {
+  // Reset export flag when a new file is chosen
+  useEffect(() => {
     if (!file) {
-      setError("❌ Please select a file before uploading.");
-      return;
+      setNormalPdfExported(false);
     }
-    if (!planYear) {
-      setError("❌ Please select a plan year.");
-      return;
-    }
+  }, [file]);
 
-    // Validate file extension
-    const validFileTypes = [".csv", ".xlsx"];
-    const fileExtension = "." + file.name.split(".").pop().toLowerCase();
-    if (!validFileTypes.includes(fileExtension)) {
-      setError("❌ Invalid file type. Please upload a CSV or Excel file.");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    setAiReview("");
-    setNormalPdfExported(false);
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("selected_tests", "acp");
-
-    try {
-      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/acp`);
-      console.log("📂 File Selected:", file.name);
-
-      const auth = getAuth();
-      const token = await auth.currentUser?.getIdToken(true);
-      if (!token) {
-        setError("❌ No valid Firebase token found. Are you logged in?");
-        setLoading(false);
-        return;
-      }
-      console.log("Firebase Token:", token);
-
-      const response = await axios.post(`${API_URL}/upload-csv/acp`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      console.log("✅ Response received:", response.data);
-      setResult(response.data["Test Results"]["acp"]);
-    } catch (err) {
-      console.error("❌ Upload error:", err.response ? err.response.data : err);
-      setError("❌ Failed to upload file. Please check the format and try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // =========================
-  // 3. Download CSV Template
-  // =========================
+  // Helper functions for file processing (downloadCSVTemplate, handleUpload, downloadResultsAsCSV, exportToPDF, handleRunAIReview, etc.)
+  // (These are assumed to be defined below or imported; see your previous code for full implementations.)
+  
   const downloadCSVTemplate = () => {
     const csvTemplate = [
       [
@@ -176,9 +130,51 @@ const ACPTest = () => {
     document.body.removeChild(link);
   };
 
-  // =========================
-  // 4. Download Results as CSV
-  // =========================
+  const handleUpload = async () => {
+    if (!file) {
+      setError("❌ Please select a file before uploading.");
+      return;
+    }
+    if (!planYear) {
+      setError("❌ Please select a plan year.");
+      return;
+    }
+    const validFileTypes = [".csv", ".xlsx"];
+    const fileExtension = "." + file.name.split(".").pop().toLowerCase();
+    if (!validFileTypes.includes(fileExtension)) {
+      setError("❌ Invalid file type. Please upload a CSV or Excel file.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    setAiReview("");
+    setNormalPdfExported(false);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("selected_tests", "acp");
+
+    try {
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+      const response = await axios.post(`${API_URL}/upload-csv/acp`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      setResult(response.data["Test Results"]["acp"]);
+    } catch (err) {
+      setError("❌ Failed to upload file. Please check the format and try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const downloadResultsAsCSV = () => {
     if (!result) {
       setError("❌ No results to download.");
@@ -189,18 +185,16 @@ const ACPTest = () => {
     const hceAvg = result["HCE ACP (%)"];
     const nhceAvg = result["NHCE ACP (%)"];
     const testResult = result["Test Result"] ?? "N/A";
-
     const formatPct = (val) =>
       val !== undefined && val !== null && !isNaN(val)
         ? `${Number(val).toFixed(2)}%`
         : "N/A";
-
     const csvRows = [
       ["Metric", "Value"],
       ["Total Employees", totalEmployees],
       ["Total Participants", totalParticipants],
-      ["HCE ACP (%)", formatPct(hceAvg)],
-      ["NHCE ACP (%)", formatPct(nhceAvg)],
+      ["HCE ACP", formatPct(hceAvg)],
+      ["NHCE ACP", formatPct(nhceAvg)],
       ["Test Result", testResult],
     ];
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
@@ -214,19 +208,13 @@ const ACPTest = () => {
     document.body.removeChild(link);
   };
 
-  // =========================
-  // 5. Export Results to PDF Function
-  // Accepts an optional parameter for custom AI review text.
-  // =========================
   const exportToPDF = async (customAiReview) => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
     try {
-      // Use customAiReview if provided; otherwise use the current aiReview state.
       const finalAIText = customAiReview !== undefined ? customAiReview : aiReview;
-
       const totalEmployees = result?.["Total Employees"] || "N/A";
       const totalParticipants = result?.["Total Participants"] || "N/A";
       const hceAvg =
@@ -237,8 +225,6 @@ const ACPTest = () => {
       const failed = testResult.toLowerCase() === "failed";
 
       const pdf = new jsPDF("p", "mm", "a4");
-
-      // Title & Metadata
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(18);
       pdf.text("ACP Test Results", 105, 15, { align: "center" });
@@ -246,8 +232,6 @@ const ACPTest = () => {
       pdf.setFontSize(12);
       pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
       pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
-
-      // Description
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
       pdf.text(
@@ -256,8 +240,6 @@ const ACPTest = () => {
         38,
         { align: "center", maxWidth: 180 }
       );
-
-      // Main Table
       pdf.autoTable({
         startY: 48,
         theme: "grid",
@@ -273,8 +255,6 @@ const ACPTest = () => {
         styles: { fontSize: 12, font: "helvetica" },
         margin: { left: 10, right: 10 },
       });
-
-      // AI Review Section (if available)
       if (finalAIText) {
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
@@ -286,8 +266,6 @@ const ACPTest = () => {
           margin: { left: 10, right: 10 },
         });
       }
-
-      // If test failed and no AI text, show corrective actions & consequences
       if (failed && !finalAIText) {
         const correctiveActions = [
           "Refund Excess Contributions to HCEs by March 15 to avoid penalties.",
@@ -301,7 +279,6 @@ const ACPTest = () => {
           "Plan Disqualification Risk",
           "Employee Dissatisfaction & Legal Risks",
         ];
-
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
@@ -311,7 +288,6 @@ const ACPTest = () => {
           styles: { fontSize: 11, font: "helvetica" },
           margin: { left: 10, right: 10 },
         });
-
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
@@ -322,8 +298,6 @@ const ACPTest = () => {
           margin: { left: 10, right: 10 },
         });
       }
-
-      // Digital Signature with Timestamp (if provided)
       if (signature.trim()) {
         const sigTime = new Date().toLocaleString();
         pdf.setFont("helvetica", "normal");
@@ -332,22 +306,14 @@ const ACPTest = () => {
         pdf.text(`Digital Signature: ${signature.trim()}`, 10, 280);
         pdf.text(`Signed on: ${sigTime}`, 10, 285);
       }
-
-      // Footer
       pdf.setFont("helvetica", "italic");
       pdf.setFontSize(10);
       pdf.setTextColor(100, 100, 100);
       pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
-
-      // Determine download filename based on AI review presence
       const downloadFileName = finalAIText
         ? "AI Reviewed: ACP Test Results.pdf"
         : "ACP Test Results.pdf";
-
-      // Automatically download PDF
       pdf.save(downloadFileName);
-
-      // Generate PDF blob and upload to Firebase with appropriate metadata
       const pdfBlob = pdf.output("blob");
       await savePdfResultToFirebase({
         fileName: finalAIText ? "AI Reviewed: ACP Test Results" : "ACP Test Results",
@@ -362,35 +328,26 @@ const ACPTest = () => {
           },
         },
       });
-
-      console.log("✅ Export and upload complete");
     } catch (error) {
-      console.error("❌ Export PDF Error:", error);
       setError(`❌ ${error.message}`);
     }
   };
 
-  // =========================
-  // 6. AI Review Handler
-  // =========================
   const handleRunAIReview = async () => {
     if (!result || !result.acp_summary) {
       setError("❌ No test summary available for AI review.");
       return;
     }
-    // If consent hasn't been given, open the modal
     if (!consentChecked || !signature.trim()) {
       setShowConsentModal(true);
       return;
     }
     setLoading(true);
     try {
-      // Save AI review consent to Firestore
       await saveAIReviewConsent({
         fileName: "ACP Test",
         signature: signature.trim(),
       });
-      // Run AI review API
       const response = await axios.post(`${API_URL}/api/ai-review`, {
         testType: "ACP",
         testData: result.acp_summary,
@@ -398,18 +355,13 @@ const ACPTest = () => {
       });
       const aiText = response.data.analysis;
       setAiReview(aiText);
-      // Automatically export AI reviewed PDF
       await exportToPDF(aiText);
     } catch (error) {
-      console.error("Error fetching AI review:", error);
       setAiReview("Error fetching AI review.");
     }
     setLoading(false);
   };
 
-  // =========================
-  // 7. Handle Enter Key
-  // =========================
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && file && !loading) {
       e.preventDefault();
@@ -418,6 +370,17 @@ const ACPTest = () => {
     }
   };
 
+  // ---------- Conditional Rendering ----------
+  if (hasAccess === null) return <div>Loading...</div>;
+// Then in your component:
+if (!hasAccess) {
+  return (
+    <ACPTestBlockedView addToCart={addToCart} testId="acpTest" />
+  );
+}
+
+
+  // ---------- Render ACP Test Content if Access Granted ----------
   return (
     <div
       className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
@@ -571,14 +534,14 @@ const ACPTest = () => {
           {result?.acp_summary && (
             <div className="mt-6">
               <button
-  onClick={handleRunAIReview}
-  disabled={loading}
-  className={`w-full px-4 py-2 text-white rounded-md ${
-    loading ? "bg-purple-500 animate-pulse" : "bg-purple-500 hover:bg-purple-600"
-  }`}
->
-  {loading ? "Processing AI Review..." : "Run AI Review"}
-</button>
+                onClick={handleRunAIReview}
+                disabled={loading}
+                className={`w-full px-4 py-2 text-white rounded-md ${
+                  loading ? "bg-purple-500 animate-pulse" : "bg-purple-500 hover:bg-purple-600"
+                }`}
+              >
+                {loading ? "Processing AI Review..." : "Run AI Review"}
+              </button>
             </div>
           )}
 
@@ -701,7 +664,6 @@ const ACPTest = () => {
                   });
                   await handleRunAIReview();
                 } catch (err) {
-                  console.error("Error saving consent or running AI review:", err);
                   setError("❌ Error processing AI review consent.");
                 }
               }}
