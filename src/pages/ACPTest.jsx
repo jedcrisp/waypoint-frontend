@@ -221,10 +221,8 @@ const ACPTest = () => {
       const finalAIText = customAiReview !== undefined ? customAiReview : aiReview;
       const totalEmployees = result?.["Total Employees"] || "N/A";
       const totalParticipants = result?.["Total Participants"] || "N/A";
-      const hceAvg =
-        result?.["HCE ACP (%)"] !== undefined ? `${result["HCE ACP (%)"]}%` : "N/A";
-      const nhceAvg =
-        result?.["NHCE ACP (%)"] !== undefined ? `${result["NHCE ACP (%)"]}%` : "N/A";
+      const hceAvg = result?.["HCE ACP (%)"] !== undefined ? `${result["HCE ACP (%)"]}%` : "N/A";
+      const nhceAvg = result?.["NHCE ACP (%)"] !== undefined ? `${result["NHCE ACP (%)"]}%` : "N/A";
       const testResult = result?.["Test Result"] || "N/A";
       const failed = testResult.toLowerCase() === "failed";
 
@@ -314,9 +312,7 @@ const ACPTest = () => {
       pdf.setFontSize(10);
       pdf.setTextColor(100, 100, 100);
       pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
-      const downloadFileName = finalAIText
-        ? "AI Reviewed: ACP Test Results.pdf"
-        : "ACP Test Results.pdf";
+      const downloadFileName = finalAIText ? "AI Reviewed: ACP Test Results.pdf" : "ACP Test Results.pdf";
       pdf.save(downloadFileName);
       const pdfBlob = pdf.output("blob");
       await savePdfResultToFirebase({
@@ -332,8 +328,9 @@ const ACPTest = () => {
           },
         },
       });
+      // Remove test and lock access after PDF export
       await removeTestFromPurchased(userId, testId);
-      setHasAccess(false); // Update state after removal
+      setHasAccess(false);
     } catch (error) {
       setError(`❌ ${error.message}`);
     }
