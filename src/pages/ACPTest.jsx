@@ -3,7 +3,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
-import { doc, getDoc, onSnapshot } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
@@ -31,22 +31,22 @@ const ACPTest = () => {
   const [hasAccess, setHasAccess] = useState(null);
   const [cartMsg, setCartMsg] = useState("");
 
- useEffect(() => {
-  const checkPurchase = async () => {
-    const auth = getAuth();
-    const user = auth.currentUser;
-    if (!user) return setHasAccess(false);
-
-    const userId = user.uid;
-    const testId = "acpTest";
-    const docRef = doc(db, "users", userId, "purchasedTests", testId);
-    const docSnap = await getDoc(docRef);
-
-    setHasAccess(docSnap.exists());
-  };
-
-  checkPurchase();
-}, []);
+  useEffect(() => {
+    async function checkPurchase() {
+      if (!userId) {
+        setHasAccess(false);
+        return;
+      }
+      const userDoc = await getDoc(doc(db, "users", userId));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        setHasAccess(data.purchasedTests && data.purchasedTests.includes(testId));
+      } else {
+        setHasAccess(false);
+      }
+    }
+    checkPurchase();
+  }, [userId, testId, user]); // Ensure user is included
 
   // ---------- Cart Setup ----------
   const { addToCart } = useCart();
@@ -329,8 +329,8 @@ const ACPTest = () => {
         },
       });
       // Remove test and lock access after PDF export
-      await removeTestFromPurchased(userId, testId);
-      setHasAccess(false);
+     // await removeTestFromPurchased(userId, testId);
+      // setHasAccess(false);
     } catch (error) {
       setError(`❌ ${error.message}`);
     }
