@@ -11,9 +11,15 @@ export const CartProvider = ({ children }) => {
   });
 
   useEffect(() => {
-    // Persist cart state in localStorage whenever it changes
-    localStorage.setItem("cartItems", JSON.stringify(cartItems));
-  }, [cartItems]);
+    const storedCart = localStorage.getItem("cartItems");
+    const parsedCart = storedCart ? JSON.parse(storedCart) : [];
+
+    // ✅ Only restore if there are actually items
+    if (parsedCart.length > 0) {
+      setCartItems(parsedCart);
+      console.log("🛒 Cart rehydrated from localStorage:", parsedCart);
+    }
+  }, []);
 
   const addToCart = (test) => {
     // Check if the test is already in the cart
