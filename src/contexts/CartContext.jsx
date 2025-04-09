@@ -28,9 +28,10 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
   setCartItems([]);
-  localStorage.removeItem("cartItems");
-  console.log("🧹 Cart cleared!");
+  localStorage.setItem("cartItems", JSON.stringify([])); // ✅ Overwrite instead of remove
+  console.log("🧹 Cart fully cleared");
 };
+
 
 
   return (
