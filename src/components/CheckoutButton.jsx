@@ -9,6 +9,9 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 const CheckoutButton = ({ selectedTestItems = [], userId }) => {
   // Now selectedTestItems is guaranteed to be an array
   const handleCheckout = async () => {
+    console.log("🟢 Proceed to Checkout clicked");
+    console.log("🧪 selectedTestItems:", selectedTestItems);
+    console.log("👤 Sending userId to backend:", userId);
     try {
       const backendUrl = import.meta.env.VITE_BACKEND_URL;
       const response = await axios.post(`${backendUrl}/api/create-checkout-session`, {
