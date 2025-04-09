@@ -19,6 +19,7 @@ import ACPTestBlockedView from "../components/ACPTestBlockedView";
 import { removeTestFromPurchased } from "../utils/firebaseTestSaver.js";
 
 
+
 const ACPTest = () => {
   const navigate = useNavigate();
   const auth = getAuth();
@@ -331,6 +332,8 @@ const ACPTest = () => {
           },
         },
       });
+      await removeTestFromPurchased(userId, testId);
+      setHasAccess(false); // Update state after removal
     } catch (error) {
       setError(`❌ ${error.message}`);
     }
@@ -359,7 +362,6 @@ const ACPTest = () => {
     const aiText = response.data.analysis;
     setAiReview(aiText);
     await exportToPDF(aiText);
-    await removeTestFromPurchased(userId, testId); // This call
     setHasAccess(false);
   } catch (error) {
     setError(`❌ Error during AI review or test removal: ${error.message}`);
