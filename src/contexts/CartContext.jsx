@@ -5,24 +5,33 @@ const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState(() => {
-    // Rehydrate state from localStorage if available
     const storedCart = localStorage.getItem("cartItems");
     return storedCart ? JSON.parse(storedCart) : [];
   });
 
+  // ✅ Rehydrate cart from localStorage unless skip flag is set
   useEffect(() => {
+    const skip = sessionStorage.getItem("skipCartRehydration");
+    if (skip === "true") {
+      sessionStorage.removeItem("skipCartRehydration"); // clear the flag
+      console.log("🚫 Skipping cart rehydration after checkout");
+      return;
+    }
+
     const storedCart = localStorage.getItem("cartItems");
     const parsedCart = storedCart ? JSON.parse(storedCart) : [];
 
-    // ✅ Only restore if there are actually items
     if (parsedCart.length > 0) {
       setCartItems(parsedCart);
       console.log("🛒 Cart rehydrated from localStorage:", parsedCart);
     }
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem("cartItems", JSON.stringify(cartItems));
+  }, [cartItems]);
+
   const addToCart = (test) => {
-    // Check if the test is already in the cart
     if (!cartItems.find((item) => item.id === test.id)) {
       setCartItems((prev) => [...prev, test]);
     }
@@ -33,24 +42,22 @@ export const CartProvider = ({ children }) => {
   };
 
   const clearCart = () => {
-  console.log("🧹 clearCart() called");
+    console.log("🧹 clearCart() called");
+    setCartItems([]);
+    localStorage.setItem("cartItems", JSON.stringify([]));
+    sessionStorage.setItem("skipCartRehydration", "true");
 
-  setCartItems([]);
-  localStorage.setItem("cartItems", JSON.stringify([]));
-
-  // Debug: show what's in memory and storage immediately after
-  setTimeout(() => {
-    console.log("🛒 After clearCart:");
-    console.log("  - cartItems (state):", cartItems);
-    console.log("  - localStorage:", localStorage.getItem("cartItems"));
-  }, 200);
-};
-
-
-
+    setTimeout(() => {
+      console.log("🛒 After clearCart:");
+      console.log("  - cartItems (state):", cartItems);
+      console.log("  - localStorage:", localStorage.getItem("cartItems"));
+    }, 200);
+  };
 
   return (
-    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, clearCart }}>
+    <CartContext.Provider
+      value={{ cartItems, addToCart, removeFromCart, clearCart }}
+    >
       {children}
     </CartContext.Provider>
   );
