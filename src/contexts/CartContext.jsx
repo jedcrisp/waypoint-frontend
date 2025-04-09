@@ -9,11 +9,11 @@ export const CartProvider = ({ children }) => {
     return storedCart ? JSON.parse(storedCart) : [];
   });
 
-  // ✅ Rehydrate cart from localStorage unless skip flag is set
+  // Rehydrate cart from localStorage unless skip flag is set in localStorage
   useEffect(() => {
-    const skip = sessionStorage.getItem("skipCartRehydration");
+    const skip = localStorage.getItem("skipCartRehydration");
     if (skip === "true") {
-      sessionStorage.removeItem("skipCartRehydration"); // clear the flag
+      localStorage.removeItem("skipCartRehydration"); // Remove flag so future rehydrations work as expected
       console.log("🚫 Skipping cart rehydration after checkout");
       return;
     }
@@ -27,6 +27,7 @@ export const CartProvider = ({ children }) => {
     }
   }, []);
 
+  // Persist cart state changes to localStorage
   useEffect(() => {
     localStorage.setItem("cartItems", JSON.stringify(cartItems));
   }, [cartItems]);
@@ -45,7 +46,8 @@ export const CartProvider = ({ children }) => {
     console.log("🧹 clearCart() called");
     setCartItems([]);
     localStorage.setItem("cartItems", JSON.stringify([]));
-    sessionStorage.setItem("skipCartRehydration", "true");
+    // Set flag in localStorage so we skip rehydration on app reload
+    localStorage.setItem("skipCartRehydration", "true");
 
     setTimeout(() => {
       console.log("🛒 After clearCart:");
