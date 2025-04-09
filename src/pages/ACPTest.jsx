@@ -10,13 +10,14 @@ import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { 
   savePdfResultToFirebase, 
-  saveAIReviewConsent, 
-  removeTestFromPurchased  // <-- Imported here
+  saveAIReviewConsent
 } from "../utils/firebaseTestSaver";
 import Modal from "../components/Modal";
 import { useCart } from "../contexts/CartContext";
 import { ShoppingCart } from "lucide-react";
 import ACPTestBlockedView from "../components/ACPTestBlockedView";
+import { removeTestFromPurchased } from "../utils/firebaseTestSaver";
+
 
 const ACPTest = () => {
   const navigate = useNavigate();
