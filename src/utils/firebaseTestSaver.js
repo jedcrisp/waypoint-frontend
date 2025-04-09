@@ -62,7 +62,9 @@ export const savePurchasedTestToFirestore = async (testId) => {
   if (!user) throw new Error("User not authenticated.");
 
   const uid = user.uid;
-  const purchaseRef = doc(db, `users/${uid}/purchases/${testId}`);
+
+  // ✅ Create document inside the 'purchasedTests' subcollection
+  const purchaseRef = doc(db, "users", uid, "purchasedTests", testId);
 
   await setDoc(purchaseRef, {
     testId,
@@ -71,7 +73,7 @@ export const savePurchasedTestToFirestore = async (testId) => {
     email: user.email,
   });
 
-  console.log(`✅ Test purchase "${testId}" saved to Firestore.`);
+  console.log(`✅ Test "${testId}" successfully saved in Firestore subcollection.`);
 };
 
 
