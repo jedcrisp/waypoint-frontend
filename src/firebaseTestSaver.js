@@ -76,7 +76,7 @@ export const saveDeletionConsent = async ({ testId, signature }) => {
   console.log("✅ Deletion consent saved to Firestore at:", `users/${uid}/deletedTests/${testId}`);
 };
 
-export const removeTestFromPurchased = async (userId, testId) => {
+export function removeTestFromPurchased = async (userId, testId) => {
   try {
     await updateDoc(doc(db, "users", userId), {
       purchasedTests: arrayRemove(testId),
