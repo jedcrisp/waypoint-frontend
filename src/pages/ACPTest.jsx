@@ -39,11 +39,27 @@ const ACPTest = () => {
     }
     // Use the purchasedTests subcollection as defined by your security rules:
     const purchaseRef = doc(db, "users", userId, "purchasedTests", testId);
-    const purchaseDoc = await getDoc(purchaseRef);
-    setHasAccess(purchaseDoc.exists());
-  }
-  checkPurchase();
-}, [userId, testId, user]);
+  
+  // Listen in real time for updates to the purchase document.
+  const unsubscribe = onSnapshot(
+    purchaseRef,
+    (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        console.log("Purchase document exists, granting access");
+        setHasAccess(true);
+      } else {
+        console.log("No purchase document found, access denied");
+        setHasAccess(false);
+      }
+    },
+    (error) => {
+      console.error("Error fetching purchased tests:", error);
+      setHasAccess(false);
+    }
+  );
+
+  return () => unsubscribe();
+}, [userId, testId]);
 
   // ---------- Cart Setup ----------
   const { addToCart } = useCart();
