@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
+import { useCart } from "../contexts/CartContext"; // ✅ Import your cart context
 
 export default function CheckoutSuccess() {
   const [searchParams] = useSearchParams();
@@ -9,6 +10,8 @@ export default function CheckoutSuccess() {
   const sessionId = searchParams.get("session_id");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const { clearCart } = useCart(); // ✅ Grab clearCart from context
 
   useEffect(() => {
     const confirmPurchase = async () => {
@@ -40,9 +43,9 @@ export default function CheckoutSuccess() {
           }
         );
 
+        clearCart(); // ✅ Clear cart after successful confirmation
         setLoading(false);
 
-        // Redirect to dashboard after a short delay
         setTimeout(() => navigate("/dashboard"), 2000);
       } catch (err) {
         console.error("Error confirming purchase:", err);
@@ -52,7 +55,7 @@ export default function CheckoutSuccess() {
     };
 
     confirmPurchase();
-  }, [sessionId, navigate]);
+  }, [sessionId, navigate, clearCart]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6">
@@ -68,9 +71,7 @@ export default function CheckoutSuccess() {
           </>
         ) : error ? (
           <>
-            <h1 className="text-2xl font-bold text-red-600 mb-4">
-              Uh-oh!
-            </h1>
+            <h1 className="text-2xl font-bold text-red-600 mb-4">Uh-oh!</h1>
             <p className="text-gray-700 mb-2">{error}</p>
             <button
               onClick={() => navigate("/dashboard")}
