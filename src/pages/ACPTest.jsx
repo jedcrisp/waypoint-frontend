@@ -221,128 +221,141 @@ const ACPTest = () => {
   };
 
   const exportToPDF = async (customAiReview) => {
-    if (!result) {
-      setError("❌ No results available to export.");
-      return;
-    }
-    try {
-      const finalAIText = customAiReview !== undefined ? customAiReview : aiReview;
-      const totalEmployees = result?.["Total Employees"] || "N/A";
-      const totalParticipants = result?.["Total Participants"] || "N/A";
-      const hceAvg = result?.["HCE ACP (%)"] !== undefined ? `${result["HCE ACP (%)"]}%` : "N/A";
-      const nhceAvg = result?.["NHCE ACP (%)"] !== undefined ? `${result["NHCE ACP (%)"]}%` : "N/A";
-      const testResult = result?.["Test Result"] || "N/A";
-      const failed = testResult.toLowerCase() === "failed";
+  if (!result) {
+    setError("❌ No results available to export.");
+    return;
+  }
 
-      const pdf = new jsPDF("p", "mm", "a4");
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(18);
-      pdf.text("ACP Test Results", 105, 15, { align: "center" });
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(12);
-      pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
-      pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
-      pdf.setFont("helvetica", "italic");
-      pdf.setTextColor(60, 60, 60);
-      pdf.text(
-        "Test Criterion: IRC §401(m)(2): The ACP test ensures that employer matching and employee after-tax contributions for HCEs are not disproportionately higher than for NHCEs.",
-        105,
-        38,
-        { align: "center", maxWidth: 180 }
-      );
+  try {
+    const finalAIText = customAiReview !== undefined ? customAiReview : aiReview;
+    const totalEmployees = result?.["Total Employees"] || "N/A";
+    const totalParticipants = result?.["Total Participants"] || "N/A";
+    const hceAvg = result?.["HCE ACP (%)"] !== undefined ? `${result["HCE ACP (%)"]}%` : "N/A";
+    const nhceAvg = result?.["NHCE ACP (%)"] !== undefined ? `${result["NHCE ACP (%)"]}%` : "N/A";
+    const testResult = result?.["Test Result"] || "N/A";
+    const failed = testResult.toLowerCase() === "failed";
+
+    const pdf = new jsPDF("p", "mm", "a4");
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(18);
+    pdf.text("ACP Test Results", 105, 15, { align: "center" });
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(12);
+    pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
+    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(60, 60, 60);
+    pdf.text(
+      "Test Criterion: IRC §401(m)(2): The ACP test ensures that employer matching and employee after-tax contributions for HCEs are not disproportionately higher than for NHCEs.",
+      105,
+      38,
+      { align: "center", maxWidth: 180 }
+    );
+
+    pdf.autoTable({
+      startY: 48,
+      theme: "grid",
+      head: [["Metric", "Value"]],
+      body: [
+        ["Total Employees", totalEmployees],
+        ["Total Participants", totalParticipants],
+        ["HCE ACP (%)", hceAvg],
+        ["NHCE ACP (%)", nhceAvg],
+        ["Test Result", testResult],
+      ],
+      headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+      styles: { fontSize: 12, font: "helvetica" },
+      margin: { left: 10, right: 10 },
+    });
+
+    if (finalAIText) {
       pdf.autoTable({
-        startY: 48,
+        startY: pdf.lastAutoTable.finalY + 10,
         theme: "grid",
-        head: [["Metric", "Value"]],
-        body: [
-          ["Total Employees", totalEmployees],
-          ["Total Participants", totalParticipants],
-          ["HCE ACP (%)", hceAvg],
-          ["NHCE ACP (%)", nhceAvg],
-          ["Test Result", testResult],
-        ],
-        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
-        styles: { fontSize: 12, font: "helvetica" },
+        head: [["AI Corrective Actions (Powered by OpenAI)"]],
+        body: [[finalAIText]],
+        headStyles: { fillColor: [126, 34, 206], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
         margin: { left: 10, right: 10 },
       });
-      if (finalAIText) {
-        pdf.autoTable({
-          startY: pdf.lastAutoTable.finalY + 10,
-          theme: "grid",
-          head: [["AI Corrective Actions (Powered by OpenAI)"]],
-          body: [[finalAIText]],
-          headStyles: { fillColor: [126, 34, 206], textColor: [255, 255, 255] },
-          styles: { fontSize: 11, font: "helvetica" },
-          margin: { left: 10, right: 10 },
-        });
-      }
-      if (failed && !finalAIText) {
-        const correctiveActions = [
-          "Refund Excess Contributions to HCEs by March 15 to avoid penalties.",
-          "Make Additional Contributions to NHCEs via QNEC or QMAC.",
-          "Recharacterize Excess HCE Contributions as Employee Contributions.",
-        ];
-        const consequences = [
-          "Excess Contributions Must Be Refunded",
-          "IRS Penalties and Compliance Risks",
-          "Loss of Tax Benefits for HCEs",
-          "Plan Disqualification Risk",
-          "Employee Dissatisfaction & Legal Risks",
-        ];
-        pdf.autoTable({
-          startY: pdf.lastAutoTable.finalY + 10,
-          theme: "grid",
-          head: [["Corrective Actions"]],
-          body: correctiveActions.map((action) => [action]),
-          headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-          styles: { fontSize: 11, font: "helvetica" },
-          margin: { left: 10, right: 10 },
-        });
-        pdf.autoTable({
-          startY: pdf.lastAutoTable.finalY + 10,
-          theme: "grid",
-          head: [["Consequences"]],
-          body: consequences.map((c) => [c]),
-          headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-          styles: { fontSize: 11, font: "helvetica" },
-          margin: { left: 10, right: 10 },
-        });
-      }
-      if (signature.trim()) {
-        const sigTime = new Date().toLocaleString();
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(10);
-        pdf.setTextColor(0, 0, 0);
-        pdf.text(`Digital Signature: ${signature.trim()}`, 10, 280);
-        pdf.text(`Signed on: ${sigTime}`, 10, 285);
-      }
-      pdf.setFont("helvetica", "italic");
-      pdf.setFontSize(10);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
-      const downloadFileName = finalAIText ? "AI Reviewed: ACP Test Results.pdf" : "ACP Test Results.pdf";
-      pdf.save(downloadFileName);
-      const pdfBlob = pdf.output("blob");
-      await savePdfResultToFirebase({
-        fileName: finalAIText ? "AI Reviewed: ACP Test Results" : "ACP Test Results",
-        pdfBlob,
-        additionalData: {
-          planYear,
-          testResult,
-          aiConsent: {
-            agreed: !!signature.trim(),
-            signature: signature.trim(),
-            timestamp: new Date().toISOString(),
-          },
-        },
-      });
-      // Remove test and lock access after PDF export
-     await removeTestFromPurchased(userId, testId);
-      setHasAccess(false);
-    } catch (error) {
-      setError(`❌ ${error.message}`);
     }
-  };
+
+    if (failed && !finalAIText) {
+      const correctiveActions = [
+        "Refund Excess Contributions to HCEs by March 15 to avoid penalties.",
+        "Make Additional Contributions to NHCEs via QNEC or QMAC.",
+        "Recharacterize Excess HCE Contributions as Employee Contributions.",
+      ];
+      const consequences = [
+        "Excess Contributions Must Be Refunded",
+        "IRS Penalties and Compliance Risks",
+        "Loss of Tax Benefits for HCEs",
+        "Plan Disqualification Risk",
+        "Employee Dissatisfaction & Legal Risks",
+      ];
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Corrective Actions"]],
+        body: correctiveActions.map((action) => [action]),
+        headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Consequences"]],
+        body: consequences.map((c) => [c]),
+        headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+    }
+
+    if (signature.trim()) {
+      const sigTime = new Date().toLocaleString();
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(10);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(`Digital Signature: ${signature.trim()}`, 10, 280);
+      pdf.text(`Signed on: ${sigTime}`, 10, 285);
+    }
+
+    pdf.setFont("helvetica", "italic");
+    pdf.setFontSize(10);
+    pdf.setTextColor(100, 100, 100);
+    pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
+
+    const downloadFileName = finalAIText ? "AI Reviewed: ACP Test Results.pdf" : "ACP Test Results.pdf";
+    pdf.save(downloadFileName);
+
+    const pdfBlob = pdf.output("blob");
+    await savePdfResultToFirebase({
+      fileName: downloadFileName,
+      pdfBlob,
+      additionalData: {
+        planYear,
+        testResult,
+        aiConsent: {
+          agreed: !!signature.trim(),
+          signature: signature.trim(),
+          timestamp: new Date().toISOString(),
+        },
+      },
+    });
+
+    // 🔐 Lock test after PDF is saved
+    await axios.post(`${API_URL}/lock-test`, {
+      userId,
+      testId, // e.g. "acpTest"
+    });
+    setHasAccess(false);
+  } catch (error) {
+    setError(`❌ ${error.message}`);
+  }
+};
+
 
   const handleRunAIReview = async () => {
   if (!result || !result.acp_summary) {
@@ -384,12 +397,22 @@ const ACPTest = () => {
   };
 
   // ---------- Conditional Rendering ----------
+if (hasAccess === null) return <div>Loading...</div>;
+
 if (!hasAccess) {
   return (
-    <ACPTestBlockedView addToCart={addToCart} testId="acpTest" />
+    <div className="max-w-lg mx-auto mt-10 p-8 bg-white shadow rounded text-center text-gray-700">
+      <h2 className="text-2xl font-semibold mb-4">Test Completed</h2>
+      <p className="mb-4">You've already completed this test. It is now locked.</p>
+      <button
+        className="bg-blue-600 text-white px-4 py-2 rounded"
+        onClick={() => navigate("/dashboard")}
+      >
+        Back to Dashboard
+      </button>
+    </div>
   );
 }
-
 
 
   // ---------- Render ACP Test Content if Access Granted ----------
