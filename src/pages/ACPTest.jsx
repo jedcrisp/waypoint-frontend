@@ -8,7 +8,11 @@ import { db } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import { savePdfResultToFirebase, saveAIReviewConsent } from "../utils/firebaseTestSaver";
+import { 
+  savePdfResultToFirebase, 
+  saveAIReviewConsent, 
+  removeTestFromPurchased  // <-- Imported here
+} from "../utils/firebaseTestSaver";
 import Modal from "../components/Modal";
 import { useCart } from "../contexts/CartContext";
 import { ShoppingCart } from "lucide-react";
@@ -26,23 +30,21 @@ const ACPTest = () => {
   const [cartMsg, setCartMsg] = useState("");
 
   useEffect(() => {
-  async function checkPurchase() {
-    if (!userId) {
-      setHasAccess(false);
-      return;
+    async function checkPurchase() {
+      if (!userId) {
+        setHasAccess(false);
+        return;
+      }
+      const userDoc = await getDoc(doc(db, "users", userId));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        setHasAccess(data.purchasedTests && data.purchasedTests.includes(testId));
+      } else {
+        setHasAccess(false);
+      }
     }
-    const userDoc = await getDoc(doc(db, "users", userId));
-    if (userDoc.exists()) {
-      const data = userDoc.data();
-      setHasAccess(data.purchasedTests && data.purchasedTests.includes(testId));
-    } else {
-      setHasAccess(false);
-    }
-  }
-
-  checkPurchase();
-}, [userId, testId, user]); // ✅ include user
-
+    checkPurchase();
+  }, [userId, testId, user]); // Ensure user is included
 
   // ---------- Cart Setup ----------
   const { addToCart } = useCart();
@@ -86,7 +88,7 @@ const ACPTest = () => {
     }
   }, [file]);
 
-  // Helper functions for file processing (downloadCSVTemplate, handleUpload, downloadResultsAsCSV, exportToPDF, handleRunAIReview, etc.)
+  // Helper functions for file processing (downloadCSVTemplate, handleUpload, downloadResultsAsCSV, exportToPDF, etc.)
   // (These are assumed to be defined below or imported; see your previous code for full implementations.)
   
   const downloadCSVTemplate = () => {
@@ -356,6 +358,11 @@ const ACPTest = () => {
       const aiText = response.data.analysis;
       setAiReview(aiText);
       await exportToPDF(aiText);
+      // Once the test has run and the PDF exported successfully,
+      // remove the test access so it will lock again
+      await removeTestFromPurchased(userId, testId);
+      // Optionally update the local state to reflect the locked status immediately:
+      setHasAccess(false);
     } catch (error) {
       setAiReview("Error fetching AI review.");
     }
@@ -372,13 +379,12 @@ const ACPTest = () => {
 
   // ---------- Conditional Rendering ----------
   if (hasAccess === null) return <div>Loading...</div>;
-// Then in your component:
-if (!hasAccess) {
-  return (
-    <ACPTestBlockedView addToCart={addToCart} testId="acpTest" />
-  );
-}
-
+  // If access is not available, show the blocked view
+  if (!hasAccess) {
+    return (
+      <ACPTestBlockedView addToCart={addToCart} testId="acpTest" />
+    );
+  }
 
   // ---------- Render ACP Test Content if Access Granted ----------
   return (
