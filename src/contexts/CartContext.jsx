@@ -1,10 +1,9 @@
-// src/contexts/CartContext.jsx
+// src/contexts/CartContext.jsx (simplified version)
 import React, { createContext, useState, useEffect, useContext } from "react";
 
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-  // Read cart from localStorage only once when the provider mounts
   const [cartItems, setCartItems] = useState(() => {
     const storedCart = localStorage.getItem("cartItems");
     return storedCart ? JSON.parse(storedCart) : [];
@@ -13,6 +12,7 @@ export const CartProvider = ({ children }) => {
   // Persist cart state changes to localStorage
   useEffect(() => {
     localStorage.setItem("cartItems", JSON.stringify(cartItems));
+    console.log("💾 Updated localStorage with cartItems:", cartItems);
   }, [cartItems]);
 
   const addToCart = (test) => {
@@ -27,17 +27,13 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
     console.log("🧹 clearCart() called");
-    // Overwrite localStorage with an empty array
-    localStorage.setItem("cartItems", JSON.stringify([]));
-    console.log("After clearCart, localStorage:", localStorage.getItem("cartItems"));
-    // Update the state to an empty array
     setCartItems([]);
+    localStorage.setItem("cartItems", JSON.stringify([]));
+    console.log("💾 localStorage after clearCart:", localStorage.getItem("cartItems"));
   };
 
   return (
-    <CartContext.Provider
-      value={{ cartItems, addToCart, removeFromCart, clearCart }}
-    >
+    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, clearCart }}>
       {children}
     </CartContext.Provider>
   );
