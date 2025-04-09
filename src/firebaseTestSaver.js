@@ -1,6 +1,6 @@
 // utils/firebaseTestSaver.js
 import { getAuth } from "firebase/auth";
-import { getFirestore, doc, setDoc } from "firebase/firestore";
+import { getFirestore, doc, setDoc, updateDoc, arrayRemove } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage, db } from "../firebase";
 
@@ -65,8 +65,7 @@ export const saveDeletionConsent = async ({ testId, signature }) => {
   if (!user) throw new Error("User not authenticated");
 
   const uid = user.uid;
-
-  const docRef = doc(db, `users/${user.uid}/deletedTests/${testId}`);
+  const docRef = doc(db, `users/${uid}/deletedTests/${testId}`);
 
   await setDoc(docRef, {
     signature,
@@ -74,5 +73,17 @@ export const saveDeletionConsent = async ({ testId, signature }) => {
     email: user.email,
   });
 
-   console.log("✅ Deletion consent saved to Firestore at:", `users/${uid}/deletedTests/${testId}`);
+  console.log("✅ Deletion consent saved to Firestore at:", `users/${uid}/deletedTests/${testId}`);
+};
+
+// New function to remove a test from the user's purchased tests
+export const removeTestFromPurchased = async (userId, testId) => {
+  try {
+    await updateDoc(doc(db, "users", userId), {
+      purchasedTests: arrayRemove(testId),
+    });
+    console.log(`✅ Removed test ${testId} from user's purchased tests`);
+  } catch (error) {
+    console.error("❌ Error removing test from purchasedTests:", error);
+  }
 };
