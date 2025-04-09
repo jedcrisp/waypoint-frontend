@@ -27,9 +27,17 @@ export const CartProvider = ({ children }) => {
   };
 
   const clearCart = () => {
+  console.log("🧹 clearCart() called");
+
   setCartItems([]);
-  localStorage.setItem("cartItems", JSON.stringify([])); // ← overwrite instead of remove
-  console.log("🧹 Cart fully cleared");
+  localStorage.setItem("cartItems", JSON.stringify([]));
+
+  // Debug: show what's in memory and storage immediately after
+  setTimeout(() => {
+    console.log("🛒 After clearCart:");
+    console.log("  - cartItems (state):", cartItems);
+    console.log("  - localStorage:", localStorage.getItem("cartItems"));
+  }, 200);
 };
 
 
