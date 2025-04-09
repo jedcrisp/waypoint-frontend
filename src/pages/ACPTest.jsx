@@ -1,5 +1,5 @@
 // src/pages/ACPTest.jsx
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
@@ -17,14 +17,14 @@ import { useCart } from "../contexts/CartContext";
 import { ShoppingCart } from "lucide-react";
 import ACPTestBlockedView from "../components/ACPTestBlockedView";
 import { removeTestFromPurchased } from "../utils/firebaseTestSaver.js";
-
-
+import { useAuth } from "../contexts/AuthContext";
 
 const ACPTest = () => {
+  const { currentUser } = useAuth(); // ✅ Use your context
+  const userId = user?.uid;
   const navigate = useNavigate();
   const auth = getAuth();
   const user = auth.currentUser;
-  const userId = user?.uid;
   const testId = "acpTest"; // Must match the test ID used in your test catalog and purchase flow
 
   // ---------- Access Control ----------
@@ -32,31 +32,29 @@ const ACPTest = () => {
   const [cartMsg, setCartMsg] = useState("");
 
   useEffect(() => {
-  async function checkPurchase() {
-    if (!userId) {
-      setHasAccess(false);
-      return;
-    }
+  async function checkAccess() {
+    if (!currentUser?.uid) return;
 
     try {
-      const testDocRef = doc(db, `users/${userId}/purchasedTests/${testId}`);
-      const testDocSnap = await getDoc(testDocRef);
+      const testRef = doc(db, `users/${currentUser.uid}/purchasedTests/acpTest`);
+      const snap = await getDoc(testRef);
 
-      if (testDocSnap.exists()) {
-        const data = testDocSnap.data();
+      if (snap.exists()) {
+        const data = snap.data();
         setHasAccess(data.unlocked && !data.used);
       } else {
-        console.warn("Test not found in Firestore.");
+        console.warn("ACP Test not found.");
         setHasAccess(false);
       }
     } catch (err) {
-      console.error("Error checking test access:", err.message);
+      console.error("Firestore error:", err.message);
       setHasAccess(false);
     }
   }
 
-  checkPurchase();
-}, [userId, testId]);
+  checkAccess();
+}, [currentUser]);
+
 
 
   // ---------- Cart Setup ----------
