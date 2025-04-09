@@ -4,7 +4,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
-import { TEST_CATALOG } from "../data/testCatalog";
+import { TEST_CATALOG } from "../data/testCatalog.js";
 
 export default function YourTests() {
   const { currentUser } = useAuth();
