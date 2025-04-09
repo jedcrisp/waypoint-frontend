@@ -31,16 +31,12 @@ const ACPTest = () => {
   const [hasAccess, setHasAccess] = useState(null);
   const [cartMsg, setCartMsg] = useState("");
 
-  useEffect(() => {
-  async function checkPurchase() {
-    if (!userId) {
-      setHasAccess(false);
-      return;
-    }
-    // Use the purchasedTests subcollection as defined by your security rules:
-    const purchaseRef = doc(db, "users", userId, "purchasedTests", testId);
-  
-  // Listen in real time for updates to the purchase document.
+ useEffect(() => {
+  if (!userId) {
+    setHasAccess(false);
+    return;
+  }
+  const purchaseRef = doc(db, "users", userId, "purchasedTests", testId);
   const unsubscribe = onSnapshot(
     purchaseRef,
     (docSnapshot) => {
@@ -57,8 +53,9 @@ const ACPTest = () => {
       setHasAccess(false);
     }
   );
-
-  return () => unsubscribe();
+  return () => {
+    unsubscribe();
+  };
 }, [userId, testId]);
 
   // ---------- Cart Setup ----------
