@@ -28,7 +28,7 @@ const ACPTest = () => {
   const testId = "acpTest"; // Must match the test ID used in your test catalog and purchase flow
 
   // ---------- Access Control ----------
-  const [hasAccess, setHasAccess] = useState(null);
+  const [accessStatus, setAccessStatus] = useState("loading");
   const [cartMsg, setCartMsg] = useState("");
 
   useEffect(() => {
@@ -422,6 +422,7 @@ if (accessStatus === "used") {
     </div>
   );
 }
+
 
 
 
