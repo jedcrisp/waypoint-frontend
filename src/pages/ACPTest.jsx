@@ -402,9 +402,13 @@ const ACPTest = () => {
   };
 
   // ---------- Conditional Rendering ----------
-if (hasAccess === null) return <div>Loading...</div>;
+if (accessStatus === "loading") return <div>Loading...</div>;
 
-if (!hasAccess) {
+if (accessStatus === "not-purchased") {
+  return <ACPTestBlockedView addToCart={addToCart} testId="acpTest" />;
+}
+
+if (accessStatus === "used") {
   return (
     <div className="max-w-lg mx-auto mt-10 p-8 bg-white shadow rounded text-center text-gray-700">
       <h2 className="text-2xl font-semibold mb-4">Test Completed</h2>
@@ -418,6 +422,7 @@ if (!hasAccess) {
     </div>
   );
 }
+
 
 
   // ---------- Render ACP Test Content if Access Granted ----------
