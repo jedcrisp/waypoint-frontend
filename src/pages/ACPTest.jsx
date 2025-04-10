@@ -391,7 +391,7 @@ useEffect(() => {
       setError(`❌ Failed to lock test: ${lockError.message}`);
     }
 
-    setHasAccess(false);
+    setHasAccess("used");
   } catch (error) {
     setError(`❌ ${error.message}`);
   }
@@ -420,7 +420,7 @@ useEffect(() => {
     const aiText = response.data.analysis;
     setAiReview(aiText);
     await exportToPDF(aiText);
-    setHasAccess(false);
+    setHasAccess("used");
   } catch (error) {
     setError(`❌ Error during AI review or test removal: ${error.message}`);
   }
