@@ -18,6 +18,21 @@ import { ShoppingCart } from "lucide-react";
 import ACPTestBlockedView from "../components/ACPTestBlockedView";
 import { removeTestFromPurchased } from "../utils/firebaseTestSaver.js";
 
+// After successful checkout (or page load)
+async function ensureTestDocExists(userId, testId) {
+  const ref = doc(db, "users", userId, "purchasedTests", testId);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) {
+    await setDoc(ref, {
+      unlocked: true,
+      used: false,
+      purchasedAt: serverTimestamp(),
+    });
+    console.log("📦 Test doc created manually");
+  }
+}
+
 
 
 const ACPTest = () => {
