@@ -40,6 +40,8 @@ async function ensureTestDocExists(userId, testId) {
       unlocked: true,
       used: false,
       purchasedAt: serverTimestamp(),
+    }).catch((error) => {
+      console.error("Error saving PDF to Firebase:", error);
     });
     console.log("📦 Test doc created manually");
   }
@@ -353,16 +355,16 @@ useEffect(() => {
       pdf.text(`Signed on: ${sigTime}`, 10, 285);
     }
 
-    pdf.setFont("helvetica", "italic");
-    pdf.setFontSize(10);
-    pdf.setTextColor(100, 100, 100);
-    pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
+      pdf.setFont("helvetica", "italic");
+      pdf.setFontSize(10);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
-    const downloadFileName = finalAIText ? "AI Reviewed: ACP Test Results.pdf" : "ACP Test Results.pdf";
-    pdf.save(downloadFileName);
+      const downloadFileName = finalAIText ? "AI Reviewed: ACP Test Results.pdf" : "ACP Test Results.pdf";
+      pdf.save(downloadFileName);
 
-    const pdfBlob = pdf.output("blob");
-    await savePdfResultToFirebase({
+      const pdfBlob = pdf.output("blob");
+     await savePdfResultToFirebase({
       fileName: downloadFileName,
       pdfBlob,
       additionalData: {
@@ -376,17 +378,24 @@ useEffect(() => {
       },
     });
 
-    // 🔐 Lock test after PDF is saved
-    await axios.post(`${API_URL}/lock-test`, {
-      userId,
-      testId, // e.g. "acpTest"
-    });
+    // 🔐 Attempt to lock the test after saving
+    try {
+      console.log("🔐 Attempting to lock test", { userId, testId });
+      const response = await axios.post(`${API_URL}/lock-test`, {
+        userId,
+        testId,
+      });
+      console.log("✅ Lock test response:", response.data);
+    } catch (lockError) {
+      console.error("❌ Lock test failed:", lockError.message);
+      setError(`❌ Failed to lock test: ${lockError.message}`);
+    }
+
     setHasAccess(false);
   } catch (error) {
     setError(`❌ ${error.message}`);
   }
 };
-
 
   const handleRunAIReview = async () => {
   if (!result || !result.acp_summary) {
@@ -746,6 +755,7 @@ if (accessStatus === "used") {
         </Modal>
       )}
     </div>
+  
   );
 };
 
