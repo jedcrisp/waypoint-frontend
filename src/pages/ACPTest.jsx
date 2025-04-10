@@ -439,7 +439,7 @@ useEffect(() => {
   };
 
   // ---------- Conditional Rendering ----------
-if (accessStatus === "not-purchased") {
+if (accessStatus === "used") {
   return <ACPTestBlockedView addToCart={addToCart} testId="acpTest" />;
 }
   // ---------- Render ACP Test Content if Access Granted ----------
