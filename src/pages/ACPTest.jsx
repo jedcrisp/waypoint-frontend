@@ -33,31 +33,41 @@ const ACPTest = () => {
 
   useEffect(() => {
   async function checkAccessToTest() {
-    if (!userId) return setHasAccess(false);
+    if (!userId) {
+      setAccessStatus("not-purchased");
+      return;
+    }
 
     try {
       const testDocRef = doc(db, "users", userId, "purchasedTests", testId);
       const testDocSnap = await getDoc(testDocRef);
 
-      if (testDocSnap.exists()) {
-        const data = testDocSnap.data();
-        const isUnlocked = data.unlocked === true;
-        const isUsed = data.used === false;
-        console.log("✅ Access check:", { isUnlocked, isUsed });
-
-        setHasAccess(isUnlocked && isUsed); // Only true if unlocked and not used
-      } else {
+      if (!testDocSnap.exists()) {
         console.log("🚫 Test not found in subcollection");
-        setHasAccess(false);
+        setAccessStatus("not-purchased");
+        return;
       }
+
+      const data = testDocSnap.data();
+      const isUnlocked = data.unlocked === true;
+      const isUsed = data.used === true;
+
+      console.log("✅ Access check:", { isUnlocked, isUsed });
+
+      if (isUnlocked && !isUsed) {
+        setAccessStatus("granted");
+      } else {
+        setAccessStatus("used"); // Either used or locked
+      }
+
     } catch (error) {
       console.error("❌ Error checking access:", error);
-      setHasAccess(false);
+      setAccessStatus("not-purchased");
     }
   }
 
   checkAccessToTest();
-}, [userId]);
+}, [userId, testId]);
 
  // Ensure user is included
 
