@@ -19,8 +19,13 @@ const CheckoutButton = ({ selectedTests, userId, testsData }) => {
         {
           testItems: selectedTestItems,
           userId,
+          metadata: {
+            userId,
+            testIds: selectedTestItems.map(item => item.id).join(","),
+          },
         }
       );
+
       const sessionId = response.data.id;
       const stripe = await stripePromise;
       const { error } = await stripe.redirectToCheckout({ sessionId });
