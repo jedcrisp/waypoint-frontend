@@ -50,44 +50,39 @@ async function ensureTestDocExists(userId, testId) {
 
 
 useEffect(() => {
-  async function checkAccessToTest() {
-    if (!userId) {
-      setAccessStatus("not-purchased");
-      return;
-    }
+  async function checkAccessToTestWithRetry(retries = 3, delay = 1500) {
+    for (let i = 0; i < retries; i++) {
+      const ref = doc(db, "users", userId, "purchasedTests", testId);
+      const snap = await getDoc(ref);
 
-    try {
-      // 🛠️ Ensure the test doc exists
-      await ensureTestDocExists(userId, testId);
+      if (snap.exists()) {
+        const data = snap.data();
+        const isUnlocked = data.unlocked === true;
+        const isUsed = data.used === true;
 
-      const testDocRef = doc(db, "users", userId, "purchasedTests", testId);
-      const testDocSnap = await getDoc(testDocRef);
+        console.log("🔁 Access retry check:", { isUnlocked, isUsed });
 
-      if (!testDocSnap.exists()) {
-        console.log("🚫 Test not found in subcollection (even after creation?)");
-        setAccessStatus("not-purchased");
-        return;
+        if (isUnlocked && !isUsed) {
+          setAccessStatus("granted");
+          return;
+        } else {
+          setAccessStatus("used");
+          return;
+        }
       }
 
-      const data = testDocSnap.data();
-      const isUnlocked = data.unlocked === true;
-      const isUsed = data.used === true;
-
-      console.log("✅ Access check:", { isUnlocked, isUsed });
-
-      if (isUnlocked && !isUsed) {
-        setAccessStatus("granted");
-      } else {
-        setAccessStatus("used");
-      }
-
-    } catch (error) {
-      console.error("❌ Error checking access:", error);
-      setAccessStatus("not-purchased");
+      // wait before retrying
+      await new Promise((res) => setTimeout(res, delay));
     }
+
+    setAccessStatus("not-purchased"); // fallback after retries
   }
 
-  checkAccessToTest();
+  if (userId) {
+    checkAccessToTestWithRetry();
+  } else {
+    setAccessStatus("not-purchased");
+  }
 }, [userId, testId]);
 
 
