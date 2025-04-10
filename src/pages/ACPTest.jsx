@@ -18,7 +18,19 @@ import { ShoppingCart } from "lucide-react";
 import ACPTestBlockedView from "../components/ACPTestBlockedView";
 import { removeTestFromPurchased } from "../utils/firebaseTestSaver.js";
 
-// After successful checkout (or page load)
+
+const ACPTest = () => {
+  const navigate = useNavigate();
+  const auth = getAuth();
+  const user = auth.currentUser;
+  const userId = user?.uid;
+  const testId = "acpTest"; // Must match the test ID used in your test catalog and purchase flow
+
+  // ---------- Access Control ----------
+  const [accessStatus, setAccessStatus] = useState("loading");
+  const [cartMsg, setCartMsg] = useState("");
+
+  // ✅ Define outside the useEffect
 async function ensureTestDocExists(userId, testId) {
   const ref = doc(db, "users", userId, "purchasedTests", testId);
   const snap = await getDoc(ref);
@@ -33,20 +45,7 @@ async function ensureTestDocExists(userId, testId) {
   }
 }
 
-
-
-const ACPTest = () => {
-  const navigate = useNavigate();
-  const auth = getAuth();
-  const user = auth.currentUser;
-  const userId = user?.uid;
-  const testId = "acpTest"; // Must match the test ID used in your test catalog and purchase flow
-
-  // ---------- Access Control ----------
-  const [accessStatus, setAccessStatus] = useState("loading");
-  const [cartMsg, setCartMsg] = useState("");
-
-  useEffect(() => {
+useEffect(() => {
   async function checkAccessToTest() {
     if (!userId) {
       setAccessStatus("not-purchased");
@@ -54,11 +53,14 @@ const ACPTest = () => {
     }
 
     try {
+      // 🛠️ Ensure the test doc exists
+      await ensureTestDocExists(userId, testId);
+
       const testDocRef = doc(db, "users", userId, "purchasedTests", testId);
       const testDocSnap = await getDoc(testDocRef);
 
       if (!testDocSnap.exists()) {
-        console.log("🚫 Test not found in subcollection");
+        console.log("🚫 Test not found in subcollection (even after creation?)");
         setAccessStatus("not-purchased");
         return;
       }
@@ -72,7 +74,7 @@ const ACPTest = () => {
       if (isUnlocked && !isUsed) {
         setAccessStatus("granted");
       } else {
-        setAccessStatus("used"); // Either used or locked
+        setAccessStatus("used");
       }
 
     } catch (error) {
@@ -84,7 +86,6 @@ const ACPTest = () => {
   checkAccessToTest();
 }, [userId, testId]);
 
- // Ensure user is included
 
   // ---------- Cart Setup ----------
   const { addToCart } = useCart();
