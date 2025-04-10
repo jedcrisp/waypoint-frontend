@@ -381,7 +381,7 @@ useEffect(() => {
     // 🔐 Attempt to lock the test after saving
     try {
       console.log("🔐 Attempting to lock test", { userId, testId });
-      const response = await axios.post(`${API_URL}/lock-test`, {
+      const response = await axios.post(`${API_URL}/api/lock-test`, {
         userId,
         testId,
       });
