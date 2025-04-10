@@ -391,7 +391,7 @@ useEffect(() => {
       setError(`❌ Failed to lock test: ${lockError.message}`);
     }
 
-    setHasAccess("used");
+    setHasAccess("not-purchased");
   } catch (error) {
     setError(`❌ ${error.message}`);
   }
@@ -420,7 +420,7 @@ useEffect(() => {
     const aiText = response.data.analysis;
     setAiReview(aiText);
     await exportToPDF(aiText);
-    setHasAccess("used");
+    setHasAccess("not-purchased");
   } catch (error) {
     setError(`❌ Error during AI review or test removal: ${error.message}`);
   }
@@ -437,12 +437,9 @@ useEffect(() => {
   };
 
   // ---------- Conditional Rendering ----------
-if (accessStatus === "loading") return <div>Loading...</div>;
-
 if (accessStatus === "not-purchased") {
   return <ACPTestBlockedView addToCart={addToCart} testId="acpTest" />;
 }
-
   // ---------- Render ACP Test Content if Access Granted ----------
   return (
     <div
