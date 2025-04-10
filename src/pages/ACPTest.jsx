@@ -35,17 +35,19 @@ async function ensureTestDocExists(userId, testId) {
   const ref = doc(db, "users", userId, "purchasedTests", testId);
   const snap = await getDoc(ref);
 
+  // Only create the doc if it does NOT exist
   if (!snap.exists()) {
     await setDoc(ref, {
       unlocked: true,
       used: false,
       purchasedAt: serverTimestamp(),
-    }).catch((error) => {
-      console.error("Error saving PDF to Firebase:", error);
     });
     console.log("📦 Test doc created manually");
+  } else {
+    console.log("✅ Test doc already exists, not overwriting");
   }
 }
+
 
 useEffect(() => {
   async function checkAccessToTest() {
