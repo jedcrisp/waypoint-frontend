@@ -16,7 +16,8 @@ import Modal from "../components/Modal";
 import { useCart } from "../contexts/CartContext";
 import { ShoppingCart } from "lucide-react";
 import ACPTestBlockedView from "../components/ACPTestBlockedView";
-import { removeTestFromPurchased } from "../utils/firebaseTestSaver.js";
+import { useLocation } from "react-router-dom";
+import { reimportPurchasedTest } from "../utils/firebaseTestSaver";
 
 
 const ACPTest = () => {
@@ -25,6 +26,8 @@ const ACPTest = () => {
   const user = auth.currentUser;
   const userId = user?.uid;
   const testId = "acpTest"; // Must match the test ID used in your test catalog and purchase flow
+  const location = useLocation();
+
 
   // ---------- Access Control ----------
   const [accessStatus, setAccessStatus] = useState("loading");
@@ -51,6 +54,9 @@ async function ensureTestDocExists(userId, testId) {
 
 useEffect(() => {
   async function checkAccessToTestWithRetry(retries = 3, delay = 1500) {
+    const queryParams = new URLSearchParams(location.search);
+    const paymentSuccess = queryParams.get("payment") === "success";
+
     for (let i = 0; i < retries; i++) {
       const ref = doc(db, "users", userId, "purchasedTests", testId);
       const snap = await getDoc(ref);
@@ -65,10 +71,18 @@ useEffect(() => {
         if (isUnlocked && !isUsed) {
           setAccessStatus("granted");
           return;
-        } else {
-          setAccessStatus("used");
+        }
+
+        // 🆕 Auto-reset after Stripe repurchase
+        if (paymentSuccess) {
+          console.log("💳 Payment success detected. Reimporting test...");
+          await reimportPurchasedTest(userId, testId);
+          setAccessStatus("granted");
           return;
         }
+
+        setAccessStatus("used");
+        return;
       }
 
       // wait before retrying
@@ -83,7 +97,8 @@ useEffect(() => {
   } else {
     setAccessStatus("not-purchased");
   }
-}, [userId, testId]);
+}, [userId, testId, location.search]);
+
 
 
   // ---------- Cart Setup ----------
