@@ -1,8 +1,7 @@
 import { getAuth } from "firebase/auth";
-import { getFirestore, doc, setDoc, updateDoc, arrayRemove } from "firebase/firestore";
+import { getFirestore, doc, setDoc, deleteDoc, updateDoc, arrayRemove } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage, db } from "../firebase";
-import { deleteDoc } from "firebase/firestore";
 
 export const savePdfResultToFirebase = async ({ fileName, pdfBlob, additionalData = {} }) => {
   const auth = getAuth();
@@ -57,27 +56,6 @@ export const saveAIReviewConsent = async ({ fileName, signature }) => {
   console.log("✅ AI Review consent saved to Firestore");
 };
 
-export const savePurchasedTestToFirestore = async (testId) => {
-  const auth = getAuth();
-  const user = auth.currentUser;
-  if (!user) throw new Error("User not authenticated.");
-
-  const uid = user.uid;
-
-  // ✅ Create document inside the 'purchasedTests' subcollection
-  const purchaseRef = doc(db, "users", uid, "purchasedTests", testId);
-
-  await setDoc(purchaseRef, {
-    testId,
-    purchased: true,
-    purchasedAt: new Date().toISOString(),
-    email: user.email,
-  });
-
-  console.log(`✅ Test "${testId}" successfully saved in Firestore subcollection.`);
-};
-
-
 export const saveDeletionConsent = async ({ testId, signature }) => {
   const auth = getAuth();
   const user = auth.currentUser;
@@ -95,16 +73,25 @@ export const saveDeletionConsent = async ({ testId, signature }) => {
   console.log("✅ Deletion consent saved to Firestore at:", `users/${uid}/deletedTests/${testId}`);
 };
 
-export async function removeTestFromPurchased(userId, testId) {
-  try {
-    const testRef = doc(db, `users/${userId}/purchasedTests/${testId}`);
-    await updateDoc(testRef, {
-      used: true,
-      unlocked: false,
-    });
-    console.log("✅ Test marked as used and locked.");
-  } catch (err) {
-    console.error("❌ Failed to lock test after use:", err);
-  }
-}
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../firebase";
 
+// Lock the test after it's been run and exported
+export const reimportPurchasedTest = async (userId, testId) => {
+  const testDocRef = doc(db, `users/${userId}/purchasedTests/${testId}`);
+
+  try {
+    // Remove any existing state
+    await deleteDoc(testDocRef);
+
+    // Recreate with fresh access
+    await setDoc(testDocRef, {
+      unlocked: true,
+      used: false
+    });
+
+    console.log("✅ Test reimported and unlocked.");
+  } catch (error) {
+    console.error("❌ Error reimporting test:", error);
+  }
+};
