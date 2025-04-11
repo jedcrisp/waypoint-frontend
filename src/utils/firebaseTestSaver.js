@@ -2,6 +2,7 @@ import { getAuth } from "firebase/auth";
 import { getFirestore, doc, setDoc, deleteDoc, updateDoc, arrayRemove } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage, db } from "../firebase";
+import { serverTimestamp } from "firebase/firestore";
 
 export const savePdfResultToFirebase = async ({ fileName, pdfBlob, additionalData = {} }) => {
   const auth = getAuth();
@@ -78,13 +79,12 @@ export const reimportPurchasedTest = async (userId, testId) => {
   const testDocRef = doc(db, `users/${userId}/purchasedTests/${testId}`);
 
   try {
-    // Remove any existing state
     await deleteDoc(testDocRef);
 
-    // Recreate with fresh access
     await setDoc(testDocRef, {
       unlocked: true,
-      used: false
+      used: false,
+      purchasedAt: serverTimestamp()// 👈 add this if your UI depends on it
     });
 
     console.log("✅ Test reimported and unlocked.");
@@ -92,3 +92,4 @@ export const reimportPurchasedTest = async (userId, testId) => {
     console.error("❌ Error reimporting test:", error);
   }
 };
+
