@@ -52,52 +52,42 @@ async function ensureTestDocExists(userId, testId) {
 }
 
 
-useEffect(() => {
-  async function checkAccessToTestWithRetry(retries = 3, delay = 1500) {
-    const queryParams = new URLSearchParams(location.search);
-    const paymentSuccess = queryParams.get("payment") === "success";
+async function checkAccessToTestWithRetry(retries = 3, delay = 1500) {
+  const queryParams = new URLSearchParams(location.search);
+  const paymentSuccess = queryParams.get("payment") === "success";
 
-    for (let i = 0; i < retries; i++) {
-      const ref = doc(db, "users", userId, "purchasedTests", testId);
-      const snap = await getDoc(ref);
+  const ref = doc(db, "users", userId, "purchasedTests", testId);
 
-      if (snap.exists()) {
-        const data = snap.data();
-        const isUnlocked = data.unlocked === true;
-        const isUsed = data.used === true;
+  // 🛠️ If payment was successful, reset BEFORE doing anything else
+  if (paymentSuccess) {
+    console.log("💳 Payment success detected. Reimporting test...");
+    await reimportPurchasedTest(userId, testId);
+  }
 
-        console.log("🔁 Access retry check:", { isUnlocked, isUsed });
+  for (let i = 0; i < retries; i++) {
+    const snap = await getDoc(ref);
 
-        if (isUnlocked && !isUsed) {
-          setAccessStatus("granted");
-          return;
-        }
+    if (snap.exists()) {
+      const data = snap.data();
+      const isUnlocked = data.unlocked === true;
+      const isUsed = data.used === true;
 
-        // 🆕 Auto-reset after Stripe repurchase
-        if (paymentSuccess) {
-          console.log("💳 Payment success detected. Reimporting test...");
-          await reimportPurchasedTest(userId, testId);
-          setAccessStatus("granted");
-          return;
-        }
+      console.log("🔁 Access retry check:", { isUnlocked, isUsed });
 
+      if (isUnlocked && !isUsed) {
+        setAccessStatus("granted");
+        return;
+      } else {
         setAccessStatus("used");
         return;
       }
-
-      // wait before retrying
-      await new Promise((res) => setTimeout(res, delay));
     }
 
-    setAccessStatus("not-purchased"); // fallback after retries
+    await new Promise((res) => setTimeout(res, delay));
   }
 
-  if (userId) {
-    checkAccessToTestWithRetry();
-  } else {
-    setAccessStatus("not-purchased");
-  }
-}, [userId, testId, location.search]);
+  setAccessStatus("not-purchased");
+}
 
 
 
