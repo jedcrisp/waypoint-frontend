@@ -13,6 +13,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 
 // Pages
 import Dashboard from "./pages/Dashboard";
+import CSVBuilderWizard from "./components/CSVBuilderWizard";
 import SignUp from "./pages/SignUp";
 import Home from "./pages/Home";
 import FAQ from "./pages/FAQ";
@@ -160,6 +161,7 @@ function AppContent() {
           <Routes>
             <Route path="/signin" element={<SignIn />} />
             <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+            <Route path="/csv-builder" element={<CSVBuilderWizard />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
             <Route path="/about" element={<About />} />
