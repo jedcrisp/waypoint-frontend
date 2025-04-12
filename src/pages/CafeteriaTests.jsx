@@ -18,24 +18,24 @@ export default function CafeteriaTests() {
       description:
         "Ensures that a sufficient percentage of non-highly compensated employees (NHCEs) are eligible to participate in the Cafeteria Plan.",
     },
-    {
-      name: "Classification Test",
-      route: "/test-classification",
-      description:
-        "Ensures that the Cafeteria Plan’s eligibility rules do not unfairly favor Highly Compensated Employees (HCEs) or Key Employees over Non-Highly Compensated Employees (NHCEs).",
-    },
-    {
-      name: "Benefit Test",
-      route: "/test-benefit",
-      description:
-        "Ensures that benefits and employer contributions are distributed equitably and do not disproportionately favor HCEs or Key Employees.",
-    },
-    {
-      name: "SIMPLE Cafeteria Plan Eligibility",
-      route: "/test-simple-cafeteria-plan-eligibility",
-      description:
-        "Checks that the plan meets the eligibility criteria for a SIMPLE Cafeteria Plan, including required employee hours, earnings, and other criteria.",
-    },
+   // {
+    //  name: "Classification Test",
+     // route: "/test-classification",
+     // description:
+      //  "Ensures that the Cafeteria Plan’s eligibility rules do not unfairly favor Highly Compensated Employees (HCEs) or Key Employees over Non-Highly Compensated Employees (NHCEs).",
+   // },
+   // {
+    //  name: "Benefit Test",
+     // route: "/test-benefit",
+     // description:
+      //  "Ensures that benefits and employer contributions are distributed equitably and do not disproportionately favor HCEs or Key Employees.",
+   // },
+   // {
+     // name: "SIMPLE Cafeteria Plan Eligibility",
+     // route: "/test-simple-cafeteria-plan-eligibility",
+     // description:
+     //   "Checks that the plan meets the eligibility criteria for a SIMPLE Cafeteria Plan, including required employee hours, earnings, and other criteria.",
+    //},
     {
       name: "Cafeteria Contributions & Benefits Test",
       route: "/test-cafeteria-contributions-benefits",
@@ -49,9 +49,6 @@ export default function CafeteriaTests() {
       <h1 className="text-5xl font-light text-[#0074d9] mb-8">
         Cafeteria Plan Tests
       </h1>
-      <p className="text-lg text-gray-700 text-center max-w-2xl mb-8">
-        Assess Cafeteria Plan compliance with a comprehensive set of tests to ensure nondiscriminatory benefit offerings and alignment with IRS Section 125 regulations.
-      </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl">
         {tests.map((test) => (
           <div
