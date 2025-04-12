@@ -2,7 +2,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { User, History, Shield, FileText, Info, BookOpen, Mail } from "lucide-react";
+import { User, History, Shield, FileText, Info, BookOpen, Mail, FileCog } from "lucide-react";
 import { getAuth } from "firebase/auth";
 import { useTests } from "../hooks/useTests";
 import YourTests from "./YourTests"; // Adjust the import path if needed
@@ -12,6 +12,7 @@ const dashboardItems = [
   { title: "Tests", route: "/home", description: "Start or continue available nondiscrimination tests", icon: FileText },
   { title: "Test History", route: "/test-history", description: "View saved and past test results", icon: History },
   { title: "Test Info", route: "/test-info", description: "Overview of test types and their use", icon: BookOpen },
+  { title: "CSV Builder Wizard", route: "/csv-builder", description: "Map and export formatted CSVs for tests", icon: FileCog },
   { title: "About", route: "/about", description: "Learn more about this platform", icon: Info },
   { title: "Security", route: "/security", description: "Update password and secure your account", icon: Shield },
   { title: "Contact", route: "/contact", description: "Get in touch with support", icon: Mail },
