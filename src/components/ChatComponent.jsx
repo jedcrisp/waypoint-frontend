@@ -39,10 +39,11 @@ const ChatComponent = () => {
   }, [messages]);
 
   // Determine styles for the minimized chat box based on the current route
-  const isHomePage = location.pathname === "/";
-  const minimizedBoxStyles = isHomePage
-    ? "bg-white text-black"
-    : "bg-[#0074d9] text-white";
+  // White with blue text only on /home, blue with white text everywhere else
+const minimizedBoxStyles = location.pathname === "/home"
+  ? "bg-white text-[#0074d9]"
+  : "bg-[#0074d9] text-white";
+
 
   return (
     // Changed bottom-5 to bottom-20 so the chat box is placed above the footer.
