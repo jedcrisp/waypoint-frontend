@@ -34,6 +34,7 @@ export default function Navbar() {
   // Determine if the current route qualifies as a special test page.
   const isSpecialTestPage =
     location.pathname.includes("/account") ||
+    location.pathname.includes("/csv-builder") ||
     location.pathname.includes("/contact") ||
     location.pathname.includes("/about") ||
     location.pathname.includes("/faq") ||
@@ -86,8 +87,6 @@ export default function Navbar() {
   
   // Show the back button only if on a special page and not on the dashboard route
   const showBackButton = isSpecialTestPage && !location.pathname.startsWith("/dashboard");
-
-  console.log("🔍 cartItems in Navbar:", cartItems);
   
   return (
     <nav
