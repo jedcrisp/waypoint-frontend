@@ -104,11 +104,11 @@ const ADPTest = () => {
         },
       });
       console.log("✅ Backend response:", response.data);
-      const safeHarborResults = response.data?.["Test Results"]?.["adp"];
-      if (!safeHarborResults) {
+      const adpResults = response.data;
+      if (!adpResults) {
         setError("❌ No ADP test results found in response.");
       } else {
-        setResult(safeHarborResults);
+        setResult(adpResults);
       }
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
@@ -130,26 +130,24 @@ const ADPTest = () => {
   // --- 4. Download CSV Template ---
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-  ["Last Name", "First Name", "Employee ID", "Eligible for Cafeteria Plan", "Employer Contribution", "Cafeteria Plan Benefits", "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "Plan Entry Date", "Compensation", "Employee Deferral"],
-  ["Last", "First", "E001", "Yes", "1500", "3000", "Yes", "1980-04-12", "2015-06-01", "Active", "No", "No", "No", "2015-07-01", "95000", "12000"],
-  ["Last", "First", "E002", "Yes", "1200", "2800", "No", "1985-11-03", "2019-01-15", "Active", "No", "No", "No", "2019-02-01", "72000", "8000"],
-  ["Last", "First", "E003", "Yes", "1000", "2600", "No", "1990-01-01", "2021-05-01", "Active", "No", "No", "Yes", "2021-05-15", "65000", "5000"],
-  ["Last", "First", "E004", "No", "0", "0", "No", "1992-07-08", "2022-01-10", "Active", "No", "Yes", "No", "2022-02-01", "58000", "0"],
-  ["Last", "First", "E005", "Yes", "1800", "3200", "Yes", "1979-02-18", "2010-09-20", "Active", "No", "No", "No", "2010-10-01", "102000", "15000"],
-  ["Last", "First", "E006", "Yes", "1100", "2500", "No", "1988-10-23", "2016-03-14", "Active", "No", "No", "No", "2016-04-01", "73000", "7000"],
-  ["Last", "First", "E007", "No", "0", "0", "No", "2001-03-05", "2023-06-01", "Active", "No", "No", "Yes", "2023-06-15", "32000", "0"],
-  ["Last", "First", "E008", "Yes", "1300", "2700", "Yes", "1982-05-15", "2011-12-01", "Active", "No", "No", "No", "2012-01-01", "88000", "11000"],
-  ["Last", "First", "E009", "Yes", "1400", "2900", "No", "1995-08-09", "2018-07-01", "Active", "No", "Yes", "No", "2018-07-15", "69000", "6500"],
-  ["Last", "First", "E010", "Yes", "1600", "3100", "Yes", "1983-12-30", "2009-05-15", "Active", "No", "No", "No", "2009-06-01", "99000", "14000"]
-]
-      .map((row) => row.join(","))
-      .join("\n");
+      ["Employee ID", "First Name", "Last Name", "DOB", "DOH", "Plan Entry Date", "Termination Date", "Employment Status", "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "Hours Worked", "Compensation", "Employee Deferral", "Deferral Election %", "HCE", "Ownership %", "Family Relationship", "Plan Year", "Eligible for Cafeteria Plan", "Employer Contribution", "Cafeteria Plan Benefits"],
+      ["E10001", "Alice", "Smith", "1978-03-15", "2015-06-01", "2015-07-01", "", "Active", "No", "No", "No", "2080", "82000", "4100", "5.0", "No", "0", "", "2024", "Yes", "1500", "3000"],
+      ["E10002", "Bob", "Johnson", "1982-11-30", "2012-04-15", "2012-05-01", "2019-08-20", "Terminated", "No", "Yes", "Yes", "1500", "60000", "3000", "5.0", "No", "0", "Spouse", "2024", "No", "1200", "2500"],
+      ["E10003", "Carol", "Williams", "1990-06-22", "2018-01-10", "2018-02-01", "", "Active", "Yes", "No", "No", "2080", "92000", "4600", "5.0", "No", "0", "Child", "2025", "Yes", "1800", "3200"],
+      ["E10004", "David", "Brown", "1975-09-05", "2010-03-12", "2010-04-01", "", "Active", "No", "No", "No", "2080", "110000", "5500", "5.0", "Yes", "10", "Spouse", "2025", "Yes", "2000", "3500"],
+      ["E10005", "Eve", "Jones", "1988-12-10", "2016-08-21", "2016-09-01", "", "Active", "No", "Yes", "No", "2080", "78000", "3900", "5.0", "No", "0", "", "2024", "Yes", "1500", "3000"],
+      ["E10006", "Frank", "Miller", "1980-04-18", "2014-11-30", "2014-12-15", "2021-05-10", "Terminated", "Yes", "No", "Yes", "1700", "65000", "3250", "5.0", "No", "0", "Spouse", "2025", "No", "1300", "2600"],
+      ["E10007", "Grace", "Davis", "1992-07-14", "2020-01-20", "2020-02-01", "", "Active", "No", "Yes", "No", "2080", "85000", "4250", "5.0", "No", "0", "", "2024", "Yes", "1600", "3000"],
+      ["E10008", "Hank", "Garcia", "1979-02-28", "2009-07-01", "2009-08-01", "2018-12-31", "Terminated", "No", "No", "No", "2080", "105000", "5250", "5.0", "Yes", "15", "Spouse", "2025", "No", "2200", "4000"],
+      ["E10009", "Ivy", "Rodriguez", "1995-03-30", "2021-06-15", "2021-07-01", "", "Active", "No", "No", "Yes", "1800", "55000", "2750", "5.0", "No", "0", "Child", "2024", "Yes", "1100", "2300"],
+      ["E10010", "Jack", "Martinez", "1983-08-11", "2013-05-10", "2013-06-01", "", "Active", "Yes", "No", "No", "2080", "95000", "4750", "5.0", "No", "0", "", "2025", "Yes", "1700", "3100"]
+    ].map((row) => row.join(",")).join("\n");
 
     const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "ADP Template.csv");
+    link.setAttribute("download", "ADP_Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -163,21 +161,40 @@ const ADPTest = () => {
     }
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? "N/A";
-    const totalParticipants = result["Total Participants"] ?? "N/A"; 
-    const hceAdp =
-      result["HCE ADP (%)"] !== undefined ? formatPercentage(result["HCE ADP (%)"]) : "N/A";
-    const nhceAdp =
-      result["NHCE ADP (%)"] !== undefined ? formatPercentage(result["NHCE ADP (%)"]) : "N/A";
+    const totalEligibleEmployees = result["Total Eligible Employees"] ?? "N/A";
+    const totalParticipants = result["Total Participants"] ?? "N/A";
+    const hceEligible = result["HCE Eligible"] ?? "N/A";
+    const hceParticipants = result["HCE Participants"] ?? "N/A";
+    const hceAdp = result["HCE ADP (%)"] !== undefined ? formatPercentage(result["HCE ADP (%)"]) : "N/A";
+    const nhceEligible = result["NHCE Eligible"] ?? "N/A";
+    const nhceParticipants = result["NHCE Participants"] ?? "N/A";
+    const nhceAdp = result["NHCE ADP (%)"] !== undefined ? formatPercentage(result["NHCE ADP (%)"]) : "N/A";
+    const testCriterion = result["Test Criterion"] ?? "N/A";
     const testRes = result["Test Result"] ?? "N/A";
+    const breakdown = result["Breakdown"] || {};
+    const excludedParticipants = result["Excluded Participants"] || {};
 
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", plan],
       ["Total Employees", totalEmployees],
+      ["Total Eligible Employees", totalEligibleEmployees],
       ["Total Participants", totalParticipants],
+      ["HCE Eligible", hceEligible],
+      ["HCE Participants", hceParticipants],
       ["HCE ADP (%)", hceAdp],
+      ["NHCE Eligible", nhceEligible],
+      ["NHCE Participants", nhceParticipants],
       ["NHCE ADP (%)", nhceAdp],
+      ["Test Criterion", testCriterion],
       ["Test Result", testRes],
+      ["HCE Deferral Sum", formatCurrency(breakdown["HCE Deferral Sum"])],
+      ["HCE Compensation Sum", formatCurrency(breakdown["HCE Compensation Sum"])],
+      ["NHCE Deferral Sum", formatCurrency(breakdown["NHCE Deferral Sum"])],
+      ["NHCE Compensation Sum", formatCurrency(breakdown["NHCE Compensation Sum"])],
+      ["Excluded - No Plan Entry Date", excludedParticipants["No Plan Entry Date"] ?? "N/A"],
+      ["Excluded - After Plan Year", excludedParticipants["After Plan Year"] ?? "N/A"],
+      ["Excluded - Manually", excludedParticipants["Excluded Manually"] ?? "N/A"],
     ];
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
@@ -185,7 +202,7 @@ const ADPTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "ADP Test Results.csv");
+    link.setAttribute("download", "ADP_Test_Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -202,21 +219,19 @@ const ADPTest = () => {
       const finalAIText = customAiReview !== undefined ? customAiReview : aiReview;
       const plan = planYear || "N/A";
       const totalEmployees = result["Total Employees"] ?? "N/A";
-      const totalParticipants = result["Total Participants"] ?? "N/A"; 
-      const hceAdp =
-        result["HCE ADP (%)"] !== undefined ? formatPercentage(result["HCE ADP (%)"]) : "N/A";
-      const nhceAdp =
-        result["NHCE ADP (%)"] !== undefined ? formatPercentage(result["NHCE ADP (%)"]) : "N/A";
+      const totalEligibleEmployees = result["Total Eligible Employees"] ?? "N/A";
+      const totalParticipants = result["Total Participants"] ?? "N/A";
+      const hceEligible = result["HCE Eligible"] ?? "N/A";
+      const hceParticipants = result["HCE Participants"] ?? "N/A";
+      const hceAdp = result["HCE ADP (%)"] !== undefined ? formatPercentage(result["HCE ADP (%)"]) : "N/A";
+      const nhceEligible = result["NHCE Eligible"] ?? "N/A";
+      const nhceParticipants = result["NHCE Participants"] ?? "N/A";
+      const nhceAdp = result["NHCE ADP (%)"] !== undefined ? formatPercentage(result["NHCE ADP (%)"]) : "N/A";
       const testResult = result["Test Result"] || "N/A";
       const testCriterion = result["Test Criterion"] || "N/A";
+      const breakdown = result["Breakdown"] || {};
+      const excludedParticipants = result["Excluded Participants"] || {};
       const failed = testResult.toLowerCase() === "failed";
-
-      // Then, for the test criterion row:
-const rawNhceVal = result["NHCE ADP (%)"] ?? "";
-const parsedNhceVal = parseFloat(String(rawNhceVal).replace("%", ""));
-const testCriterionVal = isNaN(parsedNhceVal)
-  ? "N/A"
-  : (parsedNhceVal * 1.25).toFixed(2) + "%";
 
       const pdf = new jsPDF("p", "mm", "a4");
       pdf.setFont("helvetica", "normal");
@@ -230,7 +245,7 @@ const testCriterionVal = isNaN(parsedNhceVal)
       pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
       const generatedTimestamp = new Date().toLocaleString();
       pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
-      
+
       // Subheader with test criterion
       pdf.setFontSize(12);
       pdf.setFont("helvetica", "italic");
@@ -249,16 +264,76 @@ const testCriterionVal = isNaN(parsedNhceVal)
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", totalEmployees],
+          ["Total Eligible Employees", totalEligibleEmployees],
           ["Total Participants", totalParticipants],
+          ["HCE Eligible", hceEligible],
+          ["HCE Participants", hceParticipants],
           ["HCE ADP", hceAdp],
+          ["NHCE Eligible", nhceEligible],
+          ["NHCE Participants", nhceParticipants],
           ["NHCE ADP", nhceAdp],
-          ["Test Criterion (1.25 × NHCE)", testCriterionVal],
+          ["Test Criterion", testCriterion],
           ["Test Result", testResult],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
         styles: { fontSize: 12, font: "helvetica" },
         margin: { left: 10, right: 10 },
       });
+
+      // Breakdown Table
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Breakdown Metric", "Value"]],
+        body: [
+          ["HCE Deferral Sum", formatCurrency(breakdown["HCE Deferral Sum"])],
+          ["HCE Compensation Sum", formatCurrency(breakdown["HCE Compensation Sum"])],
+          ["NHCE Deferral Sum", formatCurrency(breakdown["NHCE Deferral Sum"])],
+          ["NHCE Compensation Sum", formatCurrency(breakdown["NHCE Compensation Sum"])],
+        ],
+        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+        styles: { fontSize: 12, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+
+      // Excluded Participants Table
+      pdf.autoTable({
+        startY: pdf.lastAutoTable.finalY + 10,
+        theme: "grid",
+        head: [["Excluded Participants", "Count"]],
+        body: [
+          ["No Plan Entry Date", excludedParticipants["No Plan Entry Date"] ?? "N/A"],
+          ["After Plan Year", excludedParticipants["After Plan Year"] ?? "N/A"],
+          ["Excluded Manually", excludedParticipants["Excluded Manually"] ?? "N/A"],
+        ],
+        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+        styles: { fontSize: 12, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+
+      // Employee Data Table (optional, shown if not too large)
+      if (result["Employee Data"] && result["Employee Data"].length <= 50) {
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Employee ID", "First Name", "Last Name", "Compensation", "Prorated Compensation", "Employee Deferral", "Adjusted Deferral", "Deferral Percentage", "HCE", "Catch-Up Contribution"]],
+          body: result["Employee Data"].map(employee => [
+            employee["Employee ID"],
+            employee["First Name"],
+            employee["Last Name"],
+            formatCurrency(employee["Compensation"]),
+            formatCurrency(employee["Prorated Compensation"]),
+            formatCurrency(employee["Employee Deferral"]),
+            formatCurrency(employee["Adjusted Deferral"]),
+            formatPercentage(employee["Deferral Percentage"]),
+            employee["HCE"],
+            formatCurrency(employee["Catch-Up Contribution"])
+          ]),
+          headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+          styles: { fontSize: 8, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+      }
 
       // AI Review Section: If AI review text exists, do not add corrective actions.
       if (finalAIText) {
@@ -383,7 +458,7 @@ const testCriterionVal = isNaN(parsedNhceVal)
 
   return (
     <div
-      className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
+      className="max-w-3xl mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
       onKeyDown={handleKeyDown}
       tabIndex="0"
     >
@@ -451,7 +526,7 @@ const testCriterionVal = isNaN(parsedNhceVal)
       <button
         type="button"
         onClick={open}
-        className="mt-2 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+        className="mt-4 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
       >
         Choose File
       </button>
@@ -459,7 +534,7 @@ const testCriterionVal = isNaN(parsedNhceVal)
       {/* Upload Button */}
       <button
         onClick={handleUpload}
-        className={`w-full mt-2 px-4 py-2 text-white rounded-md ${
+        className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
           !file || !planYear
             ? "bg-gray-400 cursor-not-allowed"
             : "bg-green-500 hover:bg-green-400"
@@ -476,7 +551,7 @@ const testCriterionVal = isNaN(parsedNhceVal)
       {result && (
         <>
           {/* Detailed ADP Test Summary */}
-          {result?.adp_summary && (
+          {result && (
             <div className="mt-4 p-4 bg-gray-100 border border-gray-300 rounded-md">
               <h4 className="font-bold text-lg text-gray-700 mb-2">
                 Detailed ADP Test Summary
@@ -490,39 +565,160 @@ const testCriterionVal = isNaN(parsedNhceVal)
                   <strong>Test Result:</strong>{" "}
                   <span
                     className={`px-2 py-1 rounded-md font-semibold ${
-                      result?.["Test Result"] === "Passed"
+                      result["Test Result"] === "Passed"
                         ? "bg-green-500 text-white"
                         : "bg-red-500 text-white"
                     }`}
                   >
-                    {result?.["Test Result"] || "N/A"}
+                    {result["Test Result"] || "N/A"}
                   </span>
                 </p>
               </div>
-              <ul className="list-disc list-inside text-gray-800 mt-2">
-                <li>
-                  <strong>Total Employees:</strong>{" "}
-                  {result?.["Total Employees"] ?? "N/A"}
-                </li>
-                <li>
-                  <strong>Total Participants:</strong>{" "}
-                  {result?.["Total Participants"] ?? "N/A"}
-                </li>
-                <li>
-                  <strong>HCE ADP:</strong>{" "}
-                  {formatPercentage(result?.["HCE ADP (%)"])}
-                </li>
-                <li>
-                  <strong>NHCE ADP:</strong>{" "}
-                  {formatPercentage(result?.["NHCE ADP (%)"])}
-                </li>
-                 <li>
-    <strong>Test Criterion (1.25 × NHCE):</strong>{" "}
-    {result?.["NHCE ADP (%)"] !== undefined
-      ? `${(Number(result["NHCE ADP (%)"]) * 1.25).toFixed(2)}%`
-      : "N/A"}
-  </li>
-              </ul>
+
+              {/* Employee Counts */}
+              <details className="mb-2">
+                <summary className="font-semibold text-gray-700 cursor-pointer">
+                  Employee Counts
+                </summary>
+                <ul className="list-disc list-inside text-gray-800 mt-2 pl-4">
+                  <li>
+                    <strong>Total Employees:</strong>{" "}
+                    {result["Total Employees"] ?? "N/A"}
+                  </li>
+                  <li>
+                    <strong>Total Eligible Employees:</strong>{" "}
+                    {result["Total Eligible Employees"] ?? "N/A"}
+                  </li>
+                  <li>
+                    <strong>Total Participants:</strong>{" "}
+                    {result["Total Participants"] ?? "N/A"}
+                  </li>
+                  <li>
+                    <strong>HCE Eligible:</strong>{" "}
+                    {result["HCE Eligible"] ?? "N/A"}
+                  </li>
+                  <li>
+                    <strong>HCE Participants:</strong>{" "}
+                    {result["HCE Participants"] ?? "N/A"}
+                  </li>
+                  <li>
+                    <strong>NHCE Eligible:</strong>{" "}
+                    {result["NHCE Eligible"] ?? "N/A"}
+                  </li>
+                  <li>
+                    <strong>NHCE Participants:</strong>{" "}
+                    {result["NHCE Participants"] ?? "N/A"}
+                  </li>
+                </ul>
+              </details>
+
+              {/* Test Results */}
+              <details className="mb-2">
+                <summary className="font-semibold text-gray-700 cursor-pointer">
+                  Test Results
+                </summary>
+                <ul className="list-disc list-inside text-gray-800 mt-2 pl-4">
+                  <li>
+                    <strong>HCE ADP:</strong>{" "}
+                    {formatPercentage(result["HCE ADP (%)"])}
+                  </li>
+                  <li>
+                    <strong>NHCE ADP:</strong>{" "}
+                    {formatPercentage(result["NHCE ADP (%)"])}
+                  </li>
+                  <li>
+                    <strong>Test Criterion:</strong>{" "}
+                    {result["Test Criterion"] ?? "N/A"}
+                  </li>
+                </ul>
+              </details>
+
+              {/* Breakdown */}
+              <details className="mb-2">
+                <summary className="font-semibold text-gray-700 cursor-pointer">
+                  Breakdown
+                </summary>
+                <ul className="list-disc list-inside text-gray-800 mt-2 pl-4">
+                  <li>
+                    <strong>HCE Deferral Sum:</strong>{" "}
+                    {formatCurrency(result["Breakdown"]["HCE Deferral Sum"])}
+                  </li>
+                  <li>
+                    <strong>HCE Compensation Sum:</strong>{" "}
+                    {formatCurrency(result["Breakdown"]["HCE Compensation Sum"])}
+                  </li>
+                  <li>
+                    <strong>NHCE Deferral Sum:</strong>{" "}
+                    {formatCurrency(result["Breakdown"]["NHCE Deferral Sum"])}
+                  </li>
+                  <li>
+                    <strong>NHCE Compensation Sum:</strong>{" "}
+                    {formatCurrency(result["Breakdown"]["NHCE Compensation Sum"])}
+                  </li>
+                </ul>
+              </details>
+
+              {/* Excluded Participants */}
+              <details className="mb-2">
+                <summary className="font-semibold text-gray-700 cursor-pointer">
+                  Excluded Participants
+                </summary>
+                <ul className="list-disc list-inside text-gray-800 mt-2 pl-4">
+                  <li>
+                    <strong>No Plan Entry Date:</strong>{" "}
+                    {result["Excluded Participants"]["No Plan Entry Date"] ?? "N/A"}
+                  </li>
+                  <li>
+                    <strong>After Plan Year:</strong>{" "}
+                    {result["Excluded Participants"]["After Plan Year"] ?? "N/A"}
+                  </li>
+                  <li>
+                    <strong>Excluded Manually:</strong>{" "}
+                    {result["Excluded Participants"]["Excluded Manually"] ?? "N/A"}
+                  </li>
+                </ul>
+              </details>
+
+              {/* Employee Data Table */}
+              <details className="mb-2">
+                <summary className="font-semibold text-gray-700 cursor-pointer">
+                  Employee Data ({result["Employee Data"]?.length || 0} Employees)
+                </summary>
+                <div className="overflow-x-auto mt-2">
+                  <table className="min-w-full bg-white border border-gray-200">
+                    <thead>
+                      <tr>
+                        <th className="px-4 py-2 border-b">Employee ID</th>
+                        <th className="px-4 py-2 border-b">First Name</th>
+                        <th className="px-4 py-2 border-b">Last Name</th>
+                        <th className="px-4 py-2 border-b">Compensation</th>
+                        <th className="px-4 py-2 border-b">Prorated Compensation</th>
+                        <th className="px-4 py-2 border-b">Employee Deferral</th>
+                        <th className="px-4 py-2 border-b">Adjusted Deferral</th>
+                        <th className="px-4 py-2 border-b">Deferral Percentage</th>
+                        <th className="px-4 py-2 border-b">HCE</th>
+                        <th className="px-4 py-2 border-b">Catch-Up Contribution</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {result["Employee Data"]?.map((employee, index) => (
+                        <tr key={index} className="text-center">
+                          <td className="px-4 py-2 border-b">{employee["Employee ID"]}</td>
+                          <td className="px-4 py-2 border-b">{employee["First Name"]}</td>
+                          <td className="px-4 py-2 border-b">{employee["Last Name"]}</td>
+                          <td className="px-4 py-2 border-b">{formatCurrency(employee["Compensation"])}</td>
+                          <td className="px-4 py-2 border-b">{formatCurrency(employee["Prorated Compensation"])}</td>
+                          <td className="px-4 py-2 border-b">{formatCurrency(employee["Employee Deferral"])}</td>
+                          <td className="px-4 py-2 border-b">{formatCurrency(employee["Adjusted Deferral"])}</td>
+                          <td className="px-4 py-2 border-b">{formatPercentage(employee["Deferral Percentage"])}</td>
+                          <td className="px-4 py-2 border-b">{employee["HCE"]}</td>
+                          <td className="px-4 py-2 border-b">{formatCurrency(employee["Catch-Up Contribution"])}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
             </div>
           )}
 
@@ -552,7 +748,7 @@ const testCriterionVal = isNaN(parsedNhceVal)
           )}
 
           {/* Export & Download Buttons (shown only after upload) */}
-          <div className="flex flex-col gap-2 mt-2">
+          <div className="flex flex-col gap-2 mt-4">
             <button
               onClick={() => exportToPDF()}
               className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
@@ -568,7 +764,7 @@ const testCriterionVal = isNaN(parsedNhceVal)
           </div>
 
           {/* Corrective Actions & Consequences if Test Failed (only if AI review not performed) */}
-          {result?.["Test Result"]?.toLowerCase() === "failed" && !aiReview && (
+          {result["Test Result"]?.toLowerCase() === "failed" && !aiReview && (
             <>
               <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
                 <h4 className="font-bold text-black">Corrective Actions:</h4>
