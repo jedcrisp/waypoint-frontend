@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Papa from "papaparse";
-import dayjs from 'dayjs';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import axios from 'axios';
