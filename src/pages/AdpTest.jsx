@@ -309,7 +309,7 @@ const ADPTest = () => {
       );
 
       // Results Table
-      autoTable(pdf,{
+      autoTable(pdf, {
         startY: 56,
         theme: "grid",
         head: [["Metric", "Value"]],
@@ -332,7 +332,7 @@ const ADPTest = () => {
       });
 
       // Breakdown Table
-      pdf.autoTable({
+      autoTable(pdf, {
         startY: pdf.lastAutoTable.finalY + 10,
         theme: "grid",
         head: [["Breakdown Metric", "Value"]],
@@ -368,7 +368,7 @@ const ADPTest = () => {
       });
 
       // Excluded Participants Table
-      pdf.autoTable({
+      autoTable(pdf, {
         startY: pdf.lastAutoTable.finalY + 10,
         theme: "grid",
         head: [["Excluded Participants", "Count"]],
@@ -444,7 +444,7 @@ const ADPTest = () => {
           "Increased IRS audit risk.",
           "Additional corrective contributions may be required.",
         ];
-        pdf.autoTable({
+        autoTable(pdf, {
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["Corrective Actions"]],
@@ -453,7 +453,7 @@ const ADPTest = () => {
           styles: { fontSize: 11, font: "helvetica" },
           margin: { left: 10, right: 10 },
         });
-        pdf.autoTable({
+        autoTable(pdf, {
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["Consequences"]],
