@@ -384,7 +384,7 @@ const ADPTest = () => {
 
       // Employee Data Table
       if (result["Employee Data"] && result["Employee Data"].length <= 50) {
-        pdf.autoTable({
+        autoTable(pdf, {({
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [
@@ -421,7 +421,7 @@ const ADPTest = () => {
 
       // AI Review Section
       if (finalAIText) {
-        pdf.autoTable({
+        autoTable(pdf, {({
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["AI Corrective Actions (Powered by OpenAI)"]],
