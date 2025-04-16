@@ -2,8 +2,8 @@ import React, { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import { savePdfResultToFirebase, saveAIReviewConsent } from "../utils/firebaseTestSaver";
 import Modal from "../components/Modal";
 
@@ -141,8 +141,8 @@ const ADPTest = () => {
   // --- 4. Download CSV Template ---
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-      ["Employee ID", "First Name", "Last Name", "DOB", "DOH", "Plan Entry Date", "Termination Date", "Employment Status", "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "Hours Worked", "Compensation", "Employee Deferral", "Deferral Election %", "HCE", "Ownership %", "Family Relationship"],
-      ["E10001", "Alice", "Smith", "1978-03-15", "2015-06-01", "2015-07-01", "", "Active", "No", "No", "No", "2080", "82000", "4100", "5.0", "No", "0", "",],
+      ["Employee ID", "First Name", "Last Name", "DOB", "DOH", "Plan Entry Date", "Termination Date", "Employment Status", "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "Hours Worked", "Compensation", "Employee Deferral", "Deferral Election %", "HCE", "Ownership %", "Family Relationship",]
+      ["E10001", "Alice", "Smith", "1978-03-15", "2015-06-01", "2015-07-01", "", "Active", "No", "No", "No", "2080", "82000", "4100", "5.0", "No", "0", ""],
       ["E10002", "Bob", "Johnson", "1982-11-30", "2012-04-15", "2012-05-01", "2019-08-20", "Terminated", "No", "Yes", "Yes", "1500", "60000", "3000", "5.0", "No", "0", "Spouse",],
       ["E10003", "Carol", "Williams", "1990-06-22", "2018-01-10", "2018-02-01", "", "Active", "Yes", "No", "No", "2080", "92000", "4600", "5.0", "No", "0", "Child",],
       ["E10004", "David", "Brown", "1975-09-05", "2010-03-12", "2010-04-01", "", "Active", "No", "No", "No", "2080", "110000", "5500", "5.0", "Yes", "10", "Spouse",],
@@ -274,7 +274,18 @@ const ADPTest = () => {
       const failed = testResult.toLowerCase() === "failed";
 
       const pdf = new jsPDF("p", "mm", "a4");
-      pdf.setFont("helvetica", "normal");
+        // then:
+        autoTable(pdf, {
+          startY: 56,
+          theme: "grid",
+          head: [["Metric", "Value"]],
+          body: [
+        ["Total Employees", totalEmployees],
+        ],
+          headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+          styles: { fontSize: 12, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
 
       // PDF Header
       pdf.setFontSize(18);
