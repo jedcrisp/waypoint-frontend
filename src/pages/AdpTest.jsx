@@ -384,7 +384,7 @@ const ADPTest = () => {
 
       // Employee Data Table
       if (result["Employee Data"] && result["Employee Data"].length <= 50) {
-        autoTable(pdf, {({
+        autoTable(pdf, {{
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [
