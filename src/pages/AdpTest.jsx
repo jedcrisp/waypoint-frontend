@@ -180,7 +180,6 @@ const ADPTest = () => {
     const nhceEligible = result["NHCE Eligible"] ?? "N/A";
     const nhceParticipants = result["NHCE Participants"] ?? "N/A";
     const nhceAdp = result["NHCE ADP (%)"] !== undefined ? formatPercentage(result["NHCE ADP (%)"]) : "N/A";
-    const testCriterion = result["Test Criterion"] ?? "N/A";
     const testRes = result["Test Result"] ?? "N/A";
     const breakdown = result["Breakdown"] || {};
     const excludedParticipants = result["Excluded Participants"] || {};
@@ -197,7 +196,6 @@ const ADPTest = () => {
       ["NHCE Eligible", nhceEligible],
       ["NHCE Participants", nhceParticipants],
       ["NHCE ADP (%)", nhceAdp],
-      ["Test Criterion", testCriterion],
       ["Test Result", testRes],
       [
         "HCE Deferral Sum",
@@ -268,7 +266,6 @@ const ADPTest = () => {
       const nhceParticipants = result["NHCE Participants"] ?? "N/A";
       const nhceAdp = result["NHCE ADP (%)"] !== undefined ? formatPercentage(result["NHCE ADP (%)"]) : "N/A";
       const testResult = result["Test Result"] || "N/A";
-      const testCriterion = result["Test Criterion"] || "N/A";
       const breakdown = result["Breakdown"] || {};
       const excludedParticipants = result["Excluded Participants"] || {};
       const failed = testResult.toLowerCase() === "failed";
@@ -381,43 +378,6 @@ const ADPTest = () => {
         styles: { fontSize: 12, font: "helvetica" },
         margin: { left: 10, right: 10 },
       });
-
-      // Employee Data Table
-      if (result["Employee Data"] && result["Employee Data"].length <= 50) {
-        autoTable(pdf, {
-          startY: pdf.lastAutoTable.finalY + 10,
-          theme: "grid",
-          head: [
-            [
-              "Employee ID",
-              "First Name",
-              "Last Name",
-              "Compensation",
-              "Prorated Compensation",
-              "Employee Deferral",
-              "Adjusted Deferral",
-              "Deferral Percentage",
-              "HCE",
-              "Catch-Up Contribution",
-            ],
-          ],
-          body: result["Employee Data"].map((employee) => [
-            employee["Employee ID"],
-            employee["First Name"],
-            employee["Last Name"],
-            formatCurrency(employee["Compensation"]),
-            formatCurrency(employee["Prorated Compensation"]),
-            formatCurrency(employee["Employee Deferral"]),
-            formatCurrency(employee["Adjusted Deferral"]),
-            formatPercentage(employee["Deferral Percentage"]),
-            employee["HCE"],
-            formatCurrency(employee["Catch-Up Contribution"]),
-          ]),
-          headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
-          styles: { fontSize: 8, font: "helvetica" },
-          margin: { left: 10, right: 10 },
-        });
-      }
 
       // AI Review Section
       if (finalAIText) {
