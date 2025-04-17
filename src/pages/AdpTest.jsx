@@ -308,29 +308,6 @@ const ADPTest = () => {
         { align: "center", maxWidth: 180 }
       );
 
-      // Results Table
-      autoTable(pdf, {
-        startY: 56,
-        theme: "grid",
-        head: [["Metric", "Value"]],
-        body: [
-          ["Total Employees", totalEmployees],
-          ["Total Eligible Employees", totalEligibleEmployees],
-          ["Total Participants", totalParticipants],
-          ["HCE Eligible", hceEligible],
-          ["HCE Participants", hceParticipants],
-          ["HCE ADP", hceAdp],
-          ["NHCE Eligible", nhceEligible],
-          ["NHCE Participants", nhceParticipants],
-          ["NHCE ADP", nhceAdp],
-          ["Test Criterion", testCriterion],
-          ["Test Result", testResult],
-        ],
-        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
-        styles: { fontSize: 12, font: "helvetica" },
-        margin: { left: 10, right: 10 },
-      });
-
       // Breakdown Table
       autoTable(pdf, {
         startY: pdf.lastAutoTable.finalY + 10,
