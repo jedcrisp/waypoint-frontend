@@ -275,7 +275,7 @@ const ADPTest = () => {
 
       const pdf = new jsPDF("p", "mm", "a4");
         // then:
-        pdf.autoTable({df, {
+        pdf.autoTable({
           startY: 56,
           theme: "grid",
           head: [["Metric", "Value"]],
@@ -309,7 +309,7 @@ const ADPTest = () => {
       );
 
       // Results Table
-      pdf.autoTable({df, {
+      pdf.autoTable({
         startY: 56,
         theme: "grid",
         head: [["Metric", "Value"]],
