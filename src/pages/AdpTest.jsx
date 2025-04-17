@@ -180,6 +180,7 @@ const ADPTest = () => {
     const nhceEligible = result["NHCE Eligible"] ?? "N/A";
     const nhceParticipants = result["NHCE Participants"] ?? "N/A";
     const nhceAdp = result["NHCE ADP (%)"] !== undefined ? formatPercentage(result["NHCE ADP (%)"]) : "N/A";
+    const testCriterion = result["Test Criterion"] ?? "N/A";
     const testRes = result["Test Result"] ?? "N/A";
     const breakdown = result["Breakdown"] || {};
     const excludedParticipants = result["Excluded Participants"] || {};
@@ -196,6 +197,7 @@ const ADPTest = () => {
       ["NHCE Eligible", nhceEligible],
       ["NHCE Participants", nhceParticipants],
       ["NHCE ADP (%)", nhceAdp],
+      ["Test Criterion", testCriterion],
       ["Test Result", testRes],
       [
         "HCE Deferral Sum",
@@ -266,6 +268,7 @@ const ADPTest = () => {
       const nhceParticipants = result["NHCE Participants"] ?? "N/A";
       const nhceAdp = result["NHCE ADP (%)"] !== undefined ? formatPercentage(result["NHCE ADP (%)"]) : "N/A";
       const testResult = result["Test Result"] || "N/A";
+      const testCriterion = result["Test Criterion"] || "N/A";
       const breakdown = result["Breakdown"] || {};
       const excludedParticipants = result["Excluded Participants"] || {};
       const failed = testResult.toLowerCase() === "failed";
@@ -306,7 +309,7 @@ const ADPTest = () => {
       );
 
       // Results Table
-      autoTable(pdf, {
+      autoTable(pdf,{
         startY: 56,
         theme: "grid",
         head: [["Metric", "Value"]],
@@ -329,7 +332,7 @@ const ADPTest = () => {
       });
 
       // Breakdown Table
-      autoTable(pdf, {
+      pdf.autoTable({
         startY: pdf.lastAutoTable.finalY + 10,
         theme: "grid",
         head: [["Breakdown Metric", "Value"]],
@@ -365,7 +368,7 @@ const ADPTest = () => {
       });
 
       // Excluded Participants Table
-      autoTable(pdf, {
+      pdf.autoTable({
         startY: pdf.lastAutoTable.finalY + 10,
         theme: "grid",
         head: [["Excluded Participants", "Count"]],
@@ -379,9 +382,46 @@ const ADPTest = () => {
         margin: { left: 10, right: 10 },
       });
 
+      // Employee Data Table
+      if (result["Employee Data"] && result["Employee Data"].length <= 50) {
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [
+            [
+              "Employee ID",
+              "First Name",
+              "Last Name",
+              "Compensation",
+              "Prorated Compensation",
+              "Employee Deferral",
+              "Adjusted Deferral",
+              "Deferral Percentage",
+              "HCE",
+              "Catch-Up Contribution",
+            ],
+          ],
+          body: result["Employee Data"].map((employee) => [
+            employee["Employee ID"],
+            employee["First Name"],
+            employee["Last Name"],
+            formatCurrency(employee["Compensation"]),
+            formatCurrency(employee["Prorated Compensation"]),
+            formatCurrency(employee["Employee Deferral"]),
+            formatCurrency(employee["Adjusted Deferral"]),
+            formatPercentage(employee["Deferral Percentage"]),
+            employee["HCE"],
+            formatCurrency(employee["Catch-Up Contribution"]),
+          ]),
+          headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+          styles: { fontSize: 8, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+      }
+
       // AI Review Section
       if (finalAIText) {
-        autoTable(pdf, {
+        pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["AI Corrective Actions (Powered by OpenAI)"]],
@@ -404,7 +444,7 @@ const ADPTest = () => {
           "Increased IRS audit risk.",
           "Additional corrective contributions may be required.",
         ];
-        autoTable(pdf, {
+        pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["Corrective Actions"]],
@@ -413,7 +453,7 @@ const ADPTest = () => {
           styles: { fontSize: 11, font: "helvetica" },
           margin: { left: 10, right: 10 },
         });
-        autoTable(pdf, {
+        pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["Consequences"]],
@@ -571,7 +611,7 @@ const ADPTest = () => {
       <button
         type="button"
         onClick={open}
-        className="mt-4 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+        className="mt-2 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
       >
         Choose File
       </button>
@@ -579,7 +619,7 @@ const ADPTest = () => {
       {/* Upload Button */}
       <button
         onClick={handleUpload}
-        className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
+        className={`w-full mt-2 px-4 py-2 text-white rounded-md ${
           !file || !planYear
             ? "bg-gray-400 cursor-not-allowed"
             : "bg-green-500 hover:bg-green-400"
@@ -761,7 +801,7 @@ const ADPTest = () => {
 
       {/* Export & Download Buttons (shown only after upload) */}
       {result && result["Test Type"] && (
-  <div className="flex flex-col gap-2 mt-4">
+  <div className="flex flex-col gap-2 mt-2">
     <button
       onClick={() => exportToPDF()}
       className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
