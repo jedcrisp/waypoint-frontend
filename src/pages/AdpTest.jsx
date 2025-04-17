@@ -421,7 +421,7 @@ const ADPTest = () => {
 
       // AI Review Section
       if (finalAIText) {
-        autoTable(pdf, {({
+        autoTable(pdf, {
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["AI Corrective Actions (Powered by OpenAI)"]],
