@@ -3,7 +3,7 @@ import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { savePdfResultToFirebase, saveAIReviewConsent } from "../utils/firebaseTestSaver";
 import Modal from "../components/Modal";
 
@@ -275,7 +275,7 @@ const ADPTest = () => {
 
       const pdf = new jsPDF("p", "mm", "a4");
         // then:
-        pdf.autoTable({
+        autoTable(pdf, {
           startY: 56,
           theme: "grid",
           head: [["Metric", "Value"]],
@@ -309,7 +309,7 @@ const ADPTest = () => {
       );
 
       // Results Table
-      pdf.autoTable({
+      autoTable(pdf, {
         startY: 56,
         theme: "grid",
         head: [["Metric", "Value"]],
@@ -332,7 +332,7 @@ const ADPTest = () => {
       });
 
       // Breakdown Table
-      pdf.autoTable({
+      autoTable(pdf, {
         startY: pdf.lastAutoTable.finalY + 10,
         theme: "grid",
         head: [["Breakdown Metric", "Value"]],
@@ -368,7 +368,7 @@ const ADPTest = () => {
       });
 
       // Excluded Participants Table
-      pdf.autoTable({
+      autoTable(pdf, {
         startY: pdf.lastAutoTable.finalY + 10,
         theme: "grid",
         head: [["Excluded Participants", "Count"]],
@@ -384,7 +384,7 @@ const ADPTest = () => {
 
       // Employee Data Table
       if (result["Employee Data"] && result["Employee Data"].length <= 50) {
-        pdf.autoTable({
+        autoTable(pdf, {
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [
@@ -421,7 +421,7 @@ const ADPTest = () => {
 
       // AI Review Section
       if (finalAIText) {
-        pdf.autoTable({
+        autoTable(pdf, {
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["AI Corrective Actions (Powered by OpenAI)"]],
@@ -444,7 +444,7 @@ const ADPTest = () => {
           "Increased IRS audit risk.",
           "Additional corrective contributions may be required.",
         ];
-        pdf.autoTable({
+        autoTable(pdf, {
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["Corrective Actions"]],
@@ -453,7 +453,7 @@ const ADPTest = () => {
           styles: { fontSize: 11, font: "helvetica" },
           margin: { left: 10, right: 10 },
         });
-        pdf.autoTable({
+        autoTable(pdf, {
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["Consequences"]],
