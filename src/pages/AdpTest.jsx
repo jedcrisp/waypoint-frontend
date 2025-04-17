@@ -309,7 +309,7 @@ const ADPTest = () => {
       );
 
       // Results Table
-      autoTable(pdf,{
+      autoTable(pdf, {
         startY: 56,
         theme: "grid",
         head: [["Metric", "Value"]],
@@ -332,7 +332,7 @@ const ADPTest = () => {
       });
 
       // Breakdown Table
-      pdf.autoTable({
+      autoTable(pdf, {
         startY: pdf.lastAutoTable.finalY + 10,
         theme: "grid",
         head: [["Breakdown Metric", "Value"]],
@@ -368,7 +368,7 @@ const ADPTest = () => {
       });
 
       // Excluded Participants Table
-      pdf.autoTable({
+      autoTable(pdf, {
         startY: pdf.lastAutoTable.finalY + 10,
         theme: "grid",
         head: [["Excluded Participants", "Count"]],
@@ -384,7 +384,7 @@ const ADPTest = () => {
 
       // Employee Data Table
       if (result["Employee Data"] && result["Employee Data"].length <= 50) {
-        pdf.autoTable({
+        autoTable(pdf, {
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [
@@ -421,7 +421,7 @@ const ADPTest = () => {
 
       // AI Review Section
       if (finalAIText) {
-        pdf.autoTable({
+        autoTable(pdf, {
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["AI Corrective Actions (Powered by OpenAI)"]],
@@ -444,7 +444,7 @@ const ADPTest = () => {
           "Increased IRS audit risk.",
           "Additional corrective contributions may be required.",
         ];
-        pdf.autoTable({
+        autoTable(pdf, {
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["Corrective Actions"]],
@@ -453,7 +453,7 @@ const ADPTest = () => {
           styles: { fontSize: 11, font: "helvetica" },
           margin: { left: 10, right: 10 },
         });
-        pdf.autoTable({
+        autoTable(pdf, {
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["Consequences"]],
@@ -611,7 +611,7 @@ const ADPTest = () => {
       <button
         type="button"
         onClick={open}
-        className="mt-2 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+        className="mt-4 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
       >
         Choose File
       </button>
@@ -619,7 +619,7 @@ const ADPTest = () => {
       {/* Upload Button */}
       <button
         onClick={handleUpload}
-        className={`w-full mt-2 px-4 py-2 text-white rounded-md ${
+        className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
           !file || !planYear
             ? "bg-gray-400 cursor-not-allowed"
             : "bg-green-500 hover:bg-green-400"
@@ -801,7 +801,7 @@ const ADPTest = () => {
 
       {/* Export & Download Buttons (shown only after upload) */}
       {result && result["Test Type"] && (
-  <div className="flex flex-col gap-2 mt-2">
+  <div className="flex flex-col gap-2 mt-4">
     <button
       onClick={() => exportToPDF()}
       className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
