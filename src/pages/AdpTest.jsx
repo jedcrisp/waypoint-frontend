@@ -611,7 +611,7 @@ const ADPTest = () => {
       <button
         type="button"
         onClick={open}
-        className="mt-4 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+        className="mt-2 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
       >
         Choose File
       </button>
@@ -619,7 +619,7 @@ const ADPTest = () => {
       {/* Upload Button */}
       <button
         onClick={handleUpload}
-        className={`w-full mt-4 px-4 py-2 text-white rounded-md ${
+        className={`w-full mt-2 px-4 py-2 text-white rounded-md ${
           !file || !planYear
             ? "bg-gray-400 cursor-not-allowed"
             : "bg-green-500 hover:bg-green-400"
@@ -801,7 +801,7 @@ const ADPTest = () => {
 
       {/* Export & Download Buttons (shown only after upload) */}
       {result && result["Test Type"] && (
-  <div className="flex flex-col gap-2 mt-4">
+  <div className="flex flex-col gap-2 mt-2">
     <button
       onClick={() => exportToPDF()}
       className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
