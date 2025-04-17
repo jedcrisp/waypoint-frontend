@@ -337,36 +337,51 @@ export default function CSVBuilderWizard() {
 
   // Filter and search employees
   const filteredRows = useMemo(() => {
-    let filtered = enrichedRows.map(row => ({
+  let filtered = enrichedRows.map(row => {
+    const compRaw = row["Compensation"];
+    const deferralRaw = row["Employee Deferral"];
+
+    const comp = parseFloat((compRaw ?? "").toString().replace(/[$,]/g, ""));
+    const deferral = parseFloat((deferralRaw ?? "").toString().replace(/[$,]/g, ""));
+
+    const deferralPercent =
+      !isNaN(comp) && comp > 0 && !isNaN(deferral)
+        ? (deferral / comp) * 100
+        : undefined;
+
+    return {
       ...row,
-      // For Top Heavy, Average Benefit, and Coverage tests, set Participating based on context
-      Participating: (selectedTest === "Top Heavy Test" || selectedTest === "Average Benefit Test") 
-        ? row.Eligible 
-        : selectedTest === "Coverage Test" 
-        ? (row["Eligible for Plan"] === "yes") 
-        : row.Participating
-    }));
+      "Deferral Percent": deferralPercent,
+      Participating:
+        selectedTest === "Top Heavy Test" || selectedTest === "Average Benefit Test"
+          ? row.Eligible
+          : selectedTest === "Coverage Test"
+          ? row["Eligible for Plan"]?.toLowerCase() === "yes"
+          : row.Participating,
+    };
+  });
 
-    if (showExcludedOnly) {
-      filtered = filtered.filter(row => !row.Eligible);
-    }
-    if (showEligibleOnly) {
-      filtered = filtered.filter(row => row.Eligible);
-    }
-    if (showParticipatingOnly) {
-      filtered = filtered.filter(row => row.Participating);
-    }
+  if (showExcludedOnly) {
+    filtered = filtered.filter(row => !row.Eligible);
+  }
+  if (showEligibleOnly) {
+    filtered = filtered.filter(row => row.Eligible);
+  }
+  if (showParticipatingOnly) {
+    filtered = filtered.filter(row => row.Participating);
+  }
 
-    if (searchTerm.trim()) {
-      const searchLower = searchTerm.trim().toLowerCase();
-      filtered = filtered.filter(row => 
-        row["First Name"].toLowerCase().includes(searchLower) || 
-        row["Last Name"].toLowerCase().includes(searchLower)
-      );
-    }
+  if (searchTerm.trim()) {
+    const searchLower = searchTerm.trim().toLowerCase();
+    filtered = filtered.filter(row =>
+      row["First Name"]?.toLowerCase().includes(searchLower) ||
+      row["Last Name"]?.toLowerCase().includes(searchLower)
+    );
+  }
 
-    return filtered;
-  }, [enrichedRows, showExcludedOnly, showEligibleOnly, showParticipatingOnly, searchTerm]);
+  return filtered;
+}, [enrichedRows, showExcludedOnly, showEligibleOnly, showParticipatingOnly, searchTerm, selectedTest]);
+
 
   // Download enriched employee data as CSV (test-specific adjustments)
   const downloadEnrichedEmployeeCSV = () => {
