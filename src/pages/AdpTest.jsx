@@ -309,7 +309,7 @@ const ADPTest = () => {
       );
 
       // Results Table
-      autoTable(pdf,{
+      autoTable(pdf, {
         startY: 56,
         theme: "grid",
         head: [["Metric", "Value"]],
