@@ -304,7 +304,7 @@ const ADPTest = () => {
                     <td className="border px-2 py-1">{emp["Employee ID"]}</td>
                     <td className="border px-2 py-1">{emp["First Name"]}</td>
                     <td className="border px-2 py-1">{emp["Last Name"]}</td>
-                    <td className="border px-2 py-1">{formatPercentage(emp["Deferral Percentage"])}</td>
+                    <td className="border px-2 py-1">{formatPercentage(emp["deferral_percentage"] ?? emp["Deferral Percentage"])} </td>
                     <td className="border px-2 py-1 capitalize">{emp.HCE}</td>
                     <td className="border px-2 py-1">
                       <input
