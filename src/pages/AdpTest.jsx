@@ -2,8 +2,8 @@ import React, { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 import { savePdfResultToFirebase, saveAIReviewConsent } from "../utils/firebaseTestSaver";
 import Modal from "../components/Modal";
 
