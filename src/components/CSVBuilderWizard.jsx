@@ -103,39 +103,49 @@ export default function CSVBuilderWizard() {
   };
 
   function handleFileUpload(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    Papa.parse(file, {
-      header: true,
-      complete: ({ data, meta }) => {
-        setRawHeaders(meta.fields);
-        setOriginalRows(data);
-        const normalizedRaw = meta.fields.map(f => ({
-         original: f,
-         normalized: normalize(f),
-     }));
-        const autoMap = {};
-        REQUIRED_HEADERS_BY_TEST[selectedTest]?.forEach((required) => {
-          let match;
-            if (required === "DOH") {
-             match = normalizedRaw.find(col =>
-              col.normalized === normalize("DOH") ||
-              col.normalized === normalize("Date of Hire")
-            );
-          }
-          else if (required === "DOB") {
-            match = normalizedRaw.find(col =>
-              col.normalized === normalize("DOB") ||
-              col.normalized === normalize("Birth Date")
-            );
-          }
-          else {
-            match = normalizedRaw.find(col =>
-              normalize(required) === col.normalized
-            );
-          }
-          if (match) autoMap[required] = match.original;
-        });
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  Papa.parse(file, {
+    header: true,
+    complete: ({ data, meta }) => {
+      // 1) normalize raw headers
+      const normalizedRaw = meta.fields.map(f => ({
+        original: f,
+        normalized: normalize(f),
+      }));
+
+      // 2) auto‑map required headers (with DOB/DOH fallbacks)
+      const autoMap = {};
+      REQUIRED_HEADERS_BY_TEST[selectedTest]?.forEach(required => {
+        let match;
+        if (required === "DOH") {
+          match = normalizedRaw.find(col =>
+            col.normalized === normalize("DOH") ||
+            col.normalized === normalize("Date of Hire")
+          );
+        } else if (required === "DOB") {
+          match = normalizedRaw.find(col =>
+            col.normalized === normalize("DOB") ||
+            col.normalized === normalize("Birth Date")
+          );
+        } else {
+          match = normalizedRaw.find(col =>
+            col.normalized === normalize(required)
+          );
+        }
+        if (match) autoMap[required] = match.original;
+      });
+
+      // 3) set state and kick off preview
+      setRawHeaders(meta.fields);
+      setOriginalRows(data);
+      setColumnMap(autoMap);
+      previewCsv(data);
+    } // end complete callback
+  });  // end Papa.parse
+
+}
 
 
   async function previewCsv(rows) {
