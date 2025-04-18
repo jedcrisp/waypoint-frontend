@@ -116,33 +116,27 @@ export default function CSVBuilderWizard() {
           norm: normalize(f),
         }));
         const autoMap = {};
-        --- old auto‐map
--        REQUIRED_HEADERS_BY_TEST[selectedTest]?.forEach((required) => {
--          const match = normalizedRaw.find(col => normalize(required) === col.normalized);
--          if (match) autoMap[required] = match.original;
--        });
-+        // smarter auto‐map that also recognizes synonyms for DOH & DOB
-+        REQUIRED_HEADERS_BY_TEST[selectedTest]?.forEach((required) => {
-+          let match;
-+          if (required === "DOH") {
-+            match = normalizedRaw.find(col =>
-+              col.normalized === normalize("DOH") ||
-+              col.normalized === normalize("Date of Hire")
-+            );
-+          }
-+          else if (required === "DOB") {
-+            match = normalizedRaw.find(col =>
-+              col.normalized === normalize("DOB") ||
-+              col.normalized === normalize("Birth Date")
-+            );
-+          }
-+          else {
-+            match = normalizedRaw.find(col =>
-+              normalize(required) === col.normalized
-+            );
-+          }
-+          if (match) autoMap[required] = match.original;
-+        });
+        REQUIRED_HEADERS_BY_TEST[selectedTest]?.forEach((required) => {
+          let match;
+            if (required === "DOH") {
+             match = normalizedRaw.find(col =>
+              col.normalized === normalize("DOH") ||
+              col.normalized === normalize("Date of Hire")
+            );
+          }
+          else if (required === "DOB") {
+            match = normalizedRaw.find(col =>
+              col.normalized === normalize("DOB") ||
+              col.normalized === normalize("Birth Date")
+            );
+          }
+          else {
+            match = normalizedRaw.find(col =>
+              normalize(required) === col.normalized
+            );
+          }
+          if (match) autoMap[required] = match.original;
+        });
 
 
   async function previewCsv(rows) {
