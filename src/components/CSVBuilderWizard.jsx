@@ -1,6 +1,6 @@
 // src/components/CSVBuilderWizard.jsx
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
 import Papa from "papaparse";
 import jsPDF from "jspdf";
@@ -8,7 +8,6 @@ import "jspdf-autotable";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import { parse, differenceInYears } from "date-fns";
 
 const HCE_THRESHOLDS = {
   2016: 120000, 2017: 120000, 2018: 120000, 2019: 120000,
@@ -68,10 +67,13 @@ const normalize = str =>
 const calculateYearsOfService = (doh, planYear) => {
   if (!doh || !planYear) return 0;
   try {
-    const parsedDoh = parse(doh, "yyyy-MM-dd", new Date());
+    const dohDate = new Date(doh);
     const yearEnd = new Date(`${planYear}-12-31`);
-    if (isNaN(parsedDoh.getTime())) return 0;
-    return differenceInYears(yearEnd, parsedDoh);
+    if (isNaN(dohDate.getTime())) return 0;
+    const diffMs = yearEnd - dohDate;
+    if (diffMs < 0) return 0;
+    const years = diffMs / (1000 * 60 * 60 * 24 * 365.25);
+    return Number(years.toFixed(1));
   } catch {
     return 0;
   }
@@ -331,11 +333,6 @@ function CSVBuilderWizard() {
     };
     setShowModal(true);
     setShowDownloadConfirm(false);
-    setTimeout(() => {
-      if (routes[selectedTest]) {
-        setShowModal(true);
-      }
-    }, 100);
   };
 
   const formatCurrency = v =>
