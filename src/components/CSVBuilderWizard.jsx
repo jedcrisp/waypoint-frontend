@@ -253,11 +253,6 @@ export default function CSVBuilderWizard() {
       );
   };
 
-  const handleDownloadClick = () => {
-    if (!isDownloadEnabled()) return;
-    setShowDownloadConfirm(true);
-  };
-
   const handleDownload = () => {
     // omit HCE from unmapped check
     const unmapped = requiredHeaders
