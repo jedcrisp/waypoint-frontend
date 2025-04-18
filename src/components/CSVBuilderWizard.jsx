@@ -257,41 +257,63 @@ export default function CSVBuilderWizard() {
   }
 
   // prepare preview table rows
-  const filteredRows = useMemo(() => {
-    let out = enrichedRows.map(r => {
-      const comp = parseFloat((r.Compensation || "").replace(/[$,]/g, "")) || 0;
-      const def = parseFloat((r["Employee Deferral"] || "").replace(/[$,]/g, "")) || 0;
-      return {
-        ...r,
-        "Deferral %": comp > 0 ? (def / comp) * 100 : 0,
-        Participating:
-          ["Top Heavy Test", "Average Benefit Test"].includes(selectedTest)
-            ? r.Eligible
-            : selectedTest === "Coverage Test"
-            ? r["Eligible for Plan"]?.toLowerCase() === "yes"
-            : r.Participating,
-      };
-    });
-    if (showExcludedOnly) out = out.filter(x => !x.Eligible);
-    if (showEligibleOnly) out = out.filter(x => x.Eligible);
-    if (showParticipatingOnly) out = out.filter(x => x.Participating);
-    if (searchTerm) {
-      const q = searchTerm.toLowerCase();
-      out = out.filter(
-        x =>
-          x["First Name"]?.toLowerCase().includes(q) ||
-          x["Last Name"]?.toLowerCase().includes(q)
-      );
-    }
-    return out;
-  }, [
-    enrichedRows,
-    showExcludedOnly,
-    showEligibleOnly,
-    showParticipatingOnly,
-    searchTerm,
-    selectedTest,
-  ]);
+const filteredRows = useMemo(() => {
+  let filtered = enrichedRows.map(row => {
+    // coerce to string before replace
+    const compRaw = row["Compensation"];
+    const deferralRaw = row["Employee Deferral"];
+
+    const comp = parseFloat(
+      String(compRaw ?? "").replace(/[$,]/g, "")
+    ) || 0;
+    const deferral = parseFloat(
+      String(deferralRaw ?? "").replace(/[$,]/g, "")
+    ) || 0;
+
+    const deferralPercent = comp > 0
+      ? (deferral / comp) * 100
+      : 0;
+
+    return {
+      ...row,
+      "Deferral %": deferralPercent,
+      Participating:
+        selectedTest === "Top Heavy Test" || selectedTest === "Average Benefit Test"
+          ? row.Eligible
+          : selectedTest === "Coverage Test"
+          ? row["Eligible for Plan"]?.toLowerCase() === "yes"
+          : row.Participating,
+    };
+  });
+
+  if (showExcludedOnly) {
+    filtered = filtered.filter(r => !r.Eligible);
+  }
+  if (showEligibleOnly) {
+    filtered = filtered.filter(r => r.Eligible);
+  }
+  if (showParticipatingOnly) {
+    filtered = filtered.filter(r => r.Participating);
+  }
+
+  if (searchTerm.trim()) {
+    const q = searchTerm.trim().toLowerCase();
+    filtered = filtered.filter(r =>
+      r["First Name"]?.toLowerCase().includes(q) ||
+      r["Last Name"]?.toLowerCase().includes(q)
+    );
+  }
+
+  return filtered;
+}, [
+  enrichedRows,
+  showExcludedOnly,
+  showEligibleOnly,
+  showParticipatingOnly,
+  searchTerm,
+  selectedTest
+]);
+
 
   const formatCurrency = v =>
     isNaN(Number(v))
