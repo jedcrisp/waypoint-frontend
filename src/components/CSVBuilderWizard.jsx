@@ -31,7 +31,7 @@ const REQUIRED_HEADERS_BY_TEST = {
   "ADP Test": [
     "Employee ID", "First Name", "Last Name", "DOB", "DOH", "Plan Entry Date",
     "Termination Date", "Employment Status", "Excluded from Test", "Union Employee", "Part-Time / Seasonal",
-    "Hours Worked", "Compensation", "Employee Deferral", "Deferral Election %", "HCE", "Ownership %", "Family Relationship",
+    "Hours Worked", "Compensation", "Employee Deferral", "Deferral Election %", "Ownership %", "Family Relationship",
   ],
   "ACP Test": [
     "Last Name", "First Name", "Employee ID", "Compensation", "Employer Match",
@@ -271,7 +271,7 @@ export default function CSVBuilderWizard() {
         } else if (header === "HCE" && autoGenerateHCE && canAutoGenerateHCE()) {
           const comp = parseFloat(row[columnMap["Compensation"]] ?? 0);
           const threshold = HCE_THRESHOLDS[parseInt(planYear)] ?? 155000;
-          newRow["HCE"] = comp >= threshold ? "Yes" : "No";
+         //  newRow["HCE"] = comp >= threshold ? "Yes" : "No";
         } else if (header === "Key Employee" && autoGenerateKeyEmployee && canAutoGenerateKeyEmployee()) {
           const comp = parseFloat(row[columnMap["Compensation"]] ?? 0);
           const ownership = parseFloat(row[columnMap["Ownership %"]] ?? 0);
