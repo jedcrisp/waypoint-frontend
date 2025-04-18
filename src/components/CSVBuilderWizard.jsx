@@ -110,11 +110,10 @@ export default function CSVBuilderWizard() {
       complete: ({ data, meta }) => {
         setRawHeaders(meta.fields);
         setOriginalRows(data);
-        // auto-map exact matches
-        const normalized = meta.fields.map(f => ({
-          original: f,
-          norm: normalize(f),
-        }));
+        const normalizedRaw = meta.fields.map(f => ({
+         original: f,
+         normalized: normalize(f),
+     }));
         const autoMap = {};
         REQUIRED_HEADERS_BY_TEST[selectedTest]?.forEach((required) => {
           let match;
