@@ -308,8 +308,31 @@ const ADPTest = () => {
         { align: "center", maxWidth: 180 }
       );
 
+      // Results Table
+      autoTable(pdf,{
+        startY: 56,
+        theme: "grid",
+        head: [["Metric", "Value"]],
+        body: [
+          ["Total Employees", totalEmployees],
+          ["Total Eligible Employees", totalEligibleEmployees],
+          ["Total Participants", totalParticipants],
+          ["HCE Eligible", hceEligible],
+          ["HCE Participants", hceParticipants],
+          ["HCE ADP", hceAdp],
+          ["NHCE Eligible", nhceEligible],
+          ["NHCE Participants", nhceParticipants],
+          ["NHCE ADP", nhceAdp],
+          ["Test Criterion", testCriterion],
+          ["Test Result", testResult],
+        ],
+        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+        styles: { fontSize: 12, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+
       // Breakdown Table
-      autoTable(pdf, {
+      pdf.autoTable({
         startY: pdf.lastAutoTable.finalY + 10,
         theme: "grid",
         head: [["Breakdown Metric", "Value"]],
@@ -345,7 +368,7 @@ const ADPTest = () => {
       });
 
       // Excluded Participants Table
-      autoTable(pdf, {
+      pdf.autoTable({
         startY: pdf.lastAutoTable.finalY + 10,
         theme: "grid",
         head: [["Excluded Participants", "Count"]],
@@ -359,46 +382,9 @@ const ADPTest = () => {
         margin: { left: 10, right: 10 },
       });
 
-      // Employee Data Table
-      if (result["Employee Data"] && result["Employee Data"].length <= 50) {
-        autoTable(pdf, {
-          startY: pdf.lastAutoTable.finalY + 10,
-          theme: "grid",
-          head: [
-            [
-              "Employee ID",
-              "First Name",
-              "Last Name",
-              "Compensation",
-              "Prorated Compensation",
-              "Employee Deferral",
-              "Adjusted Deferral",
-              "Deferral Percentage",
-              "HCE",
-              "Catch-Up Contribution",
-            ],
-          ],
-          body: result["Employee Data"].map((employee) => [
-            employee["Employee ID"],
-            employee["First Name"],
-            employee["Last Name"],
-            formatCurrency(employee["Compensation"]),
-            formatCurrency(employee["Prorated Compensation"]),
-            formatCurrency(employee["Employee Deferral"]),
-            formatCurrency(employee["Adjusted Deferral"]),
-            formatPercentage(employee["Deferral Percentage"]),
-            employee["HCE"],
-            formatCurrency(employee["Catch-Up Contribution"]),
-          ]),
-          headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
-          styles: { fontSize: 8, font: "helvetica" },
-          margin: { left: 10, right: 10 },
-        });
-      }
-
       // AI Review Section
       if (finalAIText) {
-        autoTable(pdf, {
+        pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["AI Corrective Actions (Powered by OpenAI)"]],
@@ -421,7 +407,7 @@ const ADPTest = () => {
           "Increased IRS audit risk.",
           "Additional corrective contributions may be required.",
         ];
-        autoTable(pdf, {
+        pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["Corrective Actions"]],
@@ -430,7 +416,7 @@ const ADPTest = () => {
           styles: { fontSize: 11, font: "helvetica" },
           margin: { left: 10, right: 10 },
         });
-        autoTable(pdf, {
+        pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["Consequences"]],
