@@ -332,7 +332,7 @@ const ADPTest = () => {
       });
 
       // Breakdown Table
-      pdf.autoTable({
+      autoTable(pdf, {
         startY: pdf.lastAutoTable.finalY + 10,
         theme: "grid",
         head: [["Breakdown Metric", "Value"]],
@@ -368,7 +368,7 @@ const ADPTest = () => {
       });
 
       // Excluded Participants Table
-      pdf.autoTable({
+      autoTable(pdf, {
         startY: pdf.lastAutoTable.finalY + 10,
         theme: "grid",
         head: [["Excluded Participants", "Count"]],
@@ -384,7 +384,7 @@ const ADPTest = () => {
 
       // AI Review Section
       if (finalAIText) {
-        pdf.autoTable({
+        autoTable(pdf, {
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["AI Corrective Actions (Powered by OpenAI)"]],
@@ -407,7 +407,7 @@ const ADPTest = () => {
           "Increased IRS audit risk.",
           "Additional corrective contributions may be required.",
         ];
-        pdf.autoTable({
+        autoTable(pdf, {
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["Corrective Actions"]],
@@ -416,7 +416,7 @@ const ADPTest = () => {
           styles: { fontSize: 11, font: "helvetica" },
           margin: { left: 10, right: 10 },
         });
-        pdf.autoTable({
+        autoTable(pdf, {
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["Consequences"]],
