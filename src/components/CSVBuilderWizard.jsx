@@ -166,6 +166,26 @@ export default function CSVBuilderWizard() {
     }
   }
 
+  // right after you call setEnrichedRows(...)
+const rowsWithService = useMemo(() => {
+  const yrEnd = new Date(`${planYear}-12-31`);
+  return enrichedRows.map(r => {
+    const doh = r["DOH"] ?? r["Date of Hire"];   // whichever your API actually returns
+    let yrs = 0;
+    if (doh) {
+      const diffMs = yrEnd - new Date(doh);
+      yrs = diffMs > 0
+        ? diffMs / (1000 * 60 * 60 * 24 * 365.25)
+        : 0;
+    }
+    return {
+      ...r,
+      "Years of Service": Number(yrs.toFixed(1))
+    };
+  });
+}, [enrichedRows, planYear]);
+
+
   function handleSelectChange(header, col) {
     setColumnMap(m => ({ ...m, [header]: col }));
   }
