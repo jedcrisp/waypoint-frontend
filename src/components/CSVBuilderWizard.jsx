@@ -1,11 +1,14 @@
 // src/components/CSVBuilderWizard.jsx
 
 import React, { useState, useEffect, useMemo } from "react";
+import PropTypes from "prop-types";
 import Papa from "papaparse";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
+import { parse, differenceInYears } from "date-fns";
 
 const HCE_THRESHOLDS = {
   2016: 120000, 2017: 120000, 2018: 120000, 2019: 120000,
@@ -47,10 +50,54 @@ const REQUIRED_HEADERS_BY_TEST = {
     "DOB", "DOH", "Employment Status", "Excluded from Test",
     "Union Employee", "Part-Time / Seasonal", "Plan Entry Date",
   ],
-  // add other tests as needed...
 };
 
-export default function CSVBuilderWizard() {
+const TEST_TYPE_MAP = {
+  "ADP Test": "adp",
+  "ACP Test": "acp",
+  "Top Heavy Test": "top_heavy",
+  "Average Benefit Test": "average_benefit",
+  "Coverage Test": "coverage",
+};
+
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+
+const normalize = str =>
+  (str || "").toLowerCase().replace(/[^a-z0-9]/g, "").trim();
+
+const calculateYearsOfService = (doh, planYear) => {
+  if (!doh || !planYear) return 0;
+  try {
+    const parsedDoh = parse(doh, "yyyy-MM-dd", new Date());
+    const yearEnd = new Date(`${planYear}-12-31`);
+    if (isNaN(parsedDoh.getTime())) return 0;
+    return differenceInYears(yearEnd, parsedDoh);
+  } catch {
+    return 0;
+  }
+};
+
+const isHCE = (compensation, planYear) => {
+  const comp = parseFloat(compensation || 0);
+  const threshold = HCE_THRESHOLDS[+planYear] || 0;
+  return comp >= threshold ? "Yes" : "No";
+};
+
+const isKeyEmployee = (row, columnMap, planYear) => {
+  const comp = parseFloat(row[columnMap.Compensation] || 0);
+  const own = parseFloat(row[columnMap["Ownership %"]] || 0);
+  const fam = (row[columnMap["Family Member"]] || "").toLowerCase();
+  const emp = (row[columnMap["Employment Status"]] || "").toLowerCase();
+  const thr = KEY_EMPLOYEE_THRESHOLDS[+planYear] || Infinity;
+  return (
+    (comp >= thr && emp === "officer") ||
+    own >= 5 ||
+    (own >= 1 && comp > 150000) ||
+    ["spouse", "child", "parent", "grandparent"].includes(fam)
+  ) ? "Yes" : "No";
+};
+
+function CSVBuilderWizard() {
   const [rawHeaders, setRawHeaders] = useState([]);
   const [selectedTest, setSelectedTest] = useState("");
   const [planYear, setPlanYear] = useState("");
@@ -73,23 +120,11 @@ export default function CSVBuilderWizard() {
   const [errorMessage, setErrorMessage] = useState(null);
   const [showDownloadConfirm, setShowDownloadConfirm] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [nextRoute, setNextRoute] = useState(null);
+  const [unmappedHeaders, setUnmappedHeaders] = useState([]);
+  const navigate = useNavigate();
 
-  const API_URL = import.meta.env.VITE_BACKEND_URL;
   const requiredHeaders = REQUIRED_HEADERS_BY_TEST[selectedTest] || [];
-  const mandatoryHeaders = requiredHeaders.filter(h => h !== "HCE");
-
-  const normalize = str =>
-    (str || "").toLowerCase().replace(/[^a-z0-9]/g, "").trim();
-
-  const TEST_TYPE_MAP = {
-    "ADP Test": "adp",
-    "ACP Test": "acp",
-    "Top Heavy Test": "top_heavy",
-    "Average Benefit Test": "average_benefit",
-    "Coverage Test": "coverage",
-    // other mappings...
-  };
+  const mandatoryHeaders = requiredHeaders.filter(h => h !== "HCE" && h !== "Key Employee");
 
   const canAutoGenerateHCE = () =>
     requiredHeaders.includes("HCE") && !!columnMap["Compensation"];
@@ -102,52 +137,45 @@ export default function CSVBuilderWizard() {
     );
   };
 
-  function handleFileUpload(e) {
-  const file = e.target.files?.[0];
-  if (!file) return;
+  const handleFileUpload = e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
- Papa.parse(file, {
-  header: true,
-  complete: ({ data, meta }) => {
-    // 1) build normalizedRaw correctly
-    const normalizedRaw = meta.fields.map(f => ({
-      original: f,
-      normalized: normalize(f),
-    }));
+    Papa.parse(file, {
+      header: true,
+      complete: ({ data, meta }) => {
+        const normalizedRaw = meta.fields.map(f => ({
+          original: f,
+          normalized: normalize(f),
+        }));
 
-    // 2) auto‑map required headers (with DOB/DOH fallbacks)
-    const autoMap = {};
-    REQUIRED_HEADERS_BY_TEST[selectedTest]?.forEach(required => {
-      let match;
-      if (required === "DOH") {
-        match = normalizedRaw.find(col =>
-          col.normalized === normalize("DOH") ||
-          col.normalized === normalize("Date of Hire")
-        );
-      } else if (required === "DOB") {
-        match = normalizedRaw.find(col =>
-          col.normalized === normalize("DOB") ||
-          col.normalized === normalize("Birth Date")
-        );
-      } else {
-        match = normalizedRaw.find(col =>
-          col.normalized === normalize(required)
-        );
-      }
-      if (match) autoMap[required] = match.original;
+        const autoMap = {};
+        REQUIRED_HEADERS_BY_TEST[selectedTest]?.forEach(required => {
+          let match;
+          if (required === "DOH") {
+            match = normalizedRaw.find(col =>
+              ["doh", "dateofhire"].includes(col.normalized)
+            );
+          } else if (required === "DOB") {
+            match = normalizedRaw.find(col =>
+              ["dob", "birthdate"].includes(col.normalized)
+            );
+          } else {
+            match = normalizedRaw.find(col => col.normalized === normalize(required));
+          }
+          if (match) autoMap[required] = match.original;
+        });
+
+        setRawHeaders(meta.fields);
+        setOriginalRows(data);
+        setColumnMap(autoMap);
+        previewCsv(data);
+      },
+      error: err => setErrorMessage(`File parsing failed: ${err.message}`),
     });
+  };
 
-    // 3) finally set state & preview
-    setRawHeaders(meta.fields);
-    setOriginalRows(data);
-    setColumnMap(autoMap);
-    previewCsv(data);
-  }
-});
-
-
-
-  async function previewCsv(rows) {
+  const previewCsv = async rows => {
     try {
       setErrorMessage(null);
       const testType = TEST_TYPE_MAP[selectedTest];
@@ -163,14 +191,17 @@ export default function CSVBuilderWizard() {
       const { data } = await axios.post(`${API_URL}/preview-csv`, form, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!data?.employees || !data?.summary) {
+        throw new Error("Invalid API response structure");
+      }
       setEnrichedRows(data.employees);
       setSummaryCounts({
-        total_employees: data.summary.total_employees,
-        total_eligible: data.summary.total_eligible,
-        total_excluded: data.summary.total_excluded,
-        total_hces: data.summary.total_key_employees ?? data.summary.total_hces,
+        total_employees: data.summary.total_employees || 0,
+        total_eligible: data.summary.total_eligible || 0,
+        total_excluded: data.summary.total_excluded || 0,
+        total_hces: data.summary.total_key_employees ?? data.summary.total_hces ?? 0,
         total_participating:
-          data.summary.total_participants ?? data.summary.total_participating,
+          data.summary.total_participants ?? data.summary.total_participating ?? 0,
       });
     } catch (err) {
       console.error(err);
@@ -184,184 +215,137 @@ export default function CSVBuilderWizard() {
         total_participating: 0,
       });
     }
-  }
+  };
 
-  // right after you call setEnrichedRows(...)
-const rowsWithService = useMemo(() => {
-  const yrEnd = new Date(`${planYear}-12-31`);
-  return enrichedRows.map(r => {
-    const doh = r["DOH"] ?? r["Date of Hire"];   // whichever your API actually returns
-    let yrs = 0;
-    if (doh) {
-      const diffMs = yrEnd - new Date(doh);
-      yrs = diffMs > 0
-        ? diffMs / (1000 * 60 * 60 * 24 * 365.25)
-        : 0;
-    }
-    return {
+  const rowsWithService = useMemo(() => {
+    return enrichedRows.map(r => ({
       ...r,
-      "Years of Service": Number(yrs.toFixed(1))
-    };
-  });
-}, [enrichedRows, planYear]);
+      "Years of Service": calculateYearsOfService(r.DOH || r["Date of Hire"], planYear),
+    }));
+  }, [enrichedRows, planYear]);
 
+  const filteredRows = useMemo(() => {
+    let filtered = rowsWithService.map(row => {
+      const compRaw = row["Compensation"];
+      const deferralRaw = row["Employee Deferral"];
+      const comp = parseFloat(String(compRaw ?? "").replace(/[$,]/g, "")) || 0;
+      const deferral = parseFloat(String(deferralRaw ?? "").replace(/[$,]/g, "")) || 0;
+      const deferralPercent = comp > 0 ? (deferral / comp) * 100 : 0;
 
-  function handleSelectChange(header, col) {
+      return {
+        ...row,
+        "Deferral %": deferralPercent,
+        Participating:
+          selectedTest === "Top Heavy Test" || selectedTest === "Average Benefit Test"
+            ? row.Eligible
+            : selectedTest === "Coverage Test"
+            ? row["Eligible for Plan"]?.toLowerCase() === "yes"
+            : row.Participating,
+      };
+    });
+
+    if (showExcludedOnly) filtered = filtered.filter(r => !r.Eligible);
+    if (showEligibleOnly) filtered = filtered.filter(r => r.Eligible);
+    if (showParticipatingOnly) filtered = filtered.filter(r => r.Participating);
+
+    if (searchTerm.trim()) {
+      const q = searchTerm.trim().toLowerCase();
+      filtered = filtered.filter(
+        r =>
+          r["First Name"]?.toLowerCase().includes(q) ||
+          r["Last Name"]?.toLowerCase().includes(q)
+      );
+    }
+
+    return filtered;
+  }, [
+    rowsWithService,
+    showExcludedOnly,
+    showEligibleOnly,
+    showParticipatingOnly,
+    searchTerm,
+    selectedTest,
+    columnMap,
+    autoGenerateHCE,
+    autoGenerateKeyEmployee,
+  ]);
+
+  const handleSelectChange = (header, col) => {
     setColumnMap(m => ({ ...m, [header]: col }));
-  }
+  };
 
   const isDownloadEnabled = () =>
     mandatoryHeaders.every(
       h =>
         columnMap[h] ||
-        (h === "Key Employee" &&
-          autoGenerateKeyEmployee &&
-          canAutoGenerateKeyEmployee())
+        (h === "Key Employee" && autoGenerateKeyEmployee && canAutoGenerateKeyEmployee())
     );
 
-  function handleDownloadClick() {
-    if (!isDownloadEnabled()) return;
-    setShowDownloadConfirm(true);
-  }
-
-  function confirmDownload() {
-    setShowDownloadConfirm(false);
-    doDownload();
-  }
-
-  function cancelDownload() {
-    setShowDownloadConfirm(false);
-  }
-
-  function doDownload() {
-    const unmapped = mandatoryHeaders.filter(
-      h =>
-        !columnMap[h] &&
-        !(
-          h === "Key Employee" &&
-          autoGenerateKeyEmployee &&
-          canAutoGenerateKeyEmployee()
-        )
-    );
-    if (unmapped.length) {
-      return alert(`Please map: ${unmapped.join(", ")}`);
+  const handleDownloadClick = () => {
+    if (!isDownloadEnabled()) {
+      const unmapped = mandatoryHeaders.filter(
+        h =>
+          !columnMap[h] &&
+          !(h === "Key Employee" && autoGenerateKeyEmployee && canAutoGenerateKeyEmployee())
+      );
+      setUnmappedHeaders(unmapped);
+      return;
     }
-    // build mapped rows
+    setShowDownloadConfirm(true);
+  };
+
+  const doDownload = () => {
     const mapped = originalRows.map(r => {
       const out = {};
       requiredHeaders.forEach(h => {
-        if (columnMap[h]) out[h] = r[columnMap[h]] ?? "";
-        else if (h === "HCE" && autoGenerateHCE && canAutoGenerateHCE()) {
-          out.HCE =
-            parseFloat(r[columnMap.Compensation] || 0) >=
-            (HCE_THRESHOLDS[+planYear] || 0)
-              ? "Yes"
-              : "No";
+        if (columnMap[h]) {
+          out[h] = r[columnMap[h]] ?? "";
+        } else if (h === "HCE" && autoGenerateHCE && canAutoGenerateHCE()) {
+          out.HCE = isHCE(r[columnMap.Compensation], planYear);
         } else if (
           h === "Key Employee" &&
           autoGenerateKeyEmployee &&
           canAutoGenerateKeyEmployee()
         ) {
-          const comp = parseFloat(r[columnMap.Compensation] || 0);
-          const own = parseFloat(r[columnMap["Ownership %"]] || 0);
-          const fam = (r[columnMap["Family Member"]] || "").toLowerCase();
-          const emp = (r[columnMap["Employment Status"]] || "").toLowerCase();
-          const thr = KEY_EMPLOYEE_THRESHOLDS[+planYear] || Infinity;
-          const isKey =
-            (comp >= thr && emp === "officer") ||
-            own >= 5 ||
-            (own >= 1 && comp > 150000) ||
-            ["spouse", "child", "parent", "grandparent"].includes(fam);
-          out["Key Employee"] = isKey ? "Yes" : "No";
+          out["Key Employee"] = isKeyEmployee(r, columnMap, planYear);
         } else {
           out[h] = "";
         }
       });
       return out;
     });
+
     const csv = Papa.unparse(mapped);
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `${selectedTest.replace(/\s+/g, "_")}_Mapped.csv`;
     a.click();
-    setNextRoute({
+
+    const routes = {
       "ADP Test": "/test-adp",
       "ACP Test": "/test-acp",
       "Top Heavy Test": "/test-top-heavy",
       "Average Benefit Test": "/test-average-benefit",
       "Coverage Test": "/test-coverage",
-    }[selectedTest]);
-    setShowModal(true);
-    setSelectedTest("");
-  }
-
-  // prepare preview table rows
-const filteredRows = useMemo(() => {
-  let filtered = enrichedRows.map(row => {
-    // coerce to string before replace
-    const compRaw = row["Compensation"];
-    const deferralRaw = row["Employee Deferral"];
-
-    const comp = parseFloat(
-      String(compRaw ?? "").replace(/[$,]/g, "")
-    ) || 0;
-    const deferral = parseFloat(
-      String(deferralRaw ?? "").replace(/[$,]/g, "")
-    ) || 0;
-
-    const deferralPercent = comp > 0
-      ? (deferral / comp) * 100
-      : 0;
-
-    return {
-      ...row,
-      "Deferral %": deferralPercent,
-      Participating:
-        selectedTest === "Top Heavy Test" || selectedTest === "Average Benefit Test"
-          ? row.Eligible
-          : selectedTest === "Coverage Test"
-          ? row["Eligible for Plan"]?.toLowerCase() === "yes"
-          : row.Participating,
     };
-  });
-
-  if (showExcludedOnly) {
-    filtered = filtered.filter(r => !r.Eligible);
-  }
-  if (showEligibleOnly) {
-    filtered = filtered.filter(r => r.Eligible);
-  }
-  if (showParticipatingOnly) {
-    filtered = filtered.filter(r => r.Participating);
-  }
-
-  if (searchTerm.trim()) {
-    const q = searchTerm.trim().toLowerCase();
-    filtered = filtered.filter(r =>
-      r["First Name"]?.toLowerCase().includes(q) ||
-      r["Last Name"]?.toLowerCase().includes(q)
-    );
-  }
-
-  return filtered;
-}, [
-  enrichedRows,
-  showExcludedOnly,
-  showEligibleOnly,
-  showParticipatingOnly,
-  searchTerm,
-  selectedTest
-]);
-
+    setShowModal(true);
+    setShowDownloadConfirm(false);
+    setTimeout(() => {
+      if (routes[selectedTest]) {
+        setShowModal(true);
+      }
+    }, 100);
+  };
 
   const formatCurrency = v =>
     isNaN(Number(v))
       ? "N/A"
       : Number(v).toLocaleString("en-US", { style: "currency", currency: "USD" });
+
   const formatPct = v => (isNaN(Number(v)) ? "N/A" : `${v.toFixed(2)}%`);
 
-  function downloadEnrichedEmployeeCSV() {
+  const downloadEnrichedEmployeeCSV = () => {
     const headers = [
       "Employee ID",
       "Name",
@@ -405,9 +389,9 @@ const filteredRows = useMemo(() => {
     a.href = URL.createObjectURL(blob);
     a.download = "Enriched_Employee_Data.csv";
     a.click();
-  }
+  };
 
-  function downloadEnrichedEmployeePDF() {
+  const downloadEnrichedEmployeePDF = () => {
     const pdf = new jsPDF("l", "mm", "a4");
     pdf.setFontSize(18).text("Enriched Employee Preview", 148.5, 15, { align: "center" });
     pdf.setFontSize(12).text(
@@ -459,7 +443,7 @@ const filteredRows = useMemo(() => {
       margin: { left: 10, right: 10 },
     });
     pdf.save("Enriched_Employee_Data.pdf");
-  }
+  };
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -471,6 +455,7 @@ const filteredRows = useMemo(() => {
             value={selectedTest}
             onChange={e => setSelectedTest(e.target.value)}
             className="border border-gray-300 rounded px-3 py-2 w-64"
+            aria-label="Select Test Type"
           >
             <option value="">-- Choose a Test --</option>
             {Object.keys(REQUIRED_HEADERS_BY_TEST).map(test => (
@@ -484,6 +469,7 @@ const filteredRows = useMemo(() => {
             value={planYear}
             onChange={e => setPlanYear(e.target.value)}
             className="border border-gray-300 rounded px-3 py-2 w-40"
+            aria-label="Select Plan Year"
           >
             <option value="">-- Plan Year --</option>
             {Array.from({ length: 16 }, (_, i) => 2010 + i)
@@ -504,14 +490,26 @@ const filteredRows = useMemo(() => {
               ? "bg-green-600 hover:bg-green-700"
               : "bg-gray-400 cursor-not-allowed"
           }`}
+          aria-label="Download Mapped CSV"
         >
           Download Mapped CSV
         </button>
       </div>
 
+      {unmappedHeaders.length > 0 && (
+        <div className="mb-4 p-4 bg-red-100 border border-red-300 rounded-md text-red-700">
+          Please map the following required headers: {unmappedHeaders.join(", ")}
+        </div>
+      )}
+
       {selectedTest && planYear && (
         <div className="border p-4 rounded-md bg-gray-50 shadow mb-6">
-          <input type="file" accept=".csv" onChange={handleFileUpload} />
+          <input
+            type="file"
+            accept=".csv"
+            onChange={handleFileUpload}
+            aria-label="Upload CSV File"
+          />
         </div>
       )}
 
@@ -523,6 +521,7 @@ const filteredRows = useMemo(() => {
               checked={autoGenerateHCE}
               onChange={e => setAutoGenerateHCE(e.target.checked)}
               disabled={!canAutoGenerateHCE()}
+              aria-label="Auto-generate HCE"
             />
             HCE missing: auto-generate from Compensation?
           </label>
@@ -545,6 +544,7 @@ const filteredRows = useMemo(() => {
                 checked={autoGenerateKeyEmployee}
                 onChange={e => setAutoGenerateKeyEmployee(e.target.checked)}
                 disabled={!canAutoGenerateKeyEmployee()}
+                aria-label="Auto-generate Key Employee"
               />
               Key Employee missing: auto-generate from criteria?
             </label>
@@ -560,13 +560,16 @@ const filteredRows = useMemo(() => {
         {requiredHeaders.map(header => (
           <React.Fragment key={header}>
             <div className="bg-gray-100 px-4 py-2 rounded-md font-medium flex items-center h-10">
-              {header !== "HCE" && <span className="text-red-500 mr-1">*</span>}
+              {header !== "HCE" && header !== "Key Employee" && (
+                <span className="text-red-500 mr-1">*</span>
+              )}
               {header}
             </div>
             <select
               value={columnMap[header] || ""}
               onChange={e => handleSelectChange(header, e.target.value)}
               className="border border-gray-300 rounded-md px-3 py-2 h-10"
+              aria-label={`Map column for ${header}`}
             >
               <option value="">-- Select Column --</option>
               {rawHeaders.map(raw => (
@@ -614,12 +617,14 @@ const filteredRows = useMemo(() => {
                 <button
                   onClick={downloadEnrichedEmployeeCSV}
                   className="px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+                  aria-label="Download Enriched CSV"
                 >
                   Download CSV
                 </button>
                 <button
                   onClick={downloadEnrichedEmployeePDF}
                   className="px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+                  aria-label="Download Enriched PDF"
                 >
                   Download PDF
                 </button>
@@ -639,6 +644,7 @@ const filteredRows = useMemo(() => {
                     }
                   }}
                   className="mr-2"
+                  aria-label="Show Excluded Only"
                 />
                 Excluded Only
               </label>
@@ -654,6 +660,7 @@ const filteredRows = useMemo(() => {
                     }
                   }}
                   className="mr-2"
+                  aria-label="Show Eligible Only"
                 />
                 Eligible Only
               </label>
@@ -669,6 +676,7 @@ const filteredRows = useMemo(() => {
                     }
                   }}
                   className="mr-2"
+                  aria-label="Show Participating Only"
                 />
                 Participating Only
               </label>
@@ -678,6 +686,7 @@ const filteredRows = useMemo(() => {
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 className="ml-4 px-3 py-1 border border-gray-300 rounded-md"
+                aria-label="Search Employees"
               />
             </div>
 
@@ -709,9 +718,7 @@ const filteredRows = useMemo(() => {
                   {filteredRows.map((r, i) => (
                     <tr
                       key={i}
-                      className={`${
-                        r.Eligible ? "bg-green-50" : "bg-red-50"
-                      }`}
+                      className={r.Eligible ? "bg-green-50" : "bg-red-50"}
                     >
                       <td className="px-4 py-2 border-b">{r["Employee ID"]}</td>
                       <td className="px-4 py-2 border-b">
@@ -772,13 +779,15 @@ const filteredRows = useMemo(() => {
             <div className="flex justify-end gap-4">
               <button
                 className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-                onClick={cancelDownload}
+                onClick={() => setShowDownloadConfirm(false)}
+                aria-label="Cancel Download"
               >
                 Cancel
               </button>
               <button
                 className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                onClick={confirmDownload}
+                onClick={doDownload}
+                aria-label="Confirm Download"
               >
                 Confirm
               </button>
@@ -796,6 +805,7 @@ const filteredRows = useMemo(() => {
               <button
                 className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
                 onClick={() => setShowModal(false)}
+                aria-label="Stay Here"
               >
                 Stay Here
               </button>
@@ -803,8 +813,16 @@ const filteredRows = useMemo(() => {
                 className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                 onClick={() => {
                   setShowModal(false);
-                  if (nextRoute) window.location.href = nextRoute;
+                  const routes = {
+                    "ADP Test": "/test-adp",
+                    "ACP Test": "/test-acp",
+                    "Top Heavy Test": "/test-top-heavy",
+                    "Average Benefit Test": "/test-average-benefit",
+                    "Coverage Test": "/test-coverage",
+                  };
+                  if (routes[selectedTest]) navigate(routes[selectedTest]);
                 }}
+                aria-label="Go to Test"
               >
                 Go to Test
               </button>
@@ -815,3 +833,9 @@ const filteredRows = useMemo(() => {
     </div>
   );
 }
+
+CSVBuilderWizard.propTypes = {
+  // Add PropTypes if needed for parent component props
+};
+
+export default CSVBuilderWizard;
