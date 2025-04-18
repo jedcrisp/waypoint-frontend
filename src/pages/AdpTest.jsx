@@ -268,7 +268,6 @@ const ADPTest = () => {
       const nhceParticipants = result["NHCE Participants"] ?? "N/A";
       const nhceAdp = result["NHCE ADP (%)"] !== undefined ? formatPercentage(result["NHCE ADP (%)"]) : "N/A";
       const testResult = result["Test Result"] || "N/A";
-      const testCriterion = result["Test Criterion"] || "N/A";
       const breakdown = result["Breakdown"] || {};
       const excludedParticipants = result["Excluded Participants"] || {};
       const failed = testResult.toLowerCase() === "failed";
@@ -323,7 +322,6 @@ const ADPTest = () => {
           ["NHCE Eligible", nhceEligible],
           ["NHCE Participants", nhceParticipants],
           ["NHCE ADP", nhceAdp],
-          ["Test Criterion", testCriterion],
           ["Test Result", testResult],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
