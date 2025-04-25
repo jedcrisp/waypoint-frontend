@@ -65,31 +65,33 @@ const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 const normalize = str =>
   (str || "").toLowerCase().replace(/[^a-z0-9]/g, "").trim();
 
-const calculateYearsOfService = (doh, planYear) => {
-  if (!doh || !planYear) return 0;
+const calculateYearsOfService = (dohString, planYear) => {
+  if (!dohString || !planYear) return 0
 
-  // 1) strict parse of “YYYY-MM-DD”
-  let parsed = parse(doh, "yyyy-MM-dd", new Date());
+  let startDate
 
-  // 2) fallback to ISO (accepts “2024-1-3”, etc)
-  if (!isValid(parsed)) {
-    parsed = parseISO(doh);
+  // 1) try parsing as M/D/YY or M/D/YYYY
+  startDate = parse(dohString, 'M/d/yy', new Date())
+  if (!isValid(startDate)) {
+    startDate = parse(dohString, 'M/d/yyyy', new Date())
   }
 
-  // 3) last-ditch: native Date constructor
-  if (!isValid(parsed)) {
-    parsed = new Date(doh);
+  // 2) fallback to ISO
+  if (!isValid(startDate)) {
+    startDate = parseISO(dohString)
   }
 
-  // if still invalid, give up
-  if (!isValid(parsed)) return 0;
+  // 3) last‐ditch: JS Date constructor
+  if (!isValid(startDate)) {
+    startDate = new Date(dohString)
+  }
 
-  // build December 31 of planYear
-  const yearNum = Number(planYear);
-  const yearEnd = new Date(yearNum, 11, 31);
+  if (!isValid(startDate)) return 0
 
-  return differenceInYears(yearEnd, parsed);
-};
+  // December 31 of the planYear
+  const yearEnd = new Date(Number(planYear), 11, 31)
+  return differenceInYears(yearEnd, startDate)
+}
 
 const isHCE = (compensation, planYear) => {
   const comp = parseFloat(compensation || 0);
