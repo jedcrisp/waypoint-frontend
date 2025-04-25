@@ -6,7 +6,6 @@ import "jspdf-autotable";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-// import { parse, parseISO, differenceInYears, isValid } from "date-fns";
 
 const HCE_THRESHOLDS = {
   2016: 120000, 2017: 120000, 2018: 120000, 2019: 120000,
@@ -62,11 +61,6 @@ const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
 const normalize = str =>
   (str || "").toLowerCase().replace(/[^a-z0-9]/g, "").trim();
-
-  const years = differenceInYears(yearEnd, startDate);
-  console.log('Calculated Years of Service:', years);
-  return years;
-};
 
 const isHCE = (compensation, planYear) => {
   const comp = parseFloat(compensation || 0);
@@ -209,21 +203,8 @@ function CSVBuilderWizard() {
     }
   };
 
-  const rowsWithService = useMemo(() => {
-    return enrichedRows.map((r, index) => {
-      const originalRow = originalRows[index] || {};
-      const dohField = columnMap.DOH || columnMap["Date of Hire"];
-      const dohValue = dohField ? originalRow[dohField] : null;
-      console.log('Row DOH Field:', dohField, 'DOH Value:', dohValue);
-      return {
-        ...r,
-        "Years of Service": calculateYearsOfService(dohValue, planYear),
-      };
-    });
-  }, [enrichedRows, originalRows, planYear, columnMap]);
-
   const filteredRows = useMemo(() => {
-    let filtered = rowsWithService.map(row => {
+    let filtered = enrichedRows.map(row => {
       const compRaw = row["Compensation"];
       const deferralRaw = row["Employee Deferral"];
       const comp = parseFloat(String(compRaw ?? "").replace(/[$,]/g, "")) || 0;
@@ -257,7 +238,7 @@ function CSVBuilderWizard() {
 
     return filtered;
   }, [
-    rowsWithService,
+    enrichedRows,
     showExcludedOnly,
     showEligibleOnly,
     showParticipatingOnly,
@@ -349,10 +330,8 @@ function CSVBuilderWizard() {
       "Name",
       "Status",
       "HCE",
-      "Age",
       "Compensation",
       "Employee Deferral",
-      // "Years of Service",
       "Deferral %",
       "Participating",
       "Enrollment Status",
@@ -365,12 +344,8 @@ function CSVBuilderWizard() {
         `${r["First Name"]} ${r["Last Name"]}`,
         r.Eligible ? "Eligible" : "Excluded",
         r.HCE === "yes" ? "Yes" : "No",
-        typeof r.Age === "number" ? r.Age.toFixed(1) : r.Age,
         formatCurrency(r.Compensation),
         formatCurrency(r["Employee Deferral"]),
-        typeof r["Years of Service"] === "number"
-          ? r["Years of Service"].toFixed(1)
-          : r["Years of Service"],
         formatPct(r["Deferral %"]),
         r.Participating ? "Yes" : "No",
         r.Participating
@@ -403,10 +378,8 @@ function CSVBuilderWizard() {
       "Name",
       "Status",
       "HCE",
-      "Age",
       "Compensation",
       "Employee Deferral",
-      "Years of Service",
       "Deferral %",
       "Participating",
       "Enrollment Status",
@@ -417,12 +390,8 @@ function CSVBuilderWizard() {
       `${r["First Name"]} ${r["Last Name"]}`,
       r.Eligible ? "Eligible" : "Excluded",
       r.HCE === "yes" ? "Yes" : "No",
-      typeof r.Age === "number" ? r.Age.toFixed(1) : r.Age,
       formatCurrency(r.Compensation),
       formatCurrency(r["Employee Deferral"]),
-      typeof r["Years of Service"] === "number"
-        ? r["Years of Service"].toFixed(1)
-        : r["Years of Service"],
       formatPct(r["Deferral %"]),
       r.Participating ? "Yes" : "No",
       r.Participating
@@ -697,10 +666,8 @@ function CSVBuilderWizard() {
                       "Name",
                       "Status",
                       "HCE",
-                      "Age",
                       "Compensation",
                       "Employee Deferral",
-                      "Years of Service",
                       "Deferral %",
                       "Participating",
                       "Enrollment Status",
@@ -729,18 +696,10 @@ function CSVBuilderWizard() {
                         {r.HCE === "yes" ? "Yes" : "No"}
                       </td>
                       <td className="px-4 py-2 border-b">
-                        {typeof r.Age === "number" ? r.Age.toFixed(1) : r.Age}
-                      </td>
-                      <td className="px-4 py-2 border-b">
                         {formatCurrency(r.Compensation)}
                       </td>
                       <td className="px-4 py-2 border-b">
                         {formatCurrency(r["Employee Deferral"])}
-                      </td>
-                      <td className="px-4 py-2 border-b">
-                        {typeof r["Years of Service"] === "number"
-                          ? r["Years of Service"].toFixed(1)
-                          : r["Years of Service"]}
                       </td>
                       <td className="px-4 py-2 border-b">
                         {formatPct(r["Deferral %"])}
