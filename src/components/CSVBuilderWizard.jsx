@@ -6,7 +6,7 @@ import "jspdf-autotable";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import { parse, parseISO, differenceInYears, isValid } from "date-fns";
+// import { parse, parseISO, differenceInYears, isValid } from "date-fns";
 
 const HCE_THRESHOLDS = {
   2016: 120000, 2017: 120000, 2018: 120000, 2019: 120000,
@@ -62,55 +62,6 @@ const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
 const normalize = str =>
   (str || "").toLowerCase().replace(/[^a-z0-9]/g, "").trim();
-
-const calculateYearsOfService = (dohString, planYear) => {
-  console.log('DOH:', dohString, 'Plan Year:', planYear);
-  if (!dohString || !planYear) return 0;
-
-  let startDate;
-
-  // 1) Try parsing as M/D/YY or M/D/YYYY
-  startDate = parse(dohString, 'M/d/yy', new Date());
-  if (!isValid(startDate)) {
-    startDate = parse(dohString, 'M/d/yyyy', new Date());
-  }
-
-  // 2) Try MM-DD-YYYY
-  if (!isValid(startDate)) {
-    startDate = parse(dohString, 'MM-dd-yyyy', new Date());
-  }
-
-  // 3) Try YYYY-MM-DD (ISO-like)
-  if (!isValid(startDate)) {
-    startDate = parse(dohString, 'yyyy-MM-dd', new Date());
-  }
-
-  // 4) Try DD/MM/YYYY
-  if (!isValid(startDate)) {
-    startDate = parse(dohString, 'dd/MM/yyyy', new Date());
-  }
-
-  // 5) Fallback to ISO
-  if (!isValid(startDate)) {
-    startDate = parseISO(dohString);
-  }
-
-  // 6) Last-ditch: JS Date constructor
-  if (!isValid(startDate)) {
-    startDate = new Date(dohString);
-  }
-
-  if (!isValid(startDate)) {
-    console.log('Invalid DOH format:', dohString);
-    return 0;
-  }
-
-  // December 31 of the planYear
-  const yearEnd = new Date(Number(planYear), 11, 31);
-  if (!isValid(yearEnd)) {
-    console.log('Invalid Plan Year:', planYear);
-    return 0;
-  }
 
   const years = differenceInYears(yearEnd, startDate);
   console.log('Calculated Years of Service:', years);
