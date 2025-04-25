@@ -194,11 +194,11 @@ function CSVBuilderWizard() {
           let match;
           if (required === "DOH") {
             match = normalizedRaw.find(col =>
-              ["doh", "dateofhire"].includes(col.normalized)
+              ["doh", "dateofhire", "hiredate", "startdate", "date_hired"].includes(col.normalized)
             );
           } else if (required === "DOB") {
             match = normalizedRaw.find(col =>
-              ["dob", "birthdate"].includes(col.normalized)
+              ["dob", "birthdate", "dateofbirth"].includes(col.normalized)
             );
           } else {
             match = normalizedRaw.find(col => col.normalized === normalize(required));
@@ -206,6 +206,7 @@ function CSVBuilderWizard() {
           if (match) autoMap[required] = match.original;
         });
 
+        console.log('Column Map:', autoMap);
         setRawHeaders(meta.fields);
         setOriginalRows(data);
         setColumnMap(autoMap);
@@ -258,15 +259,17 @@ function CSVBuilderWizard() {
   };
 
   const rowsWithService = useMemo(() => {
-    return enrichedRows.map(r => {
+    return enrichedRows.map((r, index) => {
+      const originalRow = originalRows[index] || {};
       const dohField = columnMap.DOH || columnMap["Date of Hire"];
-      const dohValue = dohField ? r[dohField] : null;
+      const dohValue = dohField ? originalRow[dohField] : null;
+      console.log('Row DOH Field:', dohField, 'DOH Value:', dohValue);
       return {
         ...r,
         "Years of Service": calculateYearsOfService(dohValue, planYear),
       };
     });
-  }, [enrichedRows, planYear, columnMap]);
+  }, [enrichedRows, originalRows, planYear, columnMap]);
 
   const filteredRows = useMemo(() => {
     let filtered = rowsWithService.map(row => {
