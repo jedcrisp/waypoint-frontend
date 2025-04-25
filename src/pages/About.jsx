@@ -10,7 +10,7 @@ const About = () => {
       </p>
 
       <p className="text-gray-700 mb-4">
-        We proudly offer <strong>29 comprehensive Nondiscrimination Tests</strong>, covering a wide range of benefit plans, including:
+        We proudly offer <strong>11 comprehensive Nondiscrimination Tests</strong>, covering a wide range of benefit plans, including:
       </p>
 
       <ul className="list-disc list-inside text-gray-700 mb-4">
