@@ -1,5 +1,3 @@
-// src/components/CSVBuilderWizard.jsx
-
 import React, { useState, useEffect, useMemo } from "react";
 import PropTypes from "prop-types";
 import Papa from "papaparse";
@@ -66,32 +64,58 @@ const normalize = str =>
   (str || "").toLowerCase().replace(/[^a-z0-9]/g, "").trim();
 
 const calculateYearsOfService = (dohString, planYear) => {
-  if (!dohString || !planYear) return 0
+  console.log('DOH:', dohString, 'Plan Year:', planYear);
+  if (!dohString || !planYear) return 0;
 
-  let startDate
+  let startDate;
 
-  // 1) try parsing as M/D/YY or M/D/YYYY
-  startDate = parse(dohString, 'M/d/yy', new Date())
+  // 1) Try parsing as M/D/YY or M/D/YYYY
+  startDate = parse(dohString, 'M/d/yy', new Date());
   if (!isValid(startDate)) {
-    startDate = parse(dohString, 'M/d/yyyy', new Date())
+    startDate = parse(dohString, 'M/d/yyyy', new Date());
   }
 
-  // 2) fallback to ISO
+  // 2) Try MM-DD-YYYY
   if (!isValid(startDate)) {
-    startDate = parseISO(dohString)
+    startDate = parse(dohString, 'MM-dd-yyyy', new Date());
   }
 
-  // 3) last‐ditch: JS Date constructor
+  // 3) Try YYYY-MM-DD (ISO-like)
   if (!isValid(startDate)) {
-    startDate = new Date(dohString)
+    startDate = parse(dohString, 'yyyy-MM-dd', new Date());
   }
 
-  if (!isValid(startDate)) return 0
+  // 4) Try DD/MM/YYYY
+  if (!isValid(startDate)) {
+    startDate = parse(dohString, 'dd/MM/yyyy', new Date());
+  }
+
+  // 5) Fallback to ISO
+  if (!isValid(startDate)) {
+    startDate = parseISO(dohString);
+  }
+
+  // 6) Last-ditch: JS Date constructor
+  if (!isValid(startDate)) {
+    startDate = new Date(dohString);
+  }
+
+  if (!isValid(startDate)) {
+    console.log('Invalid DOH format:', dohString);
+    return 0;
+  }
 
   // December 31 of the planYear
-  const yearEnd = new Date(Number(planYear), 11, 31)
-  return differenceInYears(yearEnd, startDate)
-}
+  const yearEnd = new Date(Number(planYear), 11, 31);
+  if (!isValid(yearEnd)) {
+    console.log('Invalid Plan Year:', planYear);
+    return 0;
+  }
+
+  const years = differenceInYears(yearEnd, startDate);
+  console.log('Calculated Years of Service:', years);
+  return years;
+};
 
 const isHCE = (compensation, planYear) => {
   const comp = parseFloat(compensation || 0);
@@ -234,11 +258,15 @@ function CSVBuilderWizard() {
   };
 
   const rowsWithService = useMemo(() => {
-    return enrichedRows.map(r => ({
-      ...r,
-      "Years of Service": calculateYearsOfService(r.DOH || r["Date of Hire"], planYear),
-    }));
-  }, [enrichedRows, planYear]);
+    return enrichedRows.map(r => {
+      const dohField = columnMap.DOH || columnMap["Date of Hire"];
+      const dohValue = dohField ? r[dohField] : null;
+      return {
+        ...r,
+        "Years of Service": calculateYearsOfService(dohValue, planYear),
+      };
+    });
+  }, [enrichedRows, planYear, columnMap]);
 
   const filteredRows = useMemo(() => {
     let filtered = rowsWithService.map(row => {
