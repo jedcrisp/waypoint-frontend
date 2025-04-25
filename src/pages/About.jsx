@@ -14,11 +14,9 @@ const About = () => {
       </p>
 
       <ul className="list-disc list-inside text-gray-700 mb-4">
-        <li>401(k) and 403(b) Retirement Plans</li>
+        <li>401(k) Retirement Plans</li>
         <li>Section 125 Cafeteria Plans</li>
-        <li>Flexible Spending Accounts (FSAs)</li>
         <li>Dependent Care Assistance Programs (DCAPs)</li>
-        <li>Health Reimbursement Arrangements (HRAs)</li>
         <li>…and many more.</li>
       </ul>
 
