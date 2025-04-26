@@ -272,6 +272,8 @@ export default function CSVBuilderWizard() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
+      {/* Title */}
+      <h1 className="text-3xl font-bold mb-6 text-gray-800">CSV Builder</h1>
       {/* Multi-test dropdown */}
       <div className="mb-6 relative" ref={dropdownRef}>
         <button onClick={() => setTestsOpen(o => !o)} className="w-full border rounded px-3 py-2 flex justify-between items-center">
