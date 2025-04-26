@@ -8,6 +8,7 @@ import { savePdfResultToFirebase, saveAIReviewConsent } from "../utils/firebaseT
 import Modal from "../components/Modal";
 
 const TopHeavyTest = () => {
+  // ----- State -----
   const [file, setFile] = useState(null);
   const [planYear, setPlanYear] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,9 +22,9 @@ const TopHeavyTest = () => {
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
 
-  // Formatting helpers for both UI and PDF output.
+  // ---------- Formatting Helpers ----------
   const formatCurrency = (value) => {
-    if (value === "N/A" || value === undefined || isNaN(Number(value))) return "N/A";
+    if (value === undefined || value === null || isNaN(Number(value))) return "$0.00";
     return `$${parseFloat(value).toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -31,7 +32,7 @@ const TopHeavyTest = () => {
   };
 
   const formatPercentage = (value) => {
-    if (value === "N/A" || value === undefined || isNaN(Number(value))) return "N/A";
+    if (value === undefined || value === null || isNaN(Number(value))) return "0.00%";
     return `${parseFloat(value).toFixed(2)}%`;
   };
 
@@ -49,7 +50,8 @@ const TopHeavyTest = () => {
       setFile(acceptedFiles[0]);
       setResult(null);
       setError(null);
-      setNormalPdfExported(false); // Reset export flag for new upload
+      setNormalPdfExported(false);
+      setAiReview("");
     }
   }, []);
 
@@ -87,7 +89,7 @@ const TopHeavyTest = () => {
     formData.append("plan_year", planYear);
 
     try {
-      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/top_heavy`);
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv`);
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken(true);
       if (!token) {
@@ -95,14 +97,14 @@ const TopHeavyTest = () => {
         setLoading(false);
         return;
       }
-      const response = await axios.post(`${API_URL}/upload-csv/top_heavy`, formData, {
+      const response = await axios.post(`${API_URL}/upload-csv`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       });
       console.log("✅ API Response:", response.data);
-      const topHeavyResults = response.data?.["Test Results"]?.["top_heavy"];
+      const topHeavyResults = response.data?.top_heavy;
       if (!topHeavyResults) {
         setError("❌ No Top Heavy test results found in response.");
       } else {
@@ -110,7 +112,11 @@ const TopHeavyTest = () => {
       }
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
-      setError("❌ Failed to upload file. Please check the format and try again.");
+      setError(
+        err.response?.data?.detail ||
+        err.response?.data?.error ||
+        "❌ Failed to upload file. Please check the format and try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -119,17 +125,21 @@ const TopHeavyTest = () => {
   // ----- 3. Download CSV Template -----
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-      ["Last Name", "First Name", "Employee ID", "Plan Assets", "Key Employee", "Ownership %", "Family Member", "DOB", "DOH", "Excluded from Test", "Employment Status"],
-      ["Last", "First", "001", 25000, "Yes", "5", "No", "1980-01-01", "2010-01-15", "No", "Active"],
-      ["Last", "First", "002", 18000, "No", "0", "No", "1985-03-22", "2012-05-30", "No", "Active"],
-      ["Last", "First", "003", 30000, "Yes", "10", "Yes", "1975-07-12", "2005-08-01", "No", "Active"],
-      ["Last", "First", "004", 0, "No", "0", "No", "1992-10-19", "2021-04-05", "No", "Active"],
-      ["Last", "First", "005", 40000, "Yes", "20", "No", "1983-06-14", "2008-07-20", "No", "Active"],
-      ["Last", "First", "006", 0, "No", "0", "No", "1998-12-05", "2022-09-01", "Yes", "Terminated"],
-      ["Last", "First", "007", 15000, "No", "0", "No", "1990-09-09", "2018-03-15", "No", "Leave"],
-      ["Last", "First", "008", 22000, "Yes", "15", "Yes", "1978-04-25", "2003-02-10", "No", "Active"],
-      ["Last", "First", "009", 0, "No", "0", "No", "1995-11-11", "2023-01-05", "No", "Active"],
-      ["Last", "First", "010", 27000, "Yes", "8", "No", "1982-02-02", "2011-06-30", "No", "Active"],
+      [
+        "Last Name", "First Name", "Employee ID", "DOB", "DOH", "Employment Status",
+        "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "Plan Entry Date",
+        "Plan Assets", "Compensation", "Family Relationship", "Family Member"
+      ],
+      ["Doe", "John", "E001", "1980-04-12", "2010-01-01", "Active", "No", "No", "No", "2010-01-01", 50000, 200000, "spouse", "Jane Doe"],
+      ["Doe", "Jane", "E002", "1985-03-22", "2012-05-30", "Active", "No", "No", "No", "2012-01-01", 30000, 180000, "", ""],
+      ["Smith", "Alice", "E003", "1975-07-12", "2005-08-01", "Active", "No", "No", "No", "2005-08-01", 60000, 300000, "child", "Bob Smith"],
+      ["Smith", "Bob", "E004", "1992-10-19", "2021-04-05", "Active", "No", "No", "No", "2021-04-05", 0, 50000, "", ""],
+      ["Johnson", "Mark", "E005", "1983-06-14", "2008-07-20", "Active", "No", "No", "No", "2008-07-20", 40000, 250000, "", ""],
+      ["Williams", "Sarah", "E006", "1998-12-05", "2022-09-01", "Terminated", "Yes", "No", "No", "2022-09-01", 0, 60000, "", ""],
+      ["Brown", "Tom", "E007", "1990-09-09", "2018-03-15", "Leave", "No", "No", "No", "2018-03-15", 15000, 80000, "", ""],
+      ["Lee", "Emily", "E008", "1978-04-25", "2003-02-10", "Active", "No", "No", "No", "2003-02-10", 22000, 220000, "parent", "Mark Johnson"],
+      ["Davis", "Chris", "E009", "1995-11-11", "2023-01-05", "Active", "No", "No", "No", "2023-01-05", 0, 45000, "", ""],
+      ["Clark", "Lisa", "E010", "1982-02-02", "2011-06-30", "Active", "No", "No", "No", "2011-06-30", 27000, 270000, "", ""],
     ]
       .map((row) => row.join(","))
       .join("\n");
@@ -150,22 +160,38 @@ const TopHeavyTest = () => {
       return;
     }
     const plan = planYear || "N/A";
-    const totalEmployees = result["Total Employees"] ?? "N/A";
-    const totalParticipants = result["Total Participants"] ?? "N/A";
-    const totalAssets = result["Total Plan Assets"] ?? "N/A";
-    const keyEmployeeAssets = result["Key Employee Assets"] ?? "N/A";
-    const topHeavyPct = result["Top Heavy Percentage (%)"] ?? "N/A";
-    const testRes = result["Test Result"] ?? "N/A";
+    const totalEmployees = result["Total Employees"] ?? 0;
+    const totalParticipants = result["Total Participants"] ?? 0;
+    const keyEmployeeAssets = result["Key Employee Assets"] ?? 0;
+    const nonKeyEmployeeAssets = result["Non-Key Employee Assets"] ?? 0;
+    const totalAssets = result["Total Assets"] ?? 0;
+    const topHeavyRatio = result["Top Heavy Ratio (%)"] ?? 0;
+    const testResult = result["Test Result"] ?? "N/A";
+    const excludedUnderAge21 = result["Excluded Participants"]?.["Under Age 21"] ?? 0;
+    const excludedNoPlanEntry = result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0;
+    const excludedManually = result["Excluded Participants"]?.["Excluded Manually"] ?? 0;
+    const excludedNotActive = result["Excluded Participants"]?.["Not Active"] ?? 0;
+    const excludedUnion = result["Excluded Participants"]?.["Union Employees"] ?? 0;
+    const excludedPartTime = result["Excluded Participants"]?.["Part-Time or Seasonal"] ?? 0;
+    const excludedTerminated = result["Excluded Participants"]?.["Terminated Before Plan Year"] ?? 0;
 
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", plan],
       ["Total Employees", totalEmployees],
       ["Total Participants", totalParticipants],
-      ["Total Plan Assets", totalAssets],
-      ["Key Employee Assets", keyEmployeeAssets],
-      ["Top Heavy Percentage (%)", topHeavyPct],
-      ["Test Result", testRes],
+      ["Key Employee Assets", formatCurrency(keyEmployeeAssets)],
+      ["Non-Key Employee Assets", formatCurrency(nonKeyEmployeeAssets)],
+      ["Total Assets", formatCurrency(totalAssets)],
+      ["Top Heavy Ratio (%)", formatPercentage(topHeavyRatio)],
+      ["Test Result", testResult],
+      ["Excluded - Under Age 21", excludedUnderAge21],
+      ["Excluded - No Plan Entry Date", excludedNoPlanEntry],
+      ["Excluded - Manually", excludedManually],
+      ["Excluded - Not Active", excludedNotActive],
+      ["Excluded - Union Employees", excludedUnion],
+      ["Excluded - Part-Time or Seasonal", excludedPartTime],
+      ["Excluded - Terminated Before Plan Year", excludedTerminated],
     ];
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
@@ -173,14 +199,13 @@ const TopHeavyTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Top Heavy Results.csv");
+    link.setAttribute("download", "Top Heavy Test Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // ----- 5. Export Results to PDF (with Firebase saving) -----
-  // If AI review text is provided, omit corrective actions.
+  // ----- 5. Export Results to PDF -----
   const exportToPDF = async (customAiReview) => {
     if (!result) {
       setError("❌ No results available to export.");
@@ -189,12 +214,14 @@ const TopHeavyTest = () => {
     try {
       const finalAIText = customAiReview !== undefined ? customAiReview : aiReview;
       const plan = planYear || "N/A";
-      const totalEmployees = result["Total Employees"] ?? "N/A";
-      const totalParticipants = result["Total Participants"] ?? "N/A";
-      const totalAssets = result["Total Plan Assets"] ?? "N/A";
-      const keyEmployeeAssets = result["Key Employee Assets"] ?? "N/A";
-      const topHeavyPct = result["Top Heavy Percentage (%)"] ?? "N/A";
+      const totalEmployees = result["Total Employees"] ?? 0;
+      const totalParticipants = result["Total Participants"] ?? 0;
+      const keyEmployeeAssets = result["Key Employee Assets"] ?? 0;
+      const nonKeyEmployeeAssets = result["Non-Key Employee Assets"] ?? 0;
+      const totalAssets = result["Total Assets"] ?? 0;
+      const topHeavyRatio = result["Top Heavy Ratio (%)"] ?? 0;
       const testResult = result["Test Result"] ?? "N/A";
+      const testCriterion = result["Test Criterion"] ?? "N/A";
       const failed = testResult.toLowerCase() === "failed";
 
       const pdf = new jsPDF("p", "mm", "a4");
@@ -215,7 +242,7 @@ const TopHeavyTest = () => {
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
       pdf.text(
-        "Test Criterion: Under IRC §416(g), a plan is top-heavy if more than 60% of total plan assets are attributable to key employees.",
+        `Test Criterion: ${testCriterion}`,
         105,
         38,
         { align: "center", maxWidth: 180 }
@@ -223,15 +250,16 @@ const TopHeavyTest = () => {
 
       // Results Table
       pdf.autoTable({
-        startY: 46,
+        startY: 48,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", totalEmployees],
           ["Total Participants", totalParticipants],
-          ["Total Plan Assets", formatCurrency(totalAssets)],
           ["Key Employee Assets", formatCurrency(keyEmployeeAssets)],
-          ["Top Heavy Percentage", formatPercentage(topHeavyPct)],
+          ["Non-Key Employee Assets", formatCurrency(nonKeyEmployeeAssets)],
+          ["Total Assets", formatCurrency(totalAssets)],
+          ["Top Heavy Ratio (%)", formatPercentage(topHeavyRatio)],
           ["Test Result", testResult],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
@@ -252,21 +280,20 @@ const TopHeavyTest = () => {
         });
       } else if (failed) {
         const correctiveActions = [
-          "Ensure key employees hold no more than 60% of total plan assets.",
-          "Provide additional employer contributions for non-key employees.",
-          "Review and adjust contribution allocations per IRS §416.",
+          "Reduce key employee balances to lower the top-heavy ratio.",
+          "Increase non-key employee contributions or benefits.",
+          "Implement a safe harbor plan design to avoid top-heavy rules.",
         ];
         const consequences = [
-          "Mandatory employer contributions for non-key employees.",
-          "Potential loss of plan tax advantages.",
-          "Increased IRS audit risk.",
-          "Additional corrective contributions may be required.",
+          "Minimum contributions may be required for non-key employees.",
+          "Potential tax penalties for non-compliance.",
+          "Plan may need corrective adjustments.",
         ];
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["Corrective Actions"]],
-          body: correctiveActions.map((action) => [action]),
+          body: correctiveActions.map((action) => [action]), // Fixed: Ensure 'action' is defined as the map parameter
           headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
           styles: { fontSize: 11, font: "helvetica" },
           margin: { left: 10, right: 10 },
@@ -275,7 +302,7 @@ const TopHeavyTest = () => {
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["Consequences"]],
-          body: consequences.map((item) => [item]),
+          body: consequences.map((consequence) => [consequence]), // Fixed: Use 'consequence' as the map parameter
           headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
           styles: { fontSize: 11, font: "helvetica" },
           margin: { left: 10, right: 10 },
@@ -344,32 +371,32 @@ const TopHeavyTest = () => {
       });
       const aiText = response.data.analysis;
       setAiReview(aiText);
-      // Automatically export PDF with AI review text (this will exclude corrective actions)
       await exportToPDF(aiText);
     } catch (error) {
       console.error("Error fetching AI review:", error);
-      setAiReview("Error fetching AI review.");
+      setError("❌ Error fetching AI review.");
     }
     setLoading(false);
   };
 
   // ----- 7. Handle Enter Key -----
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" && file && !loading) {
+    if (e.key === "Enter" && file && planYear && !loading) {
       e.preventDefault();
       e.stopPropagation();
       handleUpload();
     }
   };
 
+  // ----- RENDER -----
   return (
     <div
-      className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
+      className="max-w-[625px] mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
       onKeyDown={handleKeyDown}
       tabIndex="0"
     >
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
-        📂 Upload Top Heavy File
+        📂 Upload Top Heavy Test File
       </h2>
 
       {/* Plan Year Dropdown */}
@@ -382,11 +409,11 @@ const TopHeavyTest = () => {
             id="planYear"
             value={planYear}
             onChange={(e) => setPlanYear(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md"
+            className="flex-3 px-4 py-2 border border-gray-300 rounded-md"
             required
           >
             <option value="">-- Select Plan Year --</option>
-            {Array.from({ length: 41 }, (_, i) => 2010 + i).map((year) => (
+            {Array.from({ length: 10 }, (_, i) => 2025 - i).map((year) => (
               <option key={year} value={year}>
                 {year}
               </option>
@@ -403,12 +430,6 @@ const TopHeavyTest = () => {
         }`}
       >
         <input {...getInputProps()} />
-        <input
-          type="file"
-          accept=".csv, .xlsx"
-          onChange={(e) => setFile(e.target.files[0])}
-          className="hidden"
-        />
         {file ? (
           <p className="text-green-600 font-semibold">{file.name}</p>
         ) : isDragActive ? (
@@ -441,9 +462,11 @@ const TopHeavyTest = () => {
       <button
         onClick={handleUpload}
         className={`w-full mt-2 px-4 py-2 text-white rounded-md ${
-          !file ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
+          !file || !planYear
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-green-500 hover:bg-green-400"
         }`}
-        disabled={!file || loading}
+        disabled={!file || !planYear || loading}
       >
         {loading ? "Uploading..." : "Upload & Save PDF"}
       </button>
@@ -453,103 +476,117 @@ const TopHeavyTest = () => {
 
       {/* Display results once available */}
       {result && (
-        <>
-          {/* Detailed Top Heavy Test Summary */}
-          {result?.top_heavy_summary && (
-            <div className="mt-4 p-4 bg-gray-100 border border-gray-300 rounded-md">
-              <h4 className="font-bold text-lg text-gray-700 mb-2">
-                Detailed Top Heavy Test Summary
-              </h4>
-              <div className="mb-4 flex justify-between items-center">
-                <p>
-                  <strong>Plan Year:</strong>{" "}
-                  <span className="text-blue-600">{planYear || "N/A"}</span>
-                </p>
-                <p>
-                  <strong>Test Result:</strong>{" "}
-                  <span
-                    className={`px-2 py-1 rounded-md font-semibold ${
-                      result?.["Test Result"] === "Passed"
-                        ? "bg-green-500 text-white"
-                        : "bg-red-500 text-white"
-                    }`}
-                  >
-                    {result?.["Test Result"] || "N/A"}
-                  </span>
-                </p>
-              </div>
-              <ul className="list-disc list-inside text-gray-800 mt-2">
-                <li>
-                  <strong>Total Employees:</strong>{" "}
-                  {result?.["Total Employees"] ?? "N/A"}
-                </li>
-                <li>
-                  <strong>Total Participants:</strong>{" "}
-                  {result?.["Total Participants"] ?? "N/A"}
-                </li>
-                <li>
-                  <strong>Total Plan Assets:</strong>{" "}
-                  {result?.["Total Plan Assets"] !== undefined 
-                    ? formatCurrency(result["Total Plan Assets"]) 
-                    : "N/A"}
-                </li>
-                <li>
-                  <strong>Key Employee Assets:</strong>{" "}
-                  {result?.["Key Employee Assets"] !== undefined 
-                    ? formatCurrency(result["Key Employee Assets"]) 
-                    : "N/A"}
-                </li>
-                <li>
-                  <strong>Top Heavy Percentage:</strong>{" "}
-                  {result?.["Top Heavy Percentage (%)"] !== undefined 
-                    ? formatPercentage(result["Top Heavy Percentage (%)"]) 
-                    : "N/A"}
-                </li>
-              </ul>
-            </div>
-          )}
-
-          {/* AI Review Section */}
-          {result?.top_heavy_summary && (
-            <div className="mt-6">
-              <button
-                onClick={handleRunAIReview}
-                disabled={loading}
-                className={`w-full px-4 py-2 text-white rounded-md ${
-                  loading ? "bg-purple-500 animate-pulse" : "bg-purple-500 hover:bg-purple-600"
+        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
+          <h2 className="text-xl font-bold text-gray-700 mb-2">Detailed Top Heavy Test Summary</h2>
+          <div className="flex justify-between items-center">
+            <span>
+              <strong>Plan Year:</strong> {planYear}
+            </span>
+            <span>
+              <strong>Test Result:</strong>{" "}
+              <span
+                className={`px-2 py-1 rounded text-white ${
+                  result["Test Result"]?.toLowerCase() === "passed"
+                    ? "bg-green-500"
+                    : "bg-red-500"
                 }`}
               >
-                {loading ? "Processing AI Review..." : "Run AI Review"}
-              </button>
-            </div>
-          )}
-
-          {/* Display AI Review Results */}
-          {aiReview && (
-            <div className="mt-2 p-4 bg-indigo-50 border border-indigo-300 rounded-md">
-              <h4 className="font-bold text-indigo-700">
-                AI Corrective Actions (Powered by OpenAI):
-              </h4>
-              <p className="text-indigo-900">{aiReview}</p>
-            </div>
-          )}
-
-          {/* Export & Download Buttons */}
-          <div className="flex flex-col gap-2 mt-2">
-            <button
-              onClick={() => exportToPDF()}
-              className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
-            >
-              Export PDF Report
-            </button>
-            <button
-              onClick={downloadResultsAsCSV}
-              className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
-            >
-              Download CSV Report
-            </button>
+                {result?.["Test Result"] ?? "N/A"}
+              </span>
+            </span>
           </div>
-        </>
+
+          <h3 className="font-semibold text-gray-700 mt-4">Employee Counts</h3>
+          <ul className="list-disc list-inside mt-2">
+            <li><strong>Total Employees:</strong> {result["Total Employees"] ?? 0}</li>
+            <li><strong>Total Participants:</strong> {result["Total Participants"] ?? 0}</li>
+          </ul>
+
+          <h3 className="font-semibold text-gray-700 mt-4">Test Results</h3>
+          <ul className="list-disc list-inside mt-2">
+            <li><strong>Key Employee Assets:</strong> {formatCurrency(result["Key Employee Assets"])}</li>
+            <li><strong>Non-Key Employee Assets:</strong> {formatCurrency(result["Non-Key Employee Assets"])}</li>
+            <li><strong>Total Assets:</strong> {formatCurrency(result["Total Assets"])}</li>
+            <li><strong>Top Heavy Ratio:</strong> {formatPercentage(result["Top Heavy Ratio (%)"])}</li>
+            <li><strong>Test Criterion:</strong> {result["Test Criterion"] ?? "N/A"}</li>
+          </ul>
+
+          <h3 className="font-semibold text-gray-700 mt-4">Excluded Participants</h3>
+          <ul className="list-disc list-inside mt-2">
+            <li><strong>Under Age 21:</strong> {result["Excluded Participants"]?.["Under Age 21"] ?? 0}</li>
+            <li><strong>No Plan Entry Date:</strong> {result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0}</li>
+            <li><strong>Excluded Manually:</strong> {result["Excluded Participants"]?.["Excluded Manually"] ?? 0}</li>
+            <li><strong>Not Active:</strong> {result["Excluded Participants"]?.["Not Active"] ?? 0}</li>
+            <li><strong>Union Employees:</strong> {result["Excluded Participants"]?.["Union Employees"] ?? 0}</li>
+            <li><strong>Part-Time or Seasonal:</strong> {result["Excluded Participants"]?.["Part-Time or Seasonal"] ?? 0}</li>
+            <li><strong>Terminated Before Plan Year:</strong> {result["Excluded Participants"]?.["Terminated Before Plan Year"] ?? 0}</li>
+          </ul>
+        </div>
+      )}
+
+      {/* AI Review Section */}
+      {result?.top_heavy_summary && (
+        <div className="mt-6">
+          <button
+            onClick={handleRunAIReview}
+            disabled={loading}
+            className={`w-full px-4 py-2 text-white rounded-md ${
+              loading ? "bg-purple-500 animate-pulse" : "bg-purple-500 hover:bg-purple-600"
+            }`}
+          >
+            {loading ? "Processing AI Review..." : "Run AI Review"}
+          </button>
+        </div>
+      )}
+
+      {/* Display AI Review Results */}
+      {aiReview && (
+        <div className="mt-2 p-4 bg-indigo-50 border border-indigo-300 rounded-md">
+          <h4 className="font-bold text-indigo-700">
+            AI Corrective Actions (Powered by OpenAI):
+          </h4>
+          <p className="text-indigo-900">{aiReview}</p>
+        </div>
+      )}
+
+      {/* Export & Download Buttons */}
+      {result && (
+        <div className="flex flex-col gap-2 mt-2">
+          <button
+            onClick={() => exportToPDF()}
+            className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+          >
+            Export PDF Report
+          </button>
+          <button
+            onClick={downloadResultsAsCSV}
+            className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
+          >
+            Download CSV Report
+          </button>
+        </div>
+      )}
+
+      {/* Corrective Actions & Consequences if Test Failed */}
+      {result?.["Test Result"]?.toLowerCase() === "failed" && (
+        <div>
+          <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+            <h4 className="font-bold text-gray-700">Corrective Actions:</h4>
+            <ul className="list-disc list-inside text-gray-700">
+              <li>Reduce key employee balances to lower the top-heavy ratio.</li>
+              <li>Increase non-key employee contributions or benefits.</li>
+              <li>Implement a safe harbor plan design to avoid top-heavy rules.</li>
+            </ul>
+          </div>
+          <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
+            <h4 className="font-bold text-gray-700">Consequences:</h4>
+            <ul className="list-disc list-inside text-gray-700">
+              <li>Minimum contributions may be required for non-key employees.</li>
+              <li>Potential tax penalties for non-compliance.</li>
+              <li>Plan may need corrective adjustments.</li>
+            </ul>
+          </div>
+        </div>
       )}
 
       {/* Consent Modal for AI Review */}
