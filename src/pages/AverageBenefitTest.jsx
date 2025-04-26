@@ -10,40 +10,39 @@ import Modal from "../components/Modal";
 const AverageBenefitTest = () => {
   // ----- State -----
   const [file, setFile] = useState(null);
-    const [planYear, setPlanYear] = useState("");
-    const [result, setResult] = useState(null);
-    const [error, setError] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [aiReview, setAiReview] = useState("");
-    const [showConsentModal, setShowConsentModal] = useState(false);
-    const [consentChecked, setConsentChecked] = useState(false);
-    const [signature, setSignature] = useState("");
-    const [normalPdfExported, setNormalPdfExported] = useState(false); 
+  const [planYear, setPlanYear] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [aiReview, setAiReview] = useState("");
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
+  const [signature, setSignature] = useState("");
+  const [normalPdfExported, setNormalPdfExported] = useState(false);
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
 
   // ---------- Formatting Helpers ----------
-  const formatCurrency = (amount) => {
-    if (amount === null || amount === undefined || isNaN(Number(amount)))
-      return "N/A";
-    return `$${Number(amount).toLocaleString("en-US", {
+  const formatCurrency = (value) => {
+    if (value === undefined || value === null || isNaN(Number(value))) return "$0.00";
+    return `$${parseFloat(value).toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
   };
 
   const formatPercentage = (value) => {
-    if (value === null || value === undefined || isNaN(Number(value)))
-      return "N/A";
-    return `${Number(value).toFixed(2)}%`;
+    if (value === undefined || value === null || isNaN(Number(value))) return "0.00%";
+    return `${parseFloat(value).toFixed(2)}%`;
   };
 
+  // Automatically export PDF once results are available (if not already exported)
   useEffect(() => {
-  if (result && !normalPdfExported) {
-    exportToPDF(); // No AI review at this point
-    setNormalPdfExported(true);
-  }
-}, [result, normalPdfExported]);
+    if (result && !normalPdfExported) {
+      exportToPDF();
+      setNormalPdfExported(true);
+    }
+  }, [result, normalPdfExported]);
 
   // ----- 1. Drag & Drop Logic -----
   const onDrop = useCallback((acceptedFiles) => {
@@ -51,6 +50,8 @@ const AverageBenefitTest = () => {
       setFile(acceptedFiles[0]);
       setResult(null);
       setError(null);
+      setNormalPdfExported(false);
+      setAiReview("");
     }
   }, []);
 
@@ -62,29 +63,87 @@ const AverageBenefitTest = () => {
     noKeyboard: true,
   });
 
-  // ----- 2. CSV Template Download -----
+  // ----- 2. Upload File to Backend -----
+  const handleUpload = async () => {
+    if (!file) {
+      setError("❌ Please select a file before uploading.");
+      return;
+    }
+    if (!planYear) {
+      setError("❌ Please select a plan year.");
+      return;
+    }
+    const validFileTypes = ["csv", "xlsx"];
+    const fileType = file.name.split(".").pop().toLowerCase();
+    if (!validFileTypes.includes(fileType)) {
+      setError("❌ Invalid file type. Please upload a CSV or Excel file.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("selected_tests", "average_benefit");
+    formData.append("plan_year", planYear);
+
+    try {
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv`);
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        setLoading(false);
+        return;
+      }
+      const response = await axios.post(`${API_URL}/upload-csv`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      console.log("✅ API Response:", response.data);
+      const averageBenefitResults = response.data?.average_benefit;
+      if (!averageBenefitResults) {
+        setError("❌ No Average Benefit test results found in response.");
+      } else {
+        setResult(averageBenefitResults);
+      }
+    } catch (err) {
+      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
+      setError(
+        err.response?.data?.detail ||
+        err.response?.data?.error ||
+        "❌ Failed to upload file. Please check the format and try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ----- 3. Download CSV Template -----
   const downloadCSVTemplate = () => {
     const csvTemplate = [
-  [
-    "Last Name", "First Name", "Employee ID", "Total Benefits", "DOB", "DOH", 
-    "Employment Status", "Excluded from Test", "HCE", "Plan Entry Date", 
-    "Union Employee", "Part-Time / Seasonal", "Plan Assets", "Key Employee"
-  ],
-  ["Last", "First", "001", "4500", "1980-04-12", "2010-06-01", "Active", "No", "Yes", "2011-01-01", "No", "No", "24000", "Yes"],
-  ["Last", "First", "002", "3700", "1985-11-03", "2015-08-15", "Active", "No", "No", "2016-01-01", "No", "No", "12000", "No"],
-  ["Last", "First", "003", "5200", "1978-01-22", "2008-02-18", "Active", "No", "Yes", "2009-01-01", "No", "No", "30000", "Yes"],
-  ["Last", "First", "004", "3300", "1990-09-14", "2020-03-12", "Active", "No", "No", "2020-04-01", "No", "Yes", "11000", "No"],
-  ["Last", "First", "005", "4700", "1992-07-29", "2016-09-05", "Active", "No", "No", "2016-10-01", "No", "No", "14000", "No"],
-  ["Last", "First", "006", "6000", "1975-05-19", "2005-01-10", "Active", "No", "Yes", "2005-02-01", "Yes", "No", "42000", "Yes"],
-  ["Last", "First", "007", "3900", "1994-02-17", "2021-06-01", "Active", "No", "No", "2021-07-01", "No", "Yes", "10000", "No"],
-  ["Last", "First", "008", "5300", "1982-12-11", "2011-10-08", "Active", "No", "Yes", "2012-01-01", "No", "No", "27000", "Yes"],
-  ["Last", "First", "009", "3600", "1989-08-05", "2018-11-20", "Active", "No", "No", "2019-01-01", "No", "No", "9000", "No"],
-  ["Last", "First", "010", "4900", "1987-06-06", "2012-04-10", "Active", "No", "Yes", "2012-05-01", "No", "No", "26000", "Yes"]
-]
-
-    const blob = new Blob([csvTemplate.join("\n")], {
-      type: "text/csv;charset=utf-8;",
-    });
+      [
+        "Last Name", "First Name", "Employee ID", "DOB", "DOH", "HCE", "Employment Status", "Excluded from Test",
+        "Union Employee", "Part-Time / Seasonal", "Plan Entry Date", "Plan Assets", "Compensation",
+        "Family Relationship", "Family Member"
+      ],
+      ["Doe", "John", "E001", "1980-04-12", "2010-01-01", "Yes", "Active", "No", "No", "No", "2010-01-01", 25000, 200000, "spouse", "Jane Doe"],
+      ["Doe", "Jane", "E002", "1985-03-22", "2012-05-30", "No", "Active", "No", "No", "No", "2012-01-01", 18000, 180000, "", ""],
+      ["Smith", "Alice", "E003", "1975-07-12", "2005-08-01", "Yes", "Active", "No", "No", "No", "2005-08-01", 30000, 300000, "child", "Bob Smith"],
+      ["Smith", "Bob", "E004", "1992-10-19", "2021-04-05", "No", "Active", "No", "No", "No", "2021-04-05", 0, 50000, "", ""],
+      ["Johnson", "Mark", "E005", "1983-06-14", "2008-07-20", "Yes", "Active", "No", "No", "No", "2008-07-20", 40000, 250000, "", ""],
+      ["Williams", "Sarah", "E006", "1998-12-05", "2022-09-01", "No", "Terminated", "Yes", "No", "No", "2022-09-01", 0, 60000, "", ""],
+      ["Brown", "Tom", "E007", "1990-09-09", "2018-03-15", "No", "Leave", "No", "No", "No", "2018-03-15", 15000, 80000, "", ""],
+      ["Lee", "Emily", "E008", "1978-04-25", "2003-02-10", "Yes", "Active", "No", "No", "No", "2003-02-10", 22000, 220000, "parent", "Mark Johnson"],
+      ["Davis", "Chris", "E009", "1995-11-11", "2023-01-05", "No", "Active", "No", "No", "No", "2023-01-05", 0, 45000, "", ""],
+      ["Clark", "Lisa", "E010", "1982-02-02", "2011-06-30", "Yes", "Active", "No", "No", "No", "2011-06-30", 27000, 270000, "", ""],
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
+    const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -94,98 +153,43 @@ const AverageBenefitTest = () => {
     document.body.removeChild(link);
   };
 
-  // ----- 3. Upload File to Backend -----
-  const handleUpload = async () => {
-    if (!file) {
-      setError("❌ Please select a file before uploading.");
-      return;
-    }
-
-    // Validate file type
-    const validFileTypes = ["csv"];
-    const fileType = file.name.split(".").pop().toLowerCase();
-    if (!validFileTypes.includes(fileType)) {
-      setError("❌ Invalid file type. Please upload a CSV file.");
-      return;
-    }
-
-    if (!planYear) {
-      setError("❌ Please select a plan year.");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setResult(null);
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("selected_tests", "average_benefit");
-
-    try {
-      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/average_benefit`);
-      // 1. Get Firebase token
-      const auth = getAuth();
-      const token = await auth.currentUser?.getIdToken(true);
-      if (!token) {
-        setError("❌ No valid Firebase token found. Are you logged in?");
-        setLoading(false);
-        return;
-      }
-      console.log("Firebase Token:", token);
-
-      // 2. Send POST request with Bearer token
-      const response = await axios.post(
-        `${API_URL}/upload-csv/average_benefit`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      console.log("✅ API Response:", response.data);
-      setResult(response.data?.["Test Results"]?.["average_benefit"] || {});
-    } catch (err) {
-      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
-      setError(
-        err.response?.data?.error ||
-          "❌ Failed to upload file. Please check the format and try again."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // ----- 4. Download Results as CSV -----
   const downloadResultsAsCSV = () => {
     if (!result) {
       setError("❌ No results to download.");
       return;
     }
-
     const plan = planYear || "N/A";
-    const totalEmployees = result["Total Employees"] ?? "N/A";
-    const totalParticipants = result["Total Participants"] ?? "N/A";
-    const keyEmployeeAssets = result["Key Employee Assets"] ?? "N/A";
-    const nonKeyEmployeeAssets = result["Non-Key Employee Assets"] ?? "N/A";
-    const totalPlanAssets = result["Total Plan Assets"] ?? "N/A";
-    const hceAvg = result["HCE Average Benefit"] ?? "N/A";
-    const averageBenefitRatio = result["Average Benefit Ratio"] ?? "N/A";
+    const totalEmployees = result["Total Employees"] ?? 0;
+    const totalParticipants = result["Total Participants"] ?? 0;
+    const hceAvgBenefit = result["HCE Avg Benefit (%)"] ?? 0;
+    const nhceAvgBenefit = result["NHCE Avg Benefit (%)"] ?? 0;
+    const avgBenefitRatio = result["Average Benefit Ratio (%)"] ?? 0;
     const testResult = result["Test Result"] ?? "N/A";
+    const excludedUnderAge21 = result["Excluded Participants"]?.["Under Age 21"] ?? 0;
+    const excludedNoPlanEntry = result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0;
+    const excludedManually = result["Excluded Participants"]?.["Excluded Manually"] ?? 0;
+    const excludedNotActive = result["Excluded Participants"]?.["Not Active"] ?? 0;
+    const excludedUnion = result["Excluded Participants"]?.["Union Employees"] ?? 0;
+    const excludedPartTime = result["Excluded Participants"]?.["Part-Time or Seasonal"] ?? 0;
+    const excludedTerminated = result["Excluded Participants"]?.["Terminated Before Plan Year"] ?? 0;
 
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", plan],
       ["Total Employees", totalEmployees],
       ["Total Participants", totalParticipants],
-      ["Key Employee Assets", formatCurrency(keyEmployeeAssets)],
-      ["Non-Key Employee Assets", formatCurrency(nonKeyEmployeeAssets)],
-      ["Total Plan Assets", formatCurrency(totalPlanAssets)],
-      ["Average Benefit Ratio", averageBenefitRatio],
+      ["HCE Avg Benefit (%)", formatPercentage(hceAvgBenefit)],
+      ["NHCE Avg Benefit (%)", formatPercentage(nhceAvgBenefit)],
+      ["Average Benefit Ratio (%)", formatPercentage(avgBenefitRatio)],
       ["Test Result", testResult],
+      ["Excluded - Under Age 21", excludedUnderAge21],
+      ["Excluded - No Plan Entry Date", excludedNoPlanEntry],
+      ["Excluded - Manually", excludedManually],
+      ["Excluded - Not Active", excludedNotActive],
+      ["Excluded - Union Employees", excludedUnion],
+      ["Excluded - Part-Time or Seasonal", excludedPartTime],
+      ["Excluded - Terminated Before Plan Year", excludedTerminated],
     ];
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
@@ -193,83 +197,73 @@ const AverageBenefitTest = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Average_Benefit_Results.csv");
+    link.setAttribute("download", "Average Benefit Test Results.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // ----- 5. Export to PDF (Integrated with DCAP Contributions functions) -----
-  const exportToPDF = async (customAiReview = "") => {
-  if (!result) {
-    setError("❌ No results available to export.");
-    return;
-  }
-
-  const failed = result["Test Result"]?.toLowerCase() === "failed";
-  const finalAIText = customAiReview || aiReview;
-
-    let pdfBlob;
+  // ----- 5. Export Results to PDF -----
+  const exportToPDF = async (customAiReview) => {
+    if (!result) {
+      setError("❌ No results available to export.");
+      return;
+    }
     try {
+      const finalAIText = customAiReview !== undefined ? customAiReview : aiReview;
       const plan = planYear || "N/A";
-      const totalBenefits = formatCurrency(result["Total Benefits"]);
-      const totalEmployees = result["Total Employees"] || "N/A";
-      const totalParticipants = result["Total Participants"] || "N/A";
-      const keyEmployeeAssets = formatCurrency(result["Key Employee Assets"]);
-      const nonKeyEmployeeAssets = formatCurrency(result["Non-Key Employee Assets"]);
-      const totalPlanAssets = formatCurrency(result["Total Plan Assets"]);
-      const averageBenefitRatio = formatPercentage(result["Average Benefit Ratio"]);
-      const testResult = result["Test Result"] || "N/A";
+      const totalEmployees = result["Total Employees"] ?? 0;
+      const totalParticipants = result["Total Participants"] ?? 0;
+      const hceAvgBenefit = result["HCE Avg Benefit (%)"] ?? 0;
+      const nhceAvgBenefit = result["NHCE Avg Benefit (%)"] ?? 0;
+      const avgBenefitRatio = result["Average Benefit Ratio (%)"] ?? 0;
+      const testResult = result["Test Result"] ?? "N/A";
+      const testCriterion = result["Test Criterion"] ?? "N/A";
       const failed = testResult.toLowerCase() === "failed";
 
       const pdf = new jsPDF("p", "mm", "a4");
       pdf.setFont("helvetica", "normal");
 
-      // Header
+      // PDF Header
       pdf.setFontSize(18);
       pdf.setFont("helvetica", "bold");
       pdf.text("Average Benefit Test Results", 105, 15, { align: "center" });
       pdf.setFontSize(12);
       pdf.setFont("helvetica", "normal");
       pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
-      pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
+      const generatedTimestamp = new Date().toLocaleString();
+      pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
+      // Subheader with test criterion
       pdf.setFontSize(12);
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
       pdf.text(
-        "Test Criterion: IRC §410(b)(2): The Average Benefit Test is met if the average benefit percentage of Non-Highly Compensated Employees (NHCEs) is at least 70% of that of Highly Compensated Employees (HCEs), ensuring the plan does not disproportionately favor HCEs.",
+        `Test Criterion: ${testCriterion}`,
         105,
         38,
         { align: "center", maxWidth: 180 }
       );
 
-      // Section 1: Basic Results Table
+      // Results Table
       pdf.autoTable({
-        startY: 52,
+        startY: 48,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", totalEmployees],
           ["Total Participants", totalParticipants],
-          ["Total Plan Assets", totalPlanAssets],
-          ["Key Employee Assets", keyEmployeeAssets],
-          ["Non-Key Employee Assets", nonKeyEmployeeAssets],
-          ["Average Benefit Ratio", averageBenefitRatio],
+          ["HCE Avg Benefit (%)", formatPercentage(hceAvgBenefit)],
+          ["NHCE Avg Benefit (%)", formatPercentage(nhceAvgBenefit)],
+          ["Average Benefit Ratio (%)", formatPercentage(avgBenefitRatio)],
           ["Test Result", testResult],
         ],
-        headStyles: {
-          fillColor: [41, 128, 185],
-          textColor: [255, 255, 255],
-        },
-        styles: {
-          fontSize: 12,
-          font: "helvetica",
-        },
+        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+        styles: { fontSize: 12, font: "helvetica" },
         margin: { left: 10, right: 10 },
       });
 
-      // AI Review Section (if available)
+      // AI Review Section or Corrective Actions (if test failed)
       if (finalAIText) {
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
@@ -280,32 +274,31 @@ const AverageBenefitTest = () => {
           styles: { fontSize: 11, font: "helvetica" },
           margin: { left: 10, right: 10 },
         });
-      }
-
-      if (failed && !finalAIText) {
+      } else if (failed) {
+        const correctiveActions = [
+          "Increase NHCE benefits to raise their average benefit percentage.",
+          "Review allocation formulas to ensure equitable distribution.",
+          "Consider plan design changes to meet the 70% ratio requirement.",
+        ];
+        const consequences = [
+          "Plan may fail to qualify for tax advantages.",
+          "Increased IRS audit risk.",
+          "Potential need for corrective distributions.",
+        ];
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["Corrective Actions"]],
-          body: [
-            ["Review benefit allocation formulas."],
-            ["Adjust contribution amounts to boost NHCE benefits."],
-            ["Consider additional employer contributions."],
-          ],
+          body: correctiveActions.map((action) => [action]),
           headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
           styles: { fontSize: 11, font: "helvetica" },
           margin: { left: 10, right: 10 },
         });
-
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["Consequences"]],
-          body: [
-            ["Potential reclassification of benefits as taxable."],
-            ["Increased IRS scrutiny and possible penalties."],
-            ["Need for corrective contributions."],
-          ],
+          body: consequences.map((item) => [item]),
           headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
           styles: { fontSize: 11, font: "helvetica" },
           margin: { left: 10, right: 10 },
@@ -323,63 +316,50 @@ const AverageBenefitTest = () => {
       }
 
       // Footer
-      pdf.setFontSize(10);
       pdf.setFont("helvetica", "italic");
+      pdf.setFontSize(10);
       pdf.setTextColor(100, 100, 100);
       pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
-      // Determine download filename based on AI review presence
-            const downloadFileName = finalAIText
-              ? "AI Reviewed: Cafeteria Average Benefit Test Results.pdf"
-              : "Cafeteria Average Benefit Test Results.pdf";
-      
-            // Automatically download PDF
-            pdf.save(downloadFileName);
-      
-            // Generate PDF blob and upload to Firebase with appropriate metadata
-            const pdfBlob = pdf.output("blob");
-            await savePdfResultToFirebase({
-              fileName: finalAIText ? "AI Reviewed: Cafeteria Average Benefit Test Results" : "Cafeteria Average Benefit Test Results",
-              pdfBlob,
-              additionalData: {
-                planYear,
-                testResult,
-                aiConsent: {
-                  agreed: !!signature.trim(),
-                  signature: signature.trim(),
-                  timestamp: new Date().toISOString(),
-                },
-              },
-            });
-      
-            console.log("✅ Export and upload complete");
-          } catch (error) {
-            console.error("❌ Export PDF Error:", error);
-            setError(`❌ ${error.message}`);
-          }
-        };
+      const downloadFileName = finalAIText
+        ? "AI Reviewed: Average Benefit Test Results.pdf"
+        : "Average Benefit Test Results.pdf";
 
-        // =========================
-  // 6. AI Review Handler
-  // =========================
+      pdf.save(downloadFileName);
+
+      const pdfBlob = pdf.output("blob");
+      await savePdfResultToFirebase({
+        fileName: finalAIText ? "AI Reviewed: Average Benefit Test Results" : "Average Benefit Test Results",
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult,
+        },
+      });
+
+      console.log("✅ Export and upload complete");
+    } catch (error) {
+      console.error("❌ Export PDF Error:", error);
+      setError(`❌ ${error.message}`);
+    }
+  };
+
+  // ----- 6. AI Review Handler -----
   const handleRunAIReview = async () => {
     if (!result || !result.average_benefit_summary) {
       setError("❌ No test summary available for AI review.");
       return;
     }
-    // If consent hasn't been given, open the modal
     if (!consentChecked || !signature.trim()) {
       setShowConsentModal(true);
       return;
     }
     setLoading(true);
     try {
-      // Save AI review consent to Firestore
       await saveAIReviewConsent({
-        fileName: "Cafeteria Average Benefit Test",
+        fileName: "Average Benefit Test",
         signature: signature.trim(),
       });
-      // Run AI review API
       const response = await axios.post(`${API_URL}/api/ai-review`, {
         testType: "Average Benefit",
         testData: result.average_benefit_summary,
@@ -387,29 +367,31 @@ const AverageBenefitTest = () => {
       });
       const aiText = response.data.analysis;
       setAiReview(aiText);
-      // Automatically export AI reviewed PDF
       await exportToPDF(aiText);
     } catch (error) {
       console.error("Error fetching AI review:", error);
-      setAiReview("Error fetching AI review.");
+      setError("❌ Error fetching AI review.");
     }
     setLoading(false);
+  };
+
+  // ----- 7. Handle Enter Key -----
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && file && planYear && !loading) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleUpload();
+    }
   };
 
   // ----- RENDER -----
   return (
     <div
-      className="max-w-md mx-auto mt-10 p-6 bg-white shadow-md rounded-lg border border-gray-300"
-      onKeyDown={(e) => {
-        if (e.key === "Enter" && file && planYear && !loading) {
-          e.preventDefault();
-          e.stopPropagation();
-          handleUpload();
-        }
-      }}
+      className="max-w-[625px] mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
+      onKeyDown={handleKeyDown}
       tabIndex="0"
     >
-      <h2 className="text-xl font-semibold text-center text-gray-700 mb-6">
+      <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
         📂 Upload Average Benefit Test File
       </h2>
 
@@ -423,28 +405,26 @@ const AverageBenefitTest = () => {
             id="planYear"
             value={planYear}
             onChange={(e) => setPlanYear(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md"
+            className="flex-3 px-4 py-2 border border-gray-300 rounded-md"
             required
           >
             <option value="">-- Select Plan Year --</option>
-            {Array.from({ length: 41 }, (_, i) => 2010 + i).map((year) => (
+            {Array.from({ length: 10 }, (_, i) => 2025 - i).map((year) => (
               <option key={year} value={year}>
                 {year}
               </option>
             ))}
           </select>
+        </div>
       </div>
 
       {/* Drag & Drop Area */}
-<div
-  {...getRootProps()}
-  className={`mt-4 border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-    isDragActive
-      ? "border-green-500 bg-blue-100"
-      : "border-gray-300 bg-gray-50"
-  }`}
+      <div
+        {...getRootProps()}
+        className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
+          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
+        }`}
       >
-
         <input {...getInputProps()} />
         {file ? (
           <p className="text-green-600 font-semibold">{file.name}</p>
@@ -458,14 +438,12 @@ const AverageBenefitTest = () => {
       </div>
 
       {/* Download CSV Template Button */}
-      <div className="flex justify-center mt-4">
-        <button
-          onClick={downloadCSVTemplate}
-          className="w-full px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
-        >
-          Download CSV Template
-        </button>
-      </div>
+      <button
+        onClick={downloadCSVTemplate}
+        className="mt-4 w-full px-4 py-2 text-white bg-gray-500 hover:bg-gray-600 rounded-md"
+      >
+        Download CSV Template
+      </button>
 
       {/* Choose File Button */}
       <button
@@ -492,142 +470,121 @@ const AverageBenefitTest = () => {
       {/* Display Errors */}
       {error && <div className="mt-3 text-red-500">{error}</div>}
 
-     {result && (
-  <div className="mt-6 p-4 bg-white border border-gray-300 rounded-lg shadow-sm">
-    <div className="p-4 bg-gray-100 border border-gray-300 rounded-md">
-      <h4 className="font-bold text-md text-gray-800 mb-2">
-        Detailed Average Benefit Test Summary
-      </h4>
+      {/* Display results once available */}
+      {result && (
+        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
+          <h2 className="text-xl font-bold text-gray-700 mb-2">Detailed Average Benefit Test Summary</h2>
+          <div className="flex justify-between items-center">
+            <span>
+              <strong>Plan Year:</strong> {planYear}
+            </span>
+            <span>
+              <strong>Test Result:</strong>{" "}
+              <span
+                className={`px-2 py-1 rounded text-white ${
+                  result["Test Result"]?.toLowerCase() === "passed"
+                    ? "bg-green-500"
+                    : "bg-red-500"
+                }`}
+              >
+                {result?.["Test Result"] ?? "N/A"}
+              </span>
+            </span>
+          </div>
 
-      <div className="flex justify-between items-center mb-2">
-        <p>
-          <strong>Plan Year:</strong>{" "}
-          <span className="text-blue-600">{planYear || "N/A"}</span>
-        </p>
-        <p>
-          <strong>Test Result:</strong>{" "}
-          <span
-            className={`px-2 py-1 rounded-md font-semibold ${
-              result?.["Test Result"] === "Passed"
-                ? "bg-green-500 text-white"
-                : "bg-red-500 text-white"
+          <h3 className="font-semibold text-gray-700 mt-4">Employee Counts</h3>
+          <ul className="list-disc list-inside mt-2">
+            <li><strong>Total Employees:</strong> {result["Total Employees"] ?? 0}</li>
+            <li><strong>Total Participants:</strong> {result["Total Participants"] ?? 0}</li>
+          </ul>
+
+          <h3 className="font-semibold text-gray-700 mt-4">Test Results</h3>
+          <ul className="list-disc list-inside mt-2">
+            <li><strong>HCE Avg Benefit:</strong> {formatPercentage(result["HCE Avg Benefit (%)"])}</li>
+            <li><strong>NHCE Avg Benefit:</strong> {formatPercentage(result["NHCE Avg Benefit (%)"])}</li>
+            <li><strong>Average Benefit Ratio:</strong> {formatPercentage(result["Average Benefit Ratio (%)"])}</li>
+            <li><strong>Test Criterion:</strong> {result["Test Criterion"] ?? "N/A"}</li>
+          </ul>
+
+          <h3 className="font-semibold text-gray-700 mt-4">Excluded Participants</h3>
+          <ul className="list-disc list-inside mt-2">
+            <li><strong>Under Age 21:</strong> {result["Excluded Participants"]?.["Under Age 21"] ?? 0}</li>
+            <li><strong>No Plan Entry Date:</strong> {result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0}</li>
+            <li><strong>Excluded Manually:</strong> {result["Excluded Participants"]?.["Excluded Manually"] ?? 0}</li>
+            <li><strong>Not Active:</strong> {result["Excluded Participants"]?.["Not Active"] ?? 0}</li>
+            <li><strong>Union Employees:</strong> {result["Excluded Participants"]?.["Union Employees"] ?? 0}</li>
+            <li><strong>Part-Time or Seasonal:</strong> {result["Excluded Participants"]?.["Part-Time or Seasonal"] ?? 0}</li>
+            <li><strong>Terminated Before Plan Year:</strong> {result["Excluded Participants"]?.["Terminated Before Plan Year"] ?? 0}</li>
+          </ul>
+        </div>
+      )}
+
+      {/* AI Review Section */}
+      {result?.average_benefit_summary && (
+        <div className="mt-6">
+          <button
+            onClick={handleRunAIReview}
+            disabled={loading}
+            className={`w-full px-4 py-2 text-white rounded-md ${
+              loading ? "bg-purple-500 animate-pulse" : "bg-purple-500 hover:bg-purple-600"
             }`}
           >
-            {result?.["Test Result"] || "N/A"}
-          </span>
-        </p>
-      </div>
+            {loading ? "Processing AI Review..." : "Run AI Review"}
+          </button>
+        </div>
+      )}
 
-      <ul className="list-disc list-inside text-gray-800 space-y-1">
-        <li>
-          <strong>Total Employees:</strong>{" "}
-          {result?.["Total Employees"] ?? "N/A"}
-        </li>
-        <li>
-          <strong>Total Participants:</strong>{" "}
-          {result?.["Total Participants"] ?? "N/A"}
-        </li>
-        <li>
-          <strong>Key Employee Assets:</strong>{" "}
-          {formatCurrency(result?.["Key Employee Assets"])}
-        </li>
-        <li>
-          <strong>Non-Key Employee Assets:</strong>{" "}
-          {formatCurrency(result?.["Non-Key Employee Assets"])}
-        </li>
-        <li>
-          <strong>Total Plan Assets:</strong>{" "}
-          {formatCurrency(result?.["Total Plan Assets"])}
-        </li>
-        <li>
-          <strong>Average Benefit Ratio:</strong>{" "}
-          {formatPercentage(result?.["Average Benefit Ratio (%)"])}
-        </li>
-      </ul>
-    </div>
-  </div>
-)}
+      {/* Display AI Review Results */}
+      {aiReview && (
+        <div className="mt-2 p-4 bg-indigo-50 border border-indigo-300 rounded-md">
+          <h4 className="font-bold text-indigo-700">
+            AI Corrective Actions (Powered by OpenAI):
+          </h4>
+          <p className="text-indigo-900">{aiReview}</p>
+        </div>
+      )}
 
+      {/* Export & Download Buttons */}
+      {result && (
+        <div className="flex flex-col gap-2 mt-2">
+          <button
+            onClick={() => exportToPDF()}
+            className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+          >
+            Export PDF Report
+          </button>
+          <button
+            onClick={downloadResultsAsCSV}
+            className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
+          >
+            Download CSV Report
+          </button>
+        </div>
+      )}
 
+      {/* Corrective Actions & Consequences if Test Failed */}
+      {result?.["Test Result"]?.toLowerCase() === "failed" && (
+        <div>
+          <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+            <h4 className="font-bold text-gray-700">Corrective Actions:</h4>
+            <ul className="list-disc list-inside text-gray-700">
+              <li>Increase NHCE benefits to raise their average benefit percentage.</li>
+              <li>Review allocation formulas to ensure equitable distribution.</li>
+              <li>Consider plan design changes to meet the 70% ratio requirement.</li>
+            </ul>
+          </div>
+          <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
+            <h4 className="font-bold text-gray-700">Consequences:</h4>
+            <ul className="list-disc list-inside text-gray-700">
+              <li>Plan may fail to qualify for tax advantages.</li>
+              <li>Increased IRS audit risk.</li>
+              <li>Potential need for corrective distributions.</li>
+            </ul>
+          </div>
+        </div>
+      )}
 
-
-
-          {/* AI Review Section */}
-          {result?.average_benefit_summary && (
-            <div className="mt-6">
-              <button
-  onClick={handleRunAIReview}
-  disabled={loading}
-  className={`w-full px-4 py-2 text-white rounded-md ${
-    loading ? "bg-purple-500 animate-pulse" : "bg-purple-500 hover:bg-purple-600"
-  }`}
->
-  {loading ? "Processing AI Review..." : "Run AI Review"}
-</button>
-            </div>
-          )}
-
-          {/* Display AI Review Results */}
-          {aiReview && (
-            <div className="mt-2 p-4 bg-indigo-50 border border-indigo-300 rounded-md">
-              <h4 className="font-bold text-indigo-700">
-                AI Corrective Actions (Powered by OpenAI):
-              </h4>
-              <p className="text-indigo-900">{aiReview}</p>
-            </div>
-          )}
-
-          {/* Export & Download Buttons (Only appear after test is run) */}
-          {result && (
-  <div className="flex flex-col gap-2 mt-2">
-    <button
-      onClick={exportToPDF}
-      className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
-    >
-      Export PDF Report
-    </button>
-    <button
-      onClick={downloadResultsAsCSV}
-      className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
-    >
-      Download CSV Report
-    </button>
-  </div>
-)}
-
-
-          {/* If test fails, show corrective actions & consequences */}
-          {result?.["Test Result"]?.toLowerCase() === "failed" && (
-            <div>
-              <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
-                <h4 className="font-bold text-gray-800">Corrective Actions:</h4>
-                <ul className="list-disc list-inside text-gray-800">
-                  <li>Review benefit allocation formulas.</li>
-                  <br />
-                  <li>Adjust contribution amounts to boost NHCE benefits.</li>
-                  <br />
-                  <li>Consider additional employer contributions.</li>
-                </ul>
-              </div>
-              <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
-                <h4 className="font-bold text-gray-800">Consequences:</h4>
-                <ul className="list-disc list-inside text-gray-800">
-                  <li>Benefits may be reclassified as taxable.</li>
-                  <br />
-                  <li>Increased IRS scrutiny and potential penalties.</li>
-                  <br />
-                  <li>Additional corrective contributions may be required.</li>
-                </ul>
-              </div>
-            </div>
-          )}
-       </div>
-
-
-      
-
-
-    {/* Consent Modal for AI Review */}
+      {/* Consent Modal for AI Review */}
       {showConsentModal && (
         <Modal title="AI Review Consent" onClose={() => setShowConsentModal(false)}>
           <p className="mb-4 text-sm text-gray-700">
@@ -689,4 +646,5 @@ const AverageBenefitTest = () => {
     </div>
   );
 };
+
 export default AverageBenefitTest;
