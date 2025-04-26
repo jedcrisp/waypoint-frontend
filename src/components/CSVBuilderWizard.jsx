@@ -16,31 +16,35 @@ import { differenceInYears } from "date-fns";
 
 const REQUIRED_HEADERS_BY_TEST = {
   "ADP Test": [
-    "Employee ID", "First Name", "Last Name", "DOB", "DOH", "Plan Entry Date",
-    "Excluded from Test", "Ownership %", "Family Relationship", "Family Member",
-    "Employment Status", "Union Employee", "Part-Time / Seasonal",
-    "Compensation", "Employee Deferral", "HCE", "Hours Worked", "Termination Date"
+    "Employee ID", "First Name", "Last Name", "DOB",
+    "DOH", "Employment Status", "Hours Worked", "Termination Date",
+    "Plan Entry Date", "Compensation", "Employee Deferral",
+    "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "HCE",
+    "Ownership %", "Family Relationship", "Family Member"
   ],
   "ACP Test": [
-    "Last Name", "First Name", "Employee ID", "Compensation", "Employer Match",
-    "HCE", "DOB", "DOH", "Employment Status", "Excluded from Test",
-    "Plan Entry Date", "Union Employee", "Part-Time / Seasonal",
-    "Contribution Percentage", "Participating", "Total Contribution", "Family Relationship", "Family Member"
+    "Last Name", "First Name", "Employee ID", "DOB", "DOH",
+    "Employment Status", "Plan Entry Date", "Compensation", "Employer Match",
+    "Contribution Percentage", "Participating", "Total Contribution",
+    "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "HCE",
+    "Family Relationship", "Family Member"
   ],
   "Top Heavy Test": [
-    "Last Name", "First Name", "Employee ID", "Plan Assets", "Compensation",
-    "Key Employee", "Ownership %", "Family Relationship", "Family Member", "DOB", "DOH",
-    "Excluded from Test", "Employment Status"
+    "Last Name", "First Name", "Employee ID", "DOB", "DOH",
+    "Employment Status", "Plan Assets", "Compensation",
+    "Excluded from Test", "Key Employee", "Ownership %", "Family Relationship", "Family Member"
   ],
   "Average Benefit Test": [
-    "Last Name", "First Name", "Employee ID", "DOB", "DOH", "Employment Status",
-    "Excluded from Test", "Union Employee", "Part-Time / Seasonal",
-    "Plan Entry Date", "Plan Assets", "Key Employee", "Family Relationship", "Family Member"
+    "Last Name", "First Name", "Employee ID", "DOB", "DOH",
+    "Employment Status", "Plan Entry Date", "Plan Assets", "Compensation",
+    "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "Key Employee",
+    "Family Relationship", "Family Member"
   ],
   "Coverage Test": [
-    "Last Name", "First Name", "Employee ID", "Eligible for Plan", "HCE",
-    "DOB", "DOH", "Employment Status", "Excluded from Test",
-    "Union Employee", "Part-Time / Seasonal", "Plan Entry Date", "Family Relationship", "Family Member"
+    "Last Name", "First Name", "Employee ID", "DOB", "DOH",
+    "Employment Status", "Plan Entry Date", "Eligible for Plan",
+    "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "HCE",
+    "Family Relationship", "Family Member"
   ],
 };
 
