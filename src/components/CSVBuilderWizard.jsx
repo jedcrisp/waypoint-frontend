@@ -1,14 +1,17 @@
+
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { getAuth } from "firebase/auth";
 import axios from "axios";
 import Papa from "papaparse";
 import { useNavigate } from "react-router-dom";
+import { STATUS } from "react-joyride";
 
 import FileUploader from "./FileUploader";
 import HeaderMapper from "./HeaderMapper";
 import DownloadActions from "./DownloadActions";
 import EnrichedTable from "./EnrichedTable";
 import ConfirmModal from "./ConfirmModal";
+import CSVBuilderTour from "./CSVBuilderTour";
 
 import { normalizeHeader, parseDateFlexible } from "../utils/dateUtils.js";
 import { calculateYearsOfService, isHCE, isKeyEmployee } from "../utils/planCalculations.js";
@@ -80,6 +83,7 @@ export default function CSVBuilderWizard() {
   const [selectedTests, setSelectedTests] = useState([]);
   const [planYear, setPlanYear] = useState("");
   const [rawHeaders, setRawHeaders] = useState([]);
+  const [suggestedMap, setSuggestedMap] = useState({});
   const [columnMap, setColumnMap] = useState({});
   const [originalRows, setOriginalRows] = useState([]);
   const [enrichedData, setEnrichedData] = useState({});
@@ -88,6 +92,9 @@ export default function CSVBuilderWizard() {
   const [showDownloadConfirm, setShowDownloadConfirm] = useState(false);
   const [showPostDownload, setShowPostDownload] = useState(false);
   const [showRoutePrompt, setShowRoutePrompt] = useState(false);
+  const [tourRun, setTourRun] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const [isTestListOpen, setIsTestListOpen] = useState(false);
 
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
@@ -98,26 +105,32 @@ export default function CSVBuilderWizard() {
     [selectedTests]
   );
   const mandatoryHeaders = requiredHeaders.filter(h => h !== "HCE" && h !== "Key Employee");
-  const isDownloadEnabled = mandatoryHeaders.every(h => columnMap[h]);
+  const isDownloadEnabled = selectedTests.length > 0 && mandatoryHeaders.every(h => columnMap[h]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setTestsOpen(false);
+        setIsTestListOpen(false);
       }
     };
 
-    if (testsOpen) {
+    if (testsOpen || isTestListOpen) {
       document.addEventListener("click", handleClickOutside);
     }
 
     return () => {
       document.removeEventListener("click", handleClickOutside);
     };
-  }, [testsOpen]);
+  }, [testsOpen, isTestListOpen]);
 
-  // Parse CSV
+  // Set isMounted to true after the component mounts
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Parse CSV and suggest mappings
   function handleParse(rows, headers) {
     setOriginalRows(rows);
     setRawHeaders(headers);
@@ -135,7 +148,8 @@ export default function CSVBuilderWizard() {
       }
       if (match) autoMap[req] = match.original;
     });
-    setColumnMap(autoMap);
+    setSuggestedMap(autoMap);
+    setColumnMap({});
   }
 
   // Preview via backend for single or multiple tests
@@ -148,26 +162,60 @@ export default function CSVBuilderWizard() {
         setErrorMessage("Please map all required headers before previewing.");
         return;
       }
+      if (!planYear || isNaN(parseInt(planYear, 10))) {
+        setErrorMessage("Please select a valid plan year.");
+        return;
+      }
       const token = await getAuth().currentUser.getIdToken(true);
       if (!token) throw new Error("Not authenticated");
 
       let rowsToUpload = originalRows;
-      // Augment ACP contributions
-      if (selectedTests.includes("ACP Test")) {
-        rowsToUpload = rowsToUpload.map(r => {
-          const matchVal = columnMap["Employer Match"] ? parseFloat(r[columnMap["Employer Match"]]) || 0 : 0;
-          const compVal = columnMap["Compensation"] ? parseFloat(r[columnMap["Compensation"]]) || 0 : 0;
-          const defVal = columnMap["Employee Deferral"] ? parseFloat(r[columnMap["Employee Deferral"]]) || 0 : 0;
-          return {
-            ...r,
-            "Contribution Percentage": compVal > 0 ? (matchVal / compVal) * 100 : 0,
-            "Participating": matchVal > 0 ? "Yes" : "No",
-            "Total Contribution": defVal + matchVal
-          };
+      // Ensure all required headers are included in the CSV
+      const mappedRows = rowsToUpload.map(row => {
+        const mappedRow = { ...row };
+        requiredHeaders.forEach(header => {
+          if (!mappedRow[header] && columnMap[header]) {
+            mappedRow[header] = row[columnMap[header]] || "";
+          }
+          // Normalize boolean-like or categorical columns to strings
+          const booleanLikeColumns = [
+            "Excluded from Test",
+            "Employment Status",
+            "Union Employee",
+            "Part-Time / Seasonal",
+            "Family Relationship",
+            "Family Member",
+            "Eligible for Plan",
+            "Participating",
+            "HCE",
+            "Key Employee"
+          ];
+          if (booleanLikeColumns.includes(header) && mappedRow[header] !== undefined) {
+            const value = String(mappedRow[header]).toLowerCase();
+            // Normalize to "yes" or "no" for boolean-like fields
+            if (header === "Excluded from Test" || header === "Union Employee" || header === "Part-Time / Seasonal" || 
+                header === "Eligible for Plan" || header === "Participating" || header === "HCE" || header === "Key Employee") {
+              mappedRow[header] = value === "true" || value === "1" || value === "yes" ? "yes" : "no";
+            } else {
+              // For other categorical fields like "Employment Status", "Family Relationship", "Family Member", just ensure it's a string
+              mappedRow[header] = value;
+            }
+          }
         });
-      }
+        // Augment ACP contributions
+        if (selectedTests.includes("ACP Test")) {
+          const matchVal = columnMap["Employer Match"] ? parseFloat(mappedRow[columnMap["Employer Match"]]) || 0 : 0;
+          const compVal = columnMap["Compensation"] ? parseFloat(mappedRow[columnMap["Compensation"]]) || 0 : 0;
+          const defVal = columnMap["Employee Deferral"] ? parseFloat(mappedRow[columnMap["Employee Deferral"]]) || 0 : 0;
+          mappedRow["Contribution Percentage"] = compVal > 0 ? (matchVal / compVal) * 100 : 0;
+          mappedRow["Participating"] = matchVal > 0 ? "Yes" : "No";
+          mappedRow["Total Contribution"] = defVal + matchVal;
+        }
+        return mappedRow;
+      });
 
-      const csv = Papa.unparse(rowsToUpload);
+      console.log("mappedRows after mapping:", mappedRows);
+      const csv = Papa.unparse(mappedRows);
       const blob = new Blob([csv], { type: "text/csv" });
 
       const dataByTest = {};
@@ -178,7 +226,14 @@ export default function CSVBuilderWizard() {
           const form = new FormData();
           form.append("file", new File([blob], "temp.csv"));
           form.append("test_type", TEST_TYPE_MAP[test]);
-          form.append("plan_year", planYear);
+          form.append("plan_year", parseInt(planYear, 10));
+
+          console.log("Sending request to /preview-csv with:", {
+            test_type: TEST_TYPE_MAP[test],
+            plan_year: parseInt(planYear, 10),
+            file: form.get("file"),
+            token: token.substring(0, 10) + "...",
+          });
 
           const { data } = await axios.post(`${API_URL}/preview-csv`, form, {
             headers: { Authorization: `Bearer ${token}` }
@@ -192,14 +247,20 @@ export default function CSVBuilderWizard() {
           combined.total_hces += getSummaryValue(summary, "total_key_employees", "Total Key Employees", "total_hces");
           combined.total_participating += getSummaryValue(summary, "total_participants", "Total Participants", "total_participating");
         } catch (err) {
+          console.error(`Error for test ${test}:`, {
+            message: err.message,
+            response: err.response?.data,
+            status: err.response?.status,
+          });
           dataByTest[test] = { employees: [], summary: {}, error: err.response?.data?.detail || err.message };
+          setErrorMessage(err.response?.data?.detail || err.message);
         }
       }
 
       setEnrichedData(dataByTest);
       setSummaryCounts(combined);
     } catch (err) {
-      console.error(err);
+      console.error("Preview error:", err);
       setErrorMessage(err.message);
       setEnrichedData({});
       setSummaryCounts({});
@@ -209,7 +270,6 @@ export default function CSVBuilderWizard() {
   // Download mapped CSV
   function handleDownloadClick() {
     if (!isDownloadEnabled) {
-      setErrorMessage("Please map all required headers before downloading.");
       return;
     }
     setShowDownloadConfirm(true);
@@ -271,162 +331,241 @@ export default function CSVBuilderWizard() {
   }, [enrichedData, originalRows, planYear, columnMap, selectedTests]);
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      {/* Title */}
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">CSV Builder</h1>
-      {/* Multi-test dropdown */}
-      <div className="mb-6 relative" ref={dropdownRef}>
-        <button onClick={() => setTestsOpen(o => !o)} className="w-full border rounded px-3 py-2 flex justify-between items-center">
-          <span className="flex-1 text-left">{selectedTests.length ? selectedTests.join(", ") : "-- Choose Tests --"}</span>
-          <span className={testsOpen ? "rotate-180" : ""}>▼</span>
-        </button>
-        {testsOpen && (
-          <div className="absolute z-10 mt-1 w-full bg-white border rounded shadow max-h-60 overflow-auto">
-            <label className="flex items-center px-3 py-2 hover:bg-gray-100">
-              <input
-                type="checkbox"
-                className="mr-2"
-                checked={selectedTests.length === Object.keys(REQUIRED_HEADERS_BY_TEST).length}
-                onChange={() => {
-                  if (selectedTests.length === Object.keys(REQUIRED_HEADERS_BY_TEST).length) setSelectedTests([]);
-                  else setSelectedTests(Object.keys(REQUIRED_HEADERS_BY_TEST));
-                  setRawHeaders([]);
-                  setColumnMap({});
-                  setEnrichedData({});
-                  setErrorMessage(null);
-                }}
-              />
-              Select All Tests
-            </label>
-            {Object.keys(REQUIRED_HEADERS_BY_TEST).map(test => (
-              <label key={test} className="flex items-center px-3 py-2 hover:bg-gray-100">
-                <input
-                  type="checkbox"
-                  className="mr-2"
-                  checked={selectedTests.includes(test)}
-                  onChange={() => {
-                    setSelectedTests(prev => prev.includes(test) ? prev.filter(t => t !== test) : [...prev, test]);
-                    setRawHeaders([]);
-                    setColumnMap({});
-                    setEnrichedData({});
-                    setErrorMessage(null);
-                  }}
-                />
-                {test}
-              </label>
-            ))}
+    <>
+      <div className="min-h-screen bg-gray-50 flex justify-center py-6 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl w-full bg-white rounded-lg shadow-lg p-8">
+          {/* Tour and Title Section */}
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-800">CSV Builder</h1>
+            <button
+              onClick={() => setTourRun(true)}
+              className="px-4 py-2 rounded text-white bg-blue-600 hover:bg-blue-700 text-sm font-medium"
+            >
+              Take a Tour
+            </button>
           </div>
-        )}
-      </div>
-      {/* Plan Year, Preview, and Download */}
-      <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6">
-        <select value={planYear} onChange={e => setPlanYear(e.target.value)} className="border rounded px-3 py-2 w-40">
-          <option value="">-- Plan Year --</option>
-          {Array.from({ length: 10 }, (_, i) => 2016 + i).reverse().map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
-        <div className="flex gap-4">
-          <button
-            onClick={handlePreview}
-            disabled={!originalRows.length || !planYear}
-            className={`px-4 py-2 rounded text-white ${originalRows.length && planYear ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 cursor-not-allowed"}`}
-          >
-            Preview Data
-          </button>
-          {rawHeaders.length > 0 && (
-            <DownloadActions
-              isDownloadEnabled={isDownloadEnabled}
-              onDownloadClick={handleDownloadClick}
-              showDownloadConfirm={showDownloadConfirm}
-              onConfirmDownload={doDownload}
-              onCancelDownload={() => setShowDownloadConfirm(false)}
-            />
-          )}
-        </div>
-      </div>
-      {/* Upload & Map */}
-      <div className="mb-6">
-        <FileUploader onParse={handleParse} error={errorMessage} setError={setErrorMessage} />
-      </div>
-      {rawHeaders.length > 0 && (
-        <div className="mb-6">
-          <HeaderMapper
-            rawHeaders={rawHeaders}
-            requiredHeaders={requiredHeaders}
-            columnMap={columnMap}
-            setColumnMap={setColumnMap}
-            mandatoryHeaders={mandatoryHeaders}
-            autoGenerateHCE={!!columnMap.autoHCE}
-            canAutoGenerateHCE={() => !!columnMap.Compensation}
-            autoGenerateKeyEmployee={!!columnMap.autoKey}
-            canAutoGenerateKeyEmployee={() => !!columnMap.Compensation && !!columnMap["Ownership %"] && !!columnMap["Family Member"] && !!columnMap["Employment Status"]}
+          <CSVBuilderTour
+            run={isMounted && tourRun}
+            callback={({ status }) => {
+              if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+                setTourRun(false);
+              }
+            }}
           />
-        </div>
-      )}
-      {/* Preview or Summaries */}
-      {selectedTests.length === 1 && enrichedData[selectedTests[0]] && (
-        <EnrichedTable
-          filteredRows={rowsWithMetrics}
-          summaryCounts={enrichedData[selectedTests[0]].summary}
-          formatCurrency={v => isNaN(Number(v)) ? "N/A" : Number(v).toLocaleString("en-US", { style: "currency", currency: "USD" })}
-          formatPct={v => isNaN(Number(v)) ? "N/A" : `${v.toFixed(2)}%`}
-        />
-      )}
-      {selectedTests.length > 1 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-          {selectedTests.map(test => {
-            const record = enrichedData[test] || {};
-            const { summary = {}, error } = record;
-            const total = getSummaryValue(summary, "total_employees", "Total Employees");
-            const eligible = getSummaryValue(summary, "total_eligible", "Total Eligible Employees");
-            const participating = getSummaryValue(summary, "total_participating", "Total Participants");
-            const keyEmps = getSummaryValue(summary, "total_key_employees", "Total Key Employees");
-            return (
-              <div key={test} className="p-4 border rounded bg-white shadow">
-                <h2 className="text-lg font-semibold mb-2">{test}</h2>
-                {error ? <p className="text-red-600">Error: {error}</p> : <>
-                  <p><strong>Total:</strong> {total}</p>
-                  <p><strong>Eligible:</strong> {eligible}</p>
-                  {(test === "ADP Test" || test === "ACP Test") && <p><strong>Participating:</strong> {participating}</p>}
-                  {test === "Top Heavy Test" && <p><strong>Key Employees:</strong> {keyEmps}</p>}
-                </>}
+          {/* Form Section */}
+          <div className="space-y-6">
+            {/* Test selection with pills and pop-over */}
+            <div className="test-dropdown relative" ref={dropdownRef}>
+              <div className="flex flex-wrap gap-2 items-center">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTestsOpen(o => !o);
+                  }}
+                  className="px-3 py-1 rounded text-blue-600 border border-blue-600 hover:bg-blue-50"
+                >
+                  {selectedTests.length > 0 ? "Edit Tests" : "Select Tests"}
+                </button>
+                {selectedTests.length > 0 && (
+                  <>
+                    {selectedTests.slice(0, 3).map(test => (
+                      <span
+                        key={test}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                      >
+                        {test}
+                      </span>
+                    ))}
+                    {selectedTests.length > 3 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsTestListOpen(true);
+                        }}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300"
+                      >
+                        +{selectedTests.length - 3} more ▼
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
-            );
-          })}
+              {testsOpen && (
+                <div className="absolute z-10 mt-2 w-full bg-white border rounded shadow-lg max-h-60 overflow-auto transition-all duration-200 ease-in-out transform origin-top scale-y-100">
+                  <label className="flex items-center px-3 py-2 hover:bg-gray-100">
+                    <input
+                      type="checkbox"
+                      className="mr-2"
+                      checked={selectedTests.length === Object.keys(REQUIRED_HEADERS_BY_TEST).length}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        if (selectedTests.length === Object.keys(REQUIRED_HEADERS_BY_TEST).length) setSelectedTests([]);
+                        else setSelectedTests(Object.keys(REQUIRED_HEADERS_BY_TEST));
+                        setRawHeaders([]);
+                        setSuggestedMap({});
+                        setColumnMap({});
+                        setEnrichedData({});
+                        setErrorMessage(null);
+                      }}
+                    />
+                    Select All Tests
+                  </label>
+                  {Object.keys(REQUIRED_HEADERS_BY_TEST).map(test => (
+                    <label key={test} className="flex items-center px-3 py-2 hover:bg-gray-100">
+                      <input
+                        type="checkbox"
+                        className="mr-2"
+                        checked={selectedTests.includes(test)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          setSelectedTests(prev => prev.includes(test) ? prev.filter(t => t !== test) : [...prev, test]);
+                          setRawHeaders([]);
+                          setSuggestedMap({});
+                          setColumnMap({});
+                          setEnrichedData({});
+                          setErrorMessage(null);
+                        }}
+                      />
+                      {test}
+                    </label>
+                  ))}
+                </div>
+              )}
+              {isTestListOpen && selectedTests.length > 3 && (
+                <div className="absolute z-10 mt-2 w-64 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {selectedTests.map(test => (
+                    <div key={test} className="flex items-center px-3 py-2 text-sm text-gray-800">
+                      <span className="mr-2">●</span>
+                      {test}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Plan Year, Preview, and Download */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <select
+                value={planYear}
+                onChange={e => setPlanYear(e.target.value)}
+                className="w-full sm:w-40 px-3 py-1 rounded text-blue-600 border border-blue-600 hover:bg-blue-50 plan-year-select"
+              >
+                <option value="">-- Plan Year --</option>
+                {Array.from({ length: 10 }, (_, i) => 2016 + i).reverse().map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+              <div className="flex gap-4">
+                <button
+                  onClick={handlePreview}
+                  disabled={!originalRows.length || !planYear}
+                  className={`px-4 py-2 rounded text-white ${originalRows.length && planYear ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 cursor-not-allowed"} preview-data-button`}
+                >
+                  Preview Data
+                </button>
+                <DownloadActions
+                  isDownloadEnabled={isDownloadEnabled}
+                  onDownloadClick={handleDownloadClick}
+                  showDownloadConfirm={showDownloadConfirm}
+                  onConfirmDownload={doDownload}
+                  onCancelDownload={() => setShowDownloadConfirm(false)}
+                  className="download-csv-button"
+                />
+              </div>
+            </div>
+            {/* Upload & Map */}
+            <div className="file-uploader">
+              <FileUploader onParse={handleParse} error={errorMessage} setError={setErrorMessage} />
+            </div>
+            <div className="header-mapper">
+              {rawHeaders.length > 0 ? (
+                <HeaderMapper
+                  rawHeaders={rawHeaders}
+                  requiredHeaders={requiredHeaders}
+                  columnMap={columnMap}
+                  setColumnMap={setColumnMap}
+                  mandatoryHeaders={mandatoryHeaders}
+                  autoGenerateHCE={!!columnMap.autoHCE}
+                  canAutoGenerateHCE={() => !!columnMap.Compensation}
+                  autoGenerateKeyEmployee={!!columnMap.autoKey}
+                  canAutoGenerateKeyEmployee={() => !!columnMap.Compensation && !!columnMap["Ownership %"] && !!columnMap["Family Member"] && !!columnMap["Employment Status"]}
+                  suggestedMap={suggestedMap}
+                />
+              ) : (
+                <div className="p-4 border rounded bg-white text-blue-600 text-lg text-center">
+                  Upload a CSV file to map headers.
+                </div>
+              )}
+            </div>
+            {/* Preview or Summaries */}
+            {selectedTests.length === 1 && enrichedData[selectedTests[0]] && (
+              <EnrichedTable
+                filteredRows={rowsWithMetrics}
+                summaryCounts={enrichedData[selectedTests[0]].summary}
+                formatCurrency={v => isNaN(Number(v)) ? "N/A" : Number(v).toLocaleString("en-US", { style: "currency", currency: "USD" })}
+                formatPct={v => isNaN(Number(v)) ? "N/A" : `${v.toFixed(2)}%`}
+                className="enriched-table"
+              />
+            )}
+            {selectedTests.length > 1 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 multi-test-preview">
+                {selectedTests.map(test => {
+                  const record = enrichedData[test] || {};
+                  const { summary = {}, error } = record;
+                  const total = getSummaryValue(summary, "total_employees", "Total Employees");
+                  const eligible = getSummaryValue(summary, "total_eligible", "Total Eligible Employees");
+                  const participating = getSummaryValue(summary, "total_participating", "Total Participants");
+                  const keyEmps = getSummaryValue(summary, "total_key_employees", "Total Key Employees");
+                  return (
+                    <div key={test} className="p-4 border rounded bg-white shadow">
+                      <h2 className="text-lg font-semibold mb-2">{test}</h2>
+                      {error ? <p className="text-red-600">Error: {error}</p> : <>
+                        <p><strong>Total:</strong> {total}</p>
+                        <p><strong>Eligible:</strong> {eligible}</p>
+                        {(test === "ADP Test" || test === "ACP Test") && <p><strong>Participating:</strong> {participating}</p>}
+                        {(test === "Top Heavy Test") && <p><strong>Key Employees:</strong> {keyEmps}</p>}
+                      </>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {/* Error */}
+            {errorMessage && <div className="mt-4 p-4 bg-red-100 text-red-700 rounded error-message">{errorMessage}</div>}
+            {/* Modals */}
+            {showDownloadConfirm && (
+              <ConfirmModal
+                title="Confirm Download"
+                message="Proceed?"
+                confirmLabel="Download"
+                cancelLabel="Cancel"
+                onConfirm={doDownload}
+                onCancel={() => setShowDownloadConfirm(false)}
+                className="download-confirm-modal"
+              />
+            )}
+            {showPostDownload && (
+              <ConfirmModal
+                title="✅ Downloaded"
+                message="CSV ready"
+                confirmLabel="OK"
+                cancelLabel="Close"
+                onConfirm={() => setShowPostDownload(false)}
+                onCancel={() => setShowPostDownload(false)}
+                className="post-download-modal"
+              />
+            )}
+            {showRoutePrompt && selectedTests.length === 1 && (
+              <ConfirmModal
+                title="Navigate to Test Page"
+                message={`Would you like to navigate to the ${selectedTests[0]} page?`}
+                confirmLabel="Yes"
+                cancelLabel="No"
+                onConfirm={handleRouteToTestPage}
+                onCancel={() => setShowRoutePrompt(false)}
+                className="route-prompt-modal"
+              />
+            )}
+          </div>
         </div>
-      )}
-      {/* Error */}
-      {errorMessage && <div className="mt-4 p-4 bg-red-100 text-red-700 rounded">{errorMessage}</div>}
-      {/* Modals */}
-      {showDownloadConfirm && (
-        <ConfirmModal
-          title="Confirm Download"
-          message="Proceed?"
-          confirmLabel="Download"
-          cancelLabel="Cancel"
-          onConfirm={doDownload}
-          onCancel={() => setShowDownloadConfirm(false)}
-        />
-      )}
-      {showPostDownload && (
-        <ConfirmModal
-          title="✅ Downloaded"
-          message="CSV ready"
-          confirmLabel="OK"
-          cancelLabel="Close"
-          onConfirm={() => setShowPostDownload(false)}
-          onCancel={() => setShowPostDownload(false)}
-        />
-      )}
-      {showRoutePrompt && selectedTests.length === 1 && (
-        <ConfirmModal
-          title="Navigate to Test Page"
-          message={`Would you like to navigate to the ${selectedTests[0]} page?`}
-          confirmLabel="Yes"
-          cancelLabel="No"
-          onConfirm={handleRouteToTestPage}
-          onCancel={() => setShowRoutePrompt(false)}
-        />
-      )}
-    </div>
+      </div>
+    </>
   );
 }
