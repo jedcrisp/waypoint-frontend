@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { getAuth } from "firebase/auth";
 import axios from "axios";
 import Papa from "papaparse";
@@ -83,8 +82,8 @@ export default function CSVBuilderWizard() {
   const mandatoryHeaders = requiredHeaders.filter(h => h !== "HCE" && h !== "Key Employee");
   const isDownloadEnabled = mandatoryHeaders.every(h => columnMap[h]);
 
-  // Debug: Log missing mandatory headers
-  useMemo(() => {
+  // Set error message for missing mandatory headers
+  useEffect(() => {
     if (!isDownloadEnabled) {
       const missingHeaders = mandatoryHeaders.filter(h => !columnMap[h]);
       console.log("Missing mandatory headers:", missingHeaders);
