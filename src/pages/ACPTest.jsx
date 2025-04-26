@@ -2,126 +2,56 @@ import React, { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../firebase";
-import { useNavigate, useLocation } from "react-router-dom";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import { savePdfResultToFirebase, saveAIReviewConsent, reimportPurchasedTest } from "../utils/firebaseTestSaver";
+import { savePdfResultToFirebase, saveAIReviewConsent } from "../utils/firebaseTestSaver";
 import Modal from "../components/Modal";
-import { useCart } from "../contexts/CartContext";
-import { ShoppingCart } from "lucide-react";
-import ACPTestBlockedView from "../components/ACPTestBlockedView";
 
 const ACPTest = () => {
-  const navigate = useNavigate();
-  const auth = getAuth();
-  const user = auth.currentUser;
-  const userId = user?.uid;
-  const testId = "acpTest";
-  const location = useLocation();
-  const API_URL = import.meta.env.VITE_BACKEND_URL;
-
-  // Access Control State
-  const [accessStatus, setAccessStatus] = useState("loading");
-  const [cartMsg, setCartMsg] = useState("");
-
-  // Component State
+  // ----- State -----
   const [file, setFile] = useState(null);
   const [planYear, setPlanYear] = useState("");
+  const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [aiReview, setAiReview] = useState("");
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
   const [signature, setSignature] = useState("");
   const [normalPdfExported, setNormalPdfExported] = useState(false);
 
-  // Cart Setup
-  const { addToCart } = useCart();
+  const API_URL = import.meta.env.VITE_BACKEND_URL;
 
-  // Ensure Test Doc Exists
-  async function ensureTestDocExists(userId, testId) {
-    const ref = doc(db, "users", userId, "purchasedTests", testId);
-    const snap = await getDoc(ref);
+  // ---------- Formatting Helpers ----------
+  const formatCurrency = (value) => {
+    if (value === undefined || value === null || isNaN(Number(value))) return "$0.00";
+    return `$${parseFloat(value).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
 
-    if (!snap.exists()) {
-      await setDoc(ref, {
-        unlocked: true,
-        used: false,
-        purchasedAt: serverTimestamp(),
-      });
-      console.log("📦 Test doc created manually");
-    } else {
-      // Ensure unlocked is true, even if the document exists
-      await setDoc(ref, { unlocked: true }, { merge: true });
-      console.log("✅ Test doc updated to ensure unlocked: true");
-    }
-  }
+  const formatPercentage = (value) => {
+    if (value === undefined || value === null || isNaN(Number(value))) return "0.00%";
+    return `${parseFloat(value).toFixed(2)}%`;
+  };
 
-  // Check Access with Retry
-  async function checkAccessToTestWithRetry(retries = 3, delay = 1500) {
-    const queryParams = new URLSearchParams(location.search);
-    const paymentSuccess = queryParams.get("payment") === "success";
-    const ref = doc(db, "users", userId, "purchasedTests", testId);
-
-    if (paymentSuccess) {
-      console.log("💳 Payment success detected. Reimporting test...");
-      await reimportPurchasedTest(userId, testId);
-    }
-
-    // Ensure the test document exists and is unlocked
-    await ensureTestDocExists(userId, testId);
-
-    for (let i = 0; i < retries; i++) {
-      const snap = await getDoc(ref);
-
-      if (snap.exists()) {
-        const data = snap.data();
-        const isUnlocked = data.unlocked === true;
-        const isUsed = data.used === true;
-
-        console.log("🔁 Access retry check:", { isUnlocked, isUsed });
-
-        // Only check if the test is unlocked, ignore the used status
-        if (isUnlocked) {
-          setAccessStatus("granted");
-          return;
-        } else {
-          setAccessStatus("not-purchased");
-          return;
-        }
-      }
-
-      await new Promise((res) => setTimeout(res, delay));
-    }
-
-    setAccessStatus("not-purchased");
-  }
-
-  // Run Access Check on Mount
+  // Automatically export PDF once results are available (if not already exported)
   useEffect(() => {
-    if (!userId) {
-      setAccessStatus("not-purchased");
-      return;
+    if (result && !normalPdfExported) {
+      exportToPDF();
+      setNormalPdfExported(true);
     }
+  }, [result, normalPdfExported]);
 
-    checkAccessToTestWithRetry().catch((err) => {
-      console.error("Error checking access:", err);
-      setAccessStatus("not-purchased");
-      setError("❌ Failed to verify access. Please try again.");
-    });
-  }, [userId, location]);
-
-  // Dropzone Setup
+  // ----- 1. Drag & Drop Logic -----
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
       setFile(acceptedFiles[0]);
       setResult(null);
       setError(null);
-      setAiReview("");
       setNormalPdfExported(false);
+      setAiReview("");
     }
   }, []);
 
@@ -133,55 +63,7 @@ const ACPTest = () => {
     noKeyboard: true,
   });
 
-  // Reset Export Flag When File Changes
-  useEffect(() => {
-    if (!file) {
-      setNormalPdfExported(false);
-    }
-  }, [file]);
-
-  // Helper Functions
-  const downloadCSVTemplate = () => {
-    const csvTemplate = [
-      [
-        "Last Name",
-        "First Name",
-        "Employee ID",
-        "Compensation",
-        "Employer Match",
-        "HCE",
-        "DOB",
-        "DOH",
-        "Employment Status",
-        "Excluded from Test",
-        "Plan Entry Date",
-        "Union Employee",
-        "Part-Time / Seasonal",
-      ],
-      ["Last", "First", "001", 75000, 3750, "No", "1985-04-10", "2010-05-15", "Active", "No", "2011-01-01", "No", "No"],
-      ["Last", "First", "002", 120000, 6000, "Yes", "1979-08-22", "2006-03-01", "Active", "No", "2007-01-01", "No", "No"],
-      ["Last", "First", "003", 56000, 2800, "No", "1990-01-01", "2021-04-10", "Active", "No", "2022-01-01", "No", "No"],
-      ["Last", "First", "004", 98000, 4900, "Yes", "1982-11-30", "2008-06-20", "Active", "No", "2009-01-01", "No", "No"],
-      ["Last", "First", "005", 40000, 0, "No", "1998-06-18", "2022-08-05", "Terminated", "No", "2023-01-01", "No", "No"],
-      ["Last", "First", "006", 110000, 5500, "Yes", "1986-02-12", "2011-09-01", "Active", "No", "2012-01-01", "No", "No"],
-      ["Last", "First", "007", 45000, 2250, "No", "2001-09-15", "2023-03-01", "Active", "No", "2023-07-01", "No", "Yes"],
-      ["Last", "First", "008", 105000, 5250, "Yes", "1975-03-05", "2000-02-01", "Leave", "No", "2001-01-01", "No", "No"],
-      ["Last", "First", "009", 67000, 3350, "No", "1994-10-20", "2016-05-10", "Active", "No", "2017-01-01", "No", "No"],
-      ["Last", "First", "010", 42000, 0, "No", "2002-11-25", "2022-11-15", "Active", "No", "2023-01-01", "No", "No"]
-    ]
-      .map((row) => row.join(","))
-      .join("\n");
-
-    const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "ACP Template.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
+  // ----- 2. Upload File to Backend -----
   const handleUpload = async () => {
     if (!file) {
       setError("❌ Please select a file before uploading.");
@@ -191,18 +73,15 @@ const ACPTest = () => {
       setError("❌ Please select a plan year.");
       return;
     }
-    const validFileTypes = [".csv", ".xlsx"];
-    const fileExtension = "." + file.name.split(".").pop().toLowerCase();
-    if (!validFileTypes.includes(fileExtension)) {
+    const validFileTypes = ["csv", "xlsx"];
+    const fileType = file.name.split(".").pop().toLowerCase();
+    if (!validFileTypes.includes(fileType)) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
     }
-
     setLoading(true);
     setError(null);
     setResult(null);
-    setAiReview("");
-    setNormalPdfExported(false);
 
     const formData = new FormData();
     formData.append("file", file);
@@ -210,6 +89,8 @@ const ACPTest = () => {
     formData.append("plan_year", planYear);
 
     try {
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv`);
+      const auth = getAuth();
       const token = await auth.currentUser?.getIdToken(true);
       if (!token) {
         setError("❌ No valid Firebase token found. Are you logged in?");
@@ -222,43 +103,101 @@ const ACPTest = () => {
           "Content-Type": "multipart/form-data",
         },
       });
-
-      const resultData = response.data.acp;
-      if (!resultData) {
-        throw new Error("No ACP test results found in server response.");
+      console.log("✅ API Response:", response.data);
+      const acpResults = response.data?.acp;
+      if (!acpResults) {
+        setError("❌ No ACP test results found in response.");
+      } else {
+        setResult(acpResults);
       }
-
-      setResult(resultData);
     } catch (err) {
-      console.error("❌ Upload error:", err.response?.data || err.message);
-      setError(`❌ Upload failed: ${err.response?.data?.detail || err.message}`);
+      console.error("❌ Upload error:", err.response ? err.response.data : err.message);
+      setError(
+        err.response?.data?.detail ||
+        err.response?.data?.error ||
+        "❌ Failed to upload file. Please check the format and try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  // ----- 3. Download CSV Template -----
+  const downloadCSVTemplate = () => {
+    const csvTemplate = [
+      [
+        "Last Name", "First Name", "Employee ID", "Compensation", "Employer Match",
+        "DOB", "DOH", "Employment Status", "Excluded from Test",
+        "Plan Entry Date", "Union Employee", "Part-Time / Seasonal", "Family Relationship", "Family Member"
+      ],
+      ["Doe", "John", "E001", 200000, 5000, "1980-04-12", "2010-01-01", "Active", "No", "2010-01-01", "No", "No", "spouse", "Jane Doe"],
+      ["Doe", "Jane", "E002", 180000, 4500, "1985-03-22", "2012-05-30", "Active", "No", "2012-01-01", "No", "No", "", ""],
+      ["Smith", "Alice", "E003", 300000, 7500, "1975-07-12", "2005-08-01", "Active", "No", "2005-08-01", "No", "No", "child", "Bob Smith"],
+      ["Smith", "Bob", "E004", 50000, 1250, "1992-10-19", "2021-04-05", "Active", "No", "2021-04-05", "No", "No", "", ""],
+      ["Johnson", "Mark", "E005", 250000, 6250, "1983-06-14", "2008-07-20", "Active", "No", "2008-07-20", "No", "No", "", ""],
+      ["Williams", "Sarah", "E006", 60000, 0, "1998-12-05", "2022-09-01", "Terminated", "Yes", "2022-09-01", "No", "No", "", ""],
+      ["Brown", "Tom", "E007", 80000, 2000, "1990-09-09", "2018-03-15", "Leave", "No", "2018-03-15", "No", "No", "", ""],
+      ["Lee", "Emily", "E008", 220000, 5500, "1978-04-25", "2003-02-10", "Active", "No", "2003-02-10", "No", "No", "parent", "Mark Johnson"],
+      ["Davis", "Chris", "E009", 45000, 1125, "1995-11-11", "2023-01-05", "Active", "No", "2023-01-05", "No", "No", "", ""],
+      ["Clark", "Lisa", "E010", 270000, 6750, "1982-02-02", "2011-06-30", "Active", "No", "2011-06-30", "No", "No", "", ""],
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
+    const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "ACP Template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // ----- 4. Download Results as CSV -----
   const downloadResultsAsCSV = () => {
     if (!result) {
       setError("❌ No results to download.");
       return;
     }
-    const totalEmployees = result["Total Employees"] ?? "N/A";
-    const totalParticipants = result["Total Participants"] ?? "N/A";
-    const hceAvg = result["HCE ACP (%)"];
-    const nhceAvg = result["NHCE ACP (%)"];
+    const plan = planYear || "N/A";
+    const totalEmployees = result["Total Employees"] ?? 0;
+    const totalEligible = result["Total Eligible Employees"] ?? 0;
+    const totalParticipants = result["Total Participants"] ?? 0;
+    const hceEligible = result["HCE Eligible"] ?? 0;
+    const hceParticipants = result["HCE Participants"] ?? 0;
+    const hceAcp = result["HCE ACP (%)"] ?? 0;
+    const nhceEligible = result["NHCE Eligible"] ?? 0;
+    const nhceParticipants = result["NHCE Participants"] ?? 0;
+    const nhceAcp = result["NHCE ACP (%)"] ?? 0;
     const testResult = result["Test Result"] ?? "N/A";
-    const formatPct = (val) =>
-      val !== undefined && val !== null && !isNaN(val)
-        ? `${Number(val).toFixed(2)}%`
-        : "N/A";
+    const excludedNoPlanEntry = result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0;
+    const excludedAfterPlanYear = result["Excluded Participants"]?.["After Plan Year"] ?? 0;
+    const excludedManually = result["Excluded Participants"]?.["Excluded Manually"] ?? 0;
+    const excludedUnion = result["Excluded Participants"]?.["Union Employees"] ?? 0;
+    const excludedPartTime = result["Excluded Participants"]?.["Part-Time/Seasonal"] ?? 0;
+    const excludedTerminated = result["Excluded Participants"]?.["Terminated/Inactive"] ?? 0;
+
     const csvRows = [
       ["Metric", "Value"],
+      ["Plan Year", plan],
       ["Total Employees", totalEmployees],
+      ["Total Eligible Employees", totalEligible],
       ["Total Participants", totalParticipants],
-      ["HCE ACP", formatPct(hceAvg)],
-      ["NHCE ACP", formatPct(nhceAvg)],
+      ["HCE Eligible", hceEligible],
+      ["HCE Participants", hceParticipants],
+      ["HCE ACP (%)", formatPercentage(hceAcp)],
+      ["NHCE Eligible", nhceEligible],
+      ["NHCE Participants", nhceParticipants],
+      ["NHCE ACP (%)", formatPercentage(nhceAcp)],
       ["Test Result", testResult],
+      ["Excluded - No Plan Entry Date", excludedNoPlanEntry],
+      ["Excluded - After Plan Year", excludedAfterPlanYear],
+      ["Excluded - Manually", excludedManually],
+      ["Excluded - Union Employees", excludedUnion],
+      ["Excluded - Part-Time/Seasonal", excludedPartTime],
+      ["Excluded - Terminated/Inactive", excludedTerminated],
     ];
+
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -270,47 +209,67 @@ const ACPTest = () => {
     document.body.removeChild(link);
   };
 
+  // ----- 5. Export Results to PDF -----
   const exportToPDF = async (customAiReview) => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
-
     try {
       const finalAIText = customAiReview !== undefined ? customAiReview : aiReview;
-      const totalEmployees = result?.["Total Employees"] || "N/A";
-      const totalParticipants = result?.["Total Participants"] || "N/A";
-      const hceAvg = result?.["HCE ACP (%)"] !== undefined ? `${result["HCE ACP (%)"]}%` : "N/A";
-      const nhceAvg = result?.["NHCE ACP (%)"] !== undefined ? `${result["NHCE ACP (%)"]}%` : "N/A";
-      const testResult = result?.["Test Result"] || "N/A";
+      const plan = planYear || "N/A";
+      const totalEmployees = result["Total Employees"] ?? 0;
+      const totalEligible = result["Total Eligible Employees"] ?? 0;
+      const totalParticipants = result["Total Participants"] ?? 0;
+      const hceEligible = result["HCE Eligible"] ?? 0;
+      const hceParticipants = result["HCE Participants"] ?? 0;
+      const hceAcp = result["HCE ACP (%)"] ?? 0;
+      const nhceEligible = result["NHCE Eligible"] ?? 0;
+      const nhceParticipants = result["NHCE Participants"] ?? 0;
+      const nhceAcp = result["NHCE ACP (%)"] ?? 0;
+      const testResult = result["Test Result"] ?? "N/A";
+      const testCriterion = result["Test Criterion"] ?? "N/A";
       const failed = testResult.toLowerCase() === "failed";
 
       const pdf = new jsPDF("p", "mm", "a4");
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(18);
-      pdf.text("ACP Test Results", 105, 15, { align: "center" });
       pdf.setFont("helvetica", "normal");
+
+      // PDF Header
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("ACP Test Results", 105, 15, { align: "center" });
       pdf.setFontSize(12);
-      pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
-      pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
+      const generatedTimestamp = new Date().toLocaleString();
+      pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
+
+      // Subheader with test criterion
+      pdf.setFontSize(12);
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
       pdf.text(
-        "Test Criterion: IRC §401(m)(2): The ACP test ensures that employer matching and employee after-tax contributions for HCEs are not disproportionately higher than for NHCEs.",
+        `Test Criterion: ${testCriterion}`,
         105,
         38,
         { align: "center", maxWidth: 180 }
       );
 
+      // Results Table
       pdf.autoTable({
         startY: 48,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", totalEmployees],
+          ["Total Eligible Employees", totalEligible],
           ["Total Participants", totalParticipants],
-          ["HCE ACP (%)", hceAvg],
-          ["NHCE ACP (%)", nhceAvg],
+          ["HCE Eligible", hceEligible],
+          ["HCE Participants", hceParticipants],
+          ["HCE ACP (%)", formatPercentage(hceAcp)],
+          ["NHCE Eligible", nhceEligible],
+          ["NHCE Participants", nhceParticipants],
+          ["NHCE ACP (%)", formatPercentage(nhceAcp)],
           ["Test Result", testResult],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
@@ -318,6 +277,7 @@ const ACPTest = () => {
         margin: { left: 10, right: 10 },
       });
 
+      // AI Review Section or Corrective Actions (if test failed)
       if (finalAIText) {
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
@@ -328,20 +288,16 @@ const ACPTest = () => {
           styles: { fontSize: 11, font: "helvetica" },
           margin: { left: 10, right: 10 },
         });
-      }
-
-      if (failed && !finalAIText) {
+      } else if (failed) {
         const correctiveActions = [
-          "Refund Excess Contributions to HCEs by March 15 to avoid penalties.",
-          "Make Additional Contributions to NHCEs via QNEC or QMAC.",
-          "Recharacterize Excess HCE Contributions as Employee Contributions.",
+          "Increase NHCE contributions to raise NHCE ACP.",
+          "Limit HCE contributions to meet the ACP limit.",
+          "Implement a safe harbor plan design to avoid testing.",
         ];
         const consequences = [
-          "Excess Contributions Must Be Refunded",
-          "IRS Penalties and Compliance Risks",
-          "Loss of Tax Benefits for HCEs",
-          "Plan Disqualification Risk",
-          "Employee Dissatisfaction & Legal Risks",
+          "Excess contributions may be refunded to HCEs.",
+          "Potential tax penalties for non-compliance.",
+          "Plan may need corrective distributions.",
         ];
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
@@ -356,13 +312,14 @@ const ACPTest = () => {
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
           head: [["Consequences"]],
-          body: consequences.map((c) => [c]),
+          body: consequences.map((item) => [item]),
           headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
           styles: { fontSize: 11, font: "helvetica" },
           margin: { left: 10, right: 10 },
         });
       }
 
+      // Digital Signature with Timestamp (if provided)
       if (signature.trim()) {
         const sigTime = new Date().toLocaleString();
         pdf.setFont("helvetica", "normal");
@@ -372,33 +329,36 @@ const ACPTest = () => {
         pdf.text(`Signed on: ${sigTime}`, 10, 285);
       }
 
+      // Footer
       pdf.setFont("helvetica", "italic");
       pdf.setFontSize(10);
       pdf.setTextColor(100, 100, 100);
       pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
-      const downloadFileName = finalAIText ? "AI Reviewed: ACP Test Results.pdf" : "ACP Test Results.pdf";
+      const downloadFileName = finalAIText
+        ? "AI Reviewed: ACP Test Results.pdf"
+        : "ACP Test Results.pdf";
+
       pdf.save(downloadFileName);
 
       const pdfBlob = pdf.output("blob");
       await savePdfResultToFirebase({
-        fileName: downloadFileName,
+        fileName: finalAIText ? "AI Reviewed: ACP Test Results" : "ACP Test Results",
         pdfBlob,
         additionalData: {
           planYear,
           testResult,
-          aiConsent: {
-            agreed: !!signature.trim(),
-            signature: signature.trim(),
-            timestamp: new Date().toISOString(),
-          },
         },
       });
+
+      console.log("✅ Export and upload complete");
     } catch (error) {
+      console.error("❌ Export PDF Error:", error);
       setError(`❌ ${error.message}`);
     }
   };
 
+  // ----- 6. AI Review Handler -----
   const handleRunAIReview = async () => {
     if (!result || !result.acp_summary) {
       setError("❌ No test summary available for AI review.");
@@ -423,41 +383,30 @@ const ACPTest = () => {
       setAiReview(aiText);
       await exportToPDF(aiText);
     } catch (error) {
-      setError(`❌ Error during AI review: ${error.message}`);
+      console.error("Error fetching AI review:", error);
+      setError("❌ Error fetching AI review.");
     }
     setLoading(false);
   };
 
+  // ----- 7. Handle Enter Key -----
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" && file && !loading) {
+    if (e.key === "Enter" && file && planYear && !loading) {
       e.preventDefault();
       e.stopPropagation();
       handleUpload();
     }
   };
 
-  // Conditional Rendering Based on Access Status
-  if (accessStatus === "loading") {
-    return (
-      <div className="max-w-[475px] mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200">
-        <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">Loading...</h2>
-      </div>
-    );
-  }
-
-  if (accessStatus === "not-purchased") {
-    return <ACPTestBlockedView addToCart={addToCart} testId="acpTest" />;
-  }
-
-  // Render ACP Test Content if Access Granted
+  // ----- RENDER -----
   return (
     <div
-      className="max-w-[565px] mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
+      className="max-w-[625px] mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
       onKeyDown={handleKeyDown}
       tabIndex="0"
     >
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
-        📂 Upload ACP File
+        📂 Upload ACP Test File
       </h2>
 
       {/* Plan Year Dropdown */}
@@ -474,7 +423,7 @@ const ACPTest = () => {
             required
           >
             <option value="">-- Select Plan Year --</option>
-            {Array.from({ length: 41 }, (_, i) => 2010 + i).map((year) => (
+            {Array.from({ length: 10 }, (_, i) => 2025 - i).map((year) => (
               <option key={year} value={year}>
                 {year}
               </option>
@@ -487,9 +436,7 @@ const ACPTest = () => {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive
-            ? "border-green-500 bg-blue-100"
-            : "border-gray-300 bg-gray-50"
+          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
@@ -499,7 +446,7 @@ const ACPTest = () => {
           <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
-            Drag & drop a <strong>CSV or Excel file</strong> here.
+            Drag & drop a <strong>CSV file</strong> here.
           </p>
         )}
       </div>
@@ -534,63 +481,57 @@ const ACPTest = () => {
         {loading ? "Uploading..." : "Upload & Save PDF"}
       </button>
 
+      {/* Display Errors */}
       {error && <div className="mt-3 text-red-500">{error}</div>}
 
+      {/* Display results once available */}
       {result && (
         <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
           <h2 className="text-xl font-bold text-gray-700 mb-2">Detailed ACP Test Summary</h2>
-         <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center">
             <span>
-               <strong>Plan Year:</strong> {planYear}
+              <strong>Plan Year:</strong> {planYear}
             </span>
             <span>
-               <strong>Test Result:</strong>{" "}
-            <span
+              <strong>Test Result:</strong>{" "}
+              <span
                 className={`px-2 py-1 rounded text-white ${
-                result["Test Result"]?.toLowerCase() === "passed"
-                ? "bg-green-500"
-                : "bg-red-500"
-              }`}
+                  result["Test Result"]?.toLowerCase() === "passed"
+                    ? "bg-green-500"
+                    : "bg-red-500"
+                }`}
               >
-            {result?.["Test Result"] ?? "N/A"}
+                {result?.["Test Result"] ?? "N/A"}
               </span>
             </span>
           </div>
 
           <h3 className="font-semibold text-gray-700 mt-4">Employee Counts</h3>
           <ul className="list-disc list-inside mt-2">
-            <li><strong>Total Employees:</strong> {result["Total Employees"] ?? "N/A"}</li>
-            <li><strong>Total Eligible Employees:</strong> {result["Total Eligible Employees"] ?? "N/A"}</li>
-            <li><strong>Total Participants:</strong> {result["Total Participants"] ?? "N/A"}</li>
-            <li><strong>HCE Eligible:</strong> {result["HCE Eligible"] ?? "N/A"}</li>
-            <li><strong>HCE Participants:</strong> {result["HCE Participants"] ?? "N/A"}</li>
-            <li><strong>NHCE Eligible:</strong> {result["NHCE Eligible"] ?? "N/A"}</li>
-            <li><strong>NHCE Participants:</strong> {result["NHCE Participants"] ?? "N/A"}</li>
+            <li><strong>Total Employees:</strong> {result["Total Employees"] ?? 0}</li>
+            <li><strong>Total Eligible Employees:</strong> {result["Total Eligible Employees"] ?? 0}</li>
+            <li><strong>Total Participants:</strong> {result["Total Participants"] ?? 0}</li>
+            <li><strong>HCE Eligible:</strong> {result["HCE Eligible"] ?? 0}</li>
+            <li><strong>HCE Participants:</strong> {result["HCE Participants"] ?? 0}</li>
+            <li><strong>NHCE Eligible:</strong> {result["NHCE Eligible"] ?? 0}</li>
+            <li><strong>NHCE Participants:</strong> {result["NHCE Participants"] ?? 0}</li>
           </ul>
 
           <h3 className="font-semibold text-gray-700 mt-4">Test Results</h3>
           <ul className="list-disc list-inside mt-2">
-            <li><strong>HCE ACP:</strong> {result["HCE ACP (%)"] ?? "N/A"}%</li>
-            <li><strong>NHCE ACP:</strong> {result["NHCE ACP (%)"] ?? "N/A"}%</li>
+            <li><strong>HCE ACP:</strong> {formatPercentage(result["HCE ACP (%)"])}</li>
+            <li><strong>NHCE ACP:</strong> {formatPercentage(result["NHCE ACP (%)"])}</li>
             <li><strong>Test Criterion:</strong> {result["Test Criterion"] ?? "N/A"}</li>
-          </ul>
-
-          <h3 className="font-semibold text-gray-700 mt-4">Breakdown</h3>
-          <ul className="list-disc list-inside mt-2">
-            <li><strong>HCE Contribution Sum:</strong> ${result?.Breakdown?.["HCE Contribution Sum"]?.toLocaleString() ?? "N/A"}</li>
-            <li><strong>HCE Compensation Sum:</strong> ${result?.Breakdown?.["HCE Compensation Sum"]?.toLocaleString() ?? "N/A"}</li>
-            <li><strong>NHCE Contribution Sum:</strong> ${result?.Breakdown?.["NHCE Contribution Sum"]?.toLocaleString() ?? "N/A"}</li>
-            <li><strong>NHCE Compensation Sum:</strong> ${result?.Breakdown?.["NHCE Compensation Sum"]?.toLocaleString() ?? "N/A"}</li>
           </ul>
 
           <h3 className="font-semibold text-gray-700 mt-4">Excluded Participants</h3>
           <ul className="list-disc list-inside mt-2">
-            <li><strong>No Plan Entry Date:</strong> {result?.["Excluded Participants"]?.["No Plan Entry Date"] ?? 0}</li>
-            <li><strong>After Plan Year:</strong> {result?.["Excluded Participants"]?.["After Plan Year"] ?? 0}</li>
-            <li><strong>Excluded Manually:</strong> {result?.["Excluded Participants"]?.["Excluded Manually"] ?? 0}</li>
-            <li><strong>Union Employees:</strong> {result?.["Excluded Participants"]?.["Union Employees"] ?? 0}</li>
-            <li><strong>Part-Time/Seasonal:</strong> {result?.["Excluded Participants"]?.["Part-Time/Seasonal"] ?? 0}</li>
-            <li><strong>Terminated/Inactive:</strong> {result?.["Excluded Participants"]?.["Terminated/Inactive"] ?? 0}</li>
+            <li><strong>No Plan Entry Date:</strong> {result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0}</li>
+            <li><strong>After Plan Year:</strong> {result["Excluded Participants"]?.["After Plan Year"] ?? 0}</li>
+            <li><strong>Excluded Manually:</strong> {result["Excluded Participants"]?.["Excluded Manually"] ?? 0}</li>
+            <li><strong>Union Employees:</strong> {result["Excluded Participants"]?.["Union Employees"] ?? 0}</li>
+            <li><strong>Part-Time/Seasonal:</strong> {result["Excluded Participants"]?.["Part-Time/Seasonal"] ?? 0}</li>
+            <li><strong>Terminated/Inactive:</strong> {result["Excluded Participants"]?.["Terminated/Inactive"] ?? 0}</li>
           </ul>
         </div>
       )}
@@ -627,46 +568,37 @@ const ACPTest = () => {
             onClick={() => exportToPDF()}
             className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
           >
-            Export PDF Results
+            Export PDF Report
           </button>
           <button
             onClick={downloadResultsAsCSV}
             className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
           >
-            Download CSV Results
+            Download CSV Report
           </button>
         </div>
       )}
 
-      {/* Additional Info for Failed Test */}
-      {result && result["Test Result"]?.toLowerCase() === "failed" && (
-        <>
+      {/* Corrective Actions & Consequences if Test Failed */}
+      {result?.["Test Result"]?.toLowerCase() === "failed" && (
+        <div>
           <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
-            <h4 className="font-bold text-black-600">Corrective Actions:</h4>
-            <ul className="list-disc list-inside text-black-600">
-              <li>Refund Excess Contributions to HCEs by March 15 to avoid penalties.</li>
-              <br />
-              <li>Make Additional Contributions to NHCEs via QNEC or QMAC.</li>
-              <br />
-              <li>Recharacterize Excess HCE Contributions as Employee Contributions.</li>
+            <h4 className="font-bold text-gray-700">Corrective Actions:</h4>
+            <ul className="list-disc list-inside text-gray-700">
+              <li>Increase NHCE contributions to raise NHCE ACP.</li>
+              <li>Limit HCE contributions to meet the ACP limit.</li>
+              <li>Implement a safe harbor plan design to avoid testing.</li>
             </ul>
           </div>
-
           <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
-            <h4 className="font-bold text-black-600">Consequences:</h4>
-            <ul className="list-disc list-inside text-black-600">
-              <li>Excess Contributions Must Be Refunded</li>
-              <br />
-              <li>IRS Penalties and Compliance Risks</li>
-              <br />
-              <li>Loss of Tax Benefits for HCEs</li>
-              <br />
-              <li>Plan Disqualification Risk</li>
-              <br />
-              <li>Employee Dissatisfaction & Legal Risks</li>
+            <h4 className="font-bold text-gray-700">Consequences:</h4>
+            <ul className="list-disc list-inside text-gray-700">
+              <li>Excess contributions may be refunded to HCEs.</li>
+              <li>Potential tax penalties for non-compliance.</li>
+              <li>Plan may need corrective distributions.</li>
             </ul>
           </div>
-        </>
+        </div>
       )}
 
       {/* Consent Modal for AI Review */}
@@ -718,6 +650,7 @@ const ACPTest = () => {
                   });
                   await handleRunAIReview();
                 } catch (err) {
+                  console.error("Error saving consent or running AI review:", err);
                   setError("❌ Error processing AI review consent.");
                 }
               }}
