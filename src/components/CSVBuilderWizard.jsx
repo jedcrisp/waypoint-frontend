@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { getAuth } from "firebase/auth";
 import axios from "axios";
 import Papa from "papaparse";
+import { useNavigate } from "react-router-dom";
 
 import FileUploader from "./FileUploader";
 import HeaderMapper from "./HeaderMapper";
@@ -51,6 +52,15 @@ const TEST_TYPE_MAP = {
   "Coverage Test": "coverage",
 };
 
+// Map test types to routes
+const TEST_ROUTE_MAP = {
+  "ADP Test": "/adp-test",
+  "ACP Test": "/acp-test",
+  "Top Heavy Test": "/top-heavy-test",
+  "Average Benefit Test": "/average-benefit-test",
+  "Coverage Test": "/coverage-test",
+};
+
 const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
 // Helper: pick first existing key
@@ -73,6 +83,10 @@ export default function CSVBuilderWizard() {
   const [errorMessage, setErrorMessage] = useState(null);
   const [showDownloadConfirm, setShowDownloadConfirm] = useState(false);
   const [showPostDownload, setShowPostDownload] = useState(false);
+  const [showRoutePrompt, setShowRoutePrompt] = useState(false);
+
+  const dropdownRef = useRef(null);
+  const navigate = useNavigate();
 
   // Merge required headers
   const requiredHeaders = useMemo(
@@ -88,12 +102,29 @@ export default function CSVBuilderWizard() {
       const missingHeaders = mandatoryHeaders.filter(h => !columnMap[h]);
       console.log("Missing mandatory headers:", missingHeaders);
       if (missingHeaders.length > 0) {
-        setErrorMessage(`Please map the following required headers: ${missingHeaders.join(", ")}`);
+        setErrorMessage("Please map all required headers.");
       }
     } else {
       setErrorMessage(null);
     }
   }, [isDownloadEnabled, mandatoryHeaders, columnMap]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setTestsOpen(false);
+      }
+    };
+
+    if (testsOpen) {
+      document.addEventListener("click", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [testsOpen]);
 
   // Parse CSV
   function handleParse(rows, headers) {
@@ -182,8 +213,7 @@ export default function CSVBuilderWizard() {
   // Download mapped CSV
   function handleDownloadClick() {
     if (!isDownloadEnabled) {
-      const missingHeaders = mandatoryHeaders.filter(h => !columnMap[h]);
-      setErrorMessage(`Please map the following required headers: ${missingHeaders.join(", ")}`);
+      setErrorMessage("Please map all required headers.");
       return;
     }
     setShowDownloadConfirm(true);
@@ -207,7 +237,24 @@ export default function CSVBuilderWizard() {
     a.download = `Combined_Tests_${planYear}.csv`;
     a.click();
     setShowDownloadConfirm(false);
+    // Show post-download modal for all cases
     setShowPostDownload(true);
+    // If single test, show routing prompt after post-download
+    if (selectedTests.length === 1) {
+      setTimeout(() => setShowRoutePrompt(true), 0);
+    }
+  }
+
+  // Handle routing to test page
+  function handleRouteToTestPage() {
+    if (selectedTests.length === 1) {
+      const test = selectedTests[0];
+      const route = TEST_ROUTE_MAP[test];
+      if (route) {
+        navigate(route);
+      }
+    }
+    setShowRoutePrompt(false);
   }
 
   // Metrics for single-test preview
@@ -230,7 +277,7 @@ export default function CSVBuilderWizard() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       {/* Multi-test dropdown */}
-      <div className="mb-6 relative">
+      <div className="mb-6 relative" ref={dropdownRef}>
         <button onClick={() => setTestsOpen(o => !o)} className="w-full border rounded px-3 py-2 flex justify-between items-center">
           <span className="flex-1 text-left">{selectedTests.length ? selectedTests.join(", ") : "-- Choose Tests --"}</span>
           <span className={testsOpen ? "rotate-180" : ""}>▼</span>
@@ -273,19 +320,30 @@ export default function CSVBuilderWizard() {
           </div>
         )}
       </div>
-      {/* Plan Year & Preview */}
+      {/* Plan Year, Preview, and Download */}
       <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6">
         <select value={planYear} onChange={e => setPlanYear(e.target.value)} className="border rounded px-3 py-2 w-40">
           <option value="">-- Plan Year --</option>
           {Array.from({ length: 10 }, (_, i) => 2016 + i).reverse().map(y => <option key={y} value={y}>{y}</option>)}
         </select>
-        <button
-          onClick={handlePreview}
-          disabled={!originalRows.length || !planYear}
-          className={`px-4 py-2 rounded text-white ${originalRows.length && planYear ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 cursor-not-allowed"}`}
-        >
-          Preview Data
-        </button>
+        <div className="flex gap-4">
+          <button
+            onClick={handlePreview}
+            disabled={!originalRows.length || !planYear}
+            className={`px-4 py-2 rounded text-white ${originalRows.length && planYear ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 cursor-not-allowed"}`}
+          >
+            Preview Data
+          </button>
+          {rawHeaders.length > 0 && (
+            <DownloadActions
+              isDownloadEnabled={isDownloadEnabled}
+              onDownloadClick={handleDownloadClick}
+              showDownloadConfirm={showDownloadConfirm}
+              onConfirmDownload={doDownload}
+              onCancelDownload={() => setShowDownloadConfirm(false)}
+            />
+          )}
+        </div>
       </div>
       {/* Upload & Map */}
       {!originalRows.length && <FileUploader onParse={handleParse} error={errorMessage} setError={setErrorMessage} />}
@@ -300,16 +358,6 @@ export default function CSVBuilderWizard() {
           canAutoGenerateHCE={() => !!columnMap.Compensation}
           autoGenerateKeyEmployee={!!columnMap.autoKey}
           canAutoGenerateKeyEmployee={() => !!columnMap.Compensation && !!columnMap["Ownership %"] && !!columnMap["Family Member"] && !!columnMap["Employment Status"]}
-        />
-      )}
-      {/* Download */}
-      {rawHeaders.length > 0 && (
-        <DownloadActions
-          isDownloadEnabled={isDownloadEnabled}
-          onDownloadClick={handleDownloadClick}
-          showDownloadConfirm={showDownloadConfirm}
-          onConfirmDownload={doDownload}
-          onCancelDownload={() => setShowDownloadConfirm(false)}
         />
       )}
       {/* Preview or Summaries */}
@@ -365,6 +413,16 @@ export default function CSVBuilderWizard() {
           cancelLabel="Close"
           onConfirm={() => setShowPostDownload(false)}
           onCancel={() => setShowPostDownload(false)}
+        />
+      )}
+      {showRoutePrompt && selectedTests.length === 1 && (
+        <ConfirmModal
+          title="Navigate to Test Page"
+          message={`Would you like to navigate to the ${selectedTests[0]} page?`}
+          confirmLabel="Yes"
+          cancelLabel="No"
+          onConfirm={handleRouteToTestPage}
+          onCancel={() => setShowRoutePrompt(false)}
         />
       )}
     </div>
