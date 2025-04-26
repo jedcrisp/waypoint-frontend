@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { getAuth } from "firebase/auth";
 import axios from "axios";
 import Papa from "papaparse";
