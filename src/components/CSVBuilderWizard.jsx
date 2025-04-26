@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { getAuth } from "firebase/auth";
 import axios from "axios";
 import Papa from "papaparse";
@@ -100,19 +100,6 @@ export default function CSVBuilderWizard() {
   const mandatoryHeaders = requiredHeaders.filter(h => h !== "HCE" && h !== "Key Employee");
   const isDownloadEnabled = mandatoryHeaders.every(h => columnMap[h]);
 
-  // Set error message for missing mandatory headers
-  useEffect(() => {
-    if (!isDownloadEnabled) {
-      const missingHeaders = mandatoryHeaders.filter(h => !columnMap[h]);
-      console.log("Missing mandatory headers:", missingHeaders);
-      if (missingHeaders.length > 0) {
-        setErrorMessage("Please map all required headers.");
-      }
-    } else {
-      setErrorMessage(null);
-    }
-  }, [isDownloadEnabled, mandatoryHeaders, columnMap]);
-
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -156,6 +143,11 @@ export default function CSVBuilderWizard() {
     try {
       setErrorMessage(null);
       if (!selectedTests.length) throw new Error("Select at least one test");
+      if (!originalRows.length) throw new Error("Please upload a CSV file.");
+      if (!isDownloadEnabled) {
+        setErrorMessage("Please map all required headers before previewing.");
+        return;
+      }
       const token = await getAuth().currentUser.getIdToken(true);
       if (!token) throw new Error("Not authenticated");
 
@@ -217,7 +209,7 @@ export default function CSVBuilderWizard() {
   // Download mapped CSV
   function handleDownloadClick() {
     if (!isDownloadEnabled) {
-      setErrorMessage("Please map all required headers.");
+      setErrorMessage("Please map all required headers before downloading.");
       return;
     }
     setShowDownloadConfirm(true);
@@ -350,19 +342,23 @@ export default function CSVBuilderWizard() {
         </div>
       </div>
       {/* Upload & Map */}
-      {!originalRows.length && <FileUploader onParse={handleParse} error={errorMessage} setError={setErrorMessage} />}
+      <div className="mb-6">
+        <FileUploader onParse={handleParse} error={errorMessage} setError={setErrorMessage} />
+      </div>
       {rawHeaders.length > 0 && (
-        <HeaderMapper
-          rawHeaders={rawHeaders}
-          requiredHeaders={requiredHeaders}
-          columnMap={columnMap}
-          setColumnMap={setColumnMap}
-          mandatoryHeaders={mandatoryHeaders}
-          autoGenerateHCE={!!columnMap.autoHCE}
-          canAutoGenerateHCE={() => !!columnMap.Compensation}
-          autoGenerateKeyEmployee={!!columnMap.autoKey}
-          canAutoGenerateKeyEmployee={() => !!columnMap.Compensation && !!columnMap["Ownership %"] && !!columnMap["Family Member"] && !!columnMap["Employment Status"]}
-        />
+        <div className="mb-6">
+          <HeaderMapper
+            rawHeaders={rawHeaders}
+            requiredHeaders={requiredHeaders}
+            columnMap={columnMap}
+            setColumnMap={setColumnMap}
+            mandatoryHeaders={mandatoryHeaders}
+            autoGenerateHCE={!!columnMap.autoHCE}
+            canAutoGenerateHCE={() => !!columnMap.Compensation}
+            autoGenerateKeyEmployee={!!columnMap.autoKey}
+            canAutoGenerateKeyEmployee={() => !!columnMap.Compensation && !!columnMap["Ownership %"] && !!columnMap["Family Member"] && !!columnMap["Employment Status"]}
+          />
+        </div>
       )}
       {/* Preview or Summaries */}
       {selectedTests.length === 1 && enrichedData[selectedTests[0]] && (
