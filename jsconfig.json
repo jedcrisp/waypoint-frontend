@@ -1,9 +1,19 @@
+// jsconfig.json
 {
   "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
+    "target": "es6",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "allowJs": true,        // ← enable JS files
+    "checkJs": false,        // ← type-check JS
+    "jsx": "react",
+    "baseUrl": ".",         // your import root
+    "paths": {              // keep your @ alias if you like
       "@/*": ["src/*"]
     }
-  }
+  },
+  "include": [
+    "src/**/*"   // ← make sure ALL .js/.jsx under src get indexed
+  ]
 }
 
