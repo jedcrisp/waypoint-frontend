@@ -1,43 +1,34 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
-import { getAuth } from "firebase/auth"; // Firebase Auth
+import { getAuth } from "firebase/auth";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { savePdfResultToFirebase, saveAIReviewConsent } from "../utils/firebaseTestSaver";
 import Modal from "../components/Modal";
 
 const CoverageTest = () => {
+  // ----- State -----
   const [file, setFile] = useState(null);
-  const [planYear, setPlanYear] = useState(""); // Plan year selection
+  const [planYear, setPlanYear] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [normalPdfExported, setNormalPdfExported] = useState(false);
-
-  // States for AI Review
   const [aiReview, setAiReview] = useState("");
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
   const [signature, setSignature] = useState("");
+  const [normalPdfExported, setNormalPdfExported] = useState(false);
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
 
   // ---------- Formatting Helpers ----------
-  const formatCurrency = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
-    return `$${parseFloat(value).toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
-
   const formatPercentage = (value) => {
-    if (value === undefined || value === null || isNaN(Number(value))) return "N/A";
+    if (value === undefined || value === null || isNaN(Number(value))) return "0.00%";
     return `${parseFloat(value).toFixed(2)}%`;
   };
 
-  // Auto-export PDF once results are available (if not already exported)
+  // Automatically export PDF once results are available (if not already exported)
   useEffect(() => {
     if (result && !normalPdfExported) {
       exportToPDF();
@@ -45,15 +36,14 @@ const CoverageTest = () => {
     }
   }, [result, normalPdfExported]);
 
-  // =========================
-  // 1. Drag & Drop Logic
-  // =========================
+  // ----- 1. Drag & Drop Logic -----
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
       setFile(acceptedFiles[0]);
       setResult(null);
       setError(null);
-      setNormalPdfExported(false); // Reset export flag for new upload
+      setNormalPdfExported(false);
+      setAiReview("");
     }
   }, []);
 
@@ -65,9 +55,7 @@ const CoverageTest = () => {
     noKeyboard: true,
   });
 
-  // =========================
-  // 2. Upload File to Backend
-  // =========================
+  // ----- 2. Upload File to Backend -----
   const handleUpload = async () => {
     if (!file) {
       setError("❌ Please select a file before uploading.");
@@ -77,7 +65,6 @@ const CoverageTest = () => {
       setError("❌ Please select a plan year.");
       return;
     }
-    // Validate file type
     const validFileTypes = ["csv", "xlsx"];
     const fileType = file.name.split(".").pop().toLowerCase();
     if (!validFileTypes.includes(fileType)) {
@@ -94,8 +81,7 @@ const CoverageTest = () => {
     formData.append("plan_year", planYear);
 
     try {
-      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv/coverage`);
-      // Get Firebase token
+      console.log("🚀 Uploading file to API:", `${API_URL}/upload-csv`);
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken(true);
       if (!token) {
@@ -103,81 +89,52 @@ const CoverageTest = () => {
         setLoading(false);
         return;
       }
-      // Send POST request
-      const response = await axios.post(`${API_URL}/upload-csv/coverage`, formData, {
+      const response = await axios.post(`${API_URL}/upload-csv`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       });
       console.log("✅ API Response:", response.data);
-      setResult(response.data?.["Test Results"]?.["coverage"] || {});
+      const coverageResults = response.data?.coverage;
+      if (!coverageResults) {
+        setError("❌ No Coverage test results found in response.");
+      } else {
+        setResult(coverageResults);
+      }
     } catch (err) {
       console.error("❌ Upload error:", err.response ? err.response.data : err.message);
-      setError("❌ Failed to upload file. Please check the format and try again.");
+      setError(
+        err.response?.data?.detail ||
+        err.response?.data?.error ||
+        "❌ Failed to upload file. Please check the format and try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // =========================
-  // 3. Render Plan Year Dropdown
-  // =========================
-  const renderPlanYearDropdown = () => (
-    <div className="mb-6">
-      <div className="flex items-center">
-        {planYear === "" && <span className="text-red-500 text-lg mr-2">*</span>}
-        <select
-          id="planYear"
-          value={planYear}
-          onChange={(e) => setPlanYear(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-md"
-          required
-        >
-          <option value="">-- Select Plan Year --</option>
-          {Array.from({ length: 41 }, (_, i) => 2010 + i).map((year) => (
-            <option key={year} value={year}>
-              {year}
-            </option>
-          ))}
-        </select>
-      </div>
-    </div>
-  );
-
-  // =========================
-  // 4. Download CSV Template
-  // =========================
+  // ----- 3. Download CSV Template -----
   const downloadCSVTemplate = () => {
     const csvTemplate = [
       [
-        "Last Name",
-        "First Name",
-        "Employee ID",
-        "Eligible for Plan",
-        "HCE",
-        "DOB",
-        "DOH",
-        "Employment Status",
-        "Excluded from Test",
-        "Union Employee",
-        "Part-Time / Seasonal",
-        "Plan Entry Date"
+        "Last Name", "First Name", "Employee ID", "Eligible for Plan",
+        "Employment Status", "Excluded from Test", "Union Employee", 
+        "Part-Time / Seasonal", "Plan Entry Date", "Family Relationship", "Family Member"
       ],
-      ["Last", "First", "E001", "Yes", "No", "1985-04-12", "2015-01-01", "Active", "No", "No", "No", "2016-01-01"],
-      ["Last", "First", "E002", "Yes", "Yes", "1990-06-15", "2018-03-10", "Active", "No", "No", "No", "2019-01-01"],
-      ["Last", "First", "E003", "No", "No", "1992-09-22", "2020-07-20", "Active", "No", "No", "No", "2021-01-01"],
-      ["Last", "First", "E004", "Yes", "Yes", "1988-12-05", "2012-11-30", "Active", "No", "No", "No", "2013-01-01"],
-      ["Last", "First", "E005", "Yes", "No", "1983-02-18", "2010-05-25", "Active", "No", "No", "No", "2011-01-01"],
-      ["Last", "First", "E006", "No", "No", "2000-07-10", "2023-03-01", "Active", "No", "No", "No", "2023-03-01"],
-      ["Last", "First", "E007", "Yes", "No", "1995-11-03", "2016-09-15", "Active", "No", "No", "No", "2017-01-01"],
-      ["Last", "First", "E008", "Yes", "Yes", "1987-01-28", "2011-06-14", "Active", "No", "No", "No", "2012-01-01"],
-      ["Last", "First", "E009", "No", "No", "1999-05-09", "2022-08-20", "Active", "No", "Yes", "Yes", "2023-01-01"],
-      ["Last", "First", "E010", "Yes", "No", "1991-10-17", "2017-04-22", "Terminated", "No", "No", "No", "2018-01-01"],
+      ["Doe", "John", "E001", "Yes", "Active", "No", "No", "No", "2010-01-01", "spouse", "Jane Doe"],
+      ["Doe", "Jane", "E002", "Yes", "Active", "No", "No", "No", "2012-01-01", "", ""],
+      ["Smith", "Alice", "E003", "Yes", "Active", "No", "No", "No", "2005-08-01", "child", "Bob Smith"],
+      ["Smith", "Bob", "E004", "No", "Active", "No", "No", "No", "2021-04-05", "", ""],
+      ["Johnson", "Mark", "E005", "Yes", "Active", "No", "No", "No", "2008-07-20", "", ""],
+      ["Williams", "Sarah", "E006", "No", "Terminated", "Yes", "No", "No", "2022-09-01", "", ""],
+      ["Brown", "Tom", "E007", "Yes", "Leave", "No", "No", "No", "2018-03-15", "", ""],
+      ["Lee", "Emily", "E008", "Yes", "Active", "No", "No", "No", "2003-02-10", "parent", "Mark Johnson"],
+      ["Davis", "Chris", "E009", "No", "Active", "No", "No", "No", "2023-01-05", "", ""],
+      ["Clark", "Lisa", "E010", "Yes", "Active", "No", "No", "No", "2011-06-30", "", ""],
     ]
       .map((row) => row.join(","))
       .join("\n");
-
     const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -188,31 +145,47 @@ const CoverageTest = () => {
     document.body.removeChild(link);
   };
 
-  // =========================
-  // 5. Download Results as CSV
-  // =========================
+  // ----- 4. Download Results as CSV -----
   const downloadResultsAsCSV = () => {
     if (!result) {
       setError("❌ No results to download.");
       return;
     }
-
     const plan = planYear || "N/A";
-    const totalEmployees = result["Total Employees"] ?? "N/A";
-    const totalParticipants = result["Total Participants"] ?? "N/A";
-    const eligibilityPercentage =
-      result["Eligibility Percentage (%)"] !== undefined
-        ? result["Eligibility Percentage (%)"] + "%"
-        : "N/A";
-    const testRes = result["Test Result"] ?? "N/A";
+    const totalEmployees = result["Total Employees"] ?? 0;
+    const totalEligible = result["Total Eligible Employees"] ?? 0;
+    const totalParticipants = result["Total Participants (Benefiting)"] ?? 0;
+    const hceBenefitingPercentage = result["HCE Benefiting Percentage (%)"] ?? 0;
+    const nhceBenefitingPercentage = result["NHCE Benefiting Percentage (%)"] ?? 0;
+    const ratioPercentage = result["Ratio Percentage (%)"] ?? 0;
+    const testResult = result["Test Result"] ?? "N/A";
+    const excludedUnderAge21 = result["Excluded Participants"]?.["Under Age 21"] ?? 0;
+    const excludedUnder1Year = result["Excluded Participants"]?.["Under 1 Year of Service"] ?? 0;
+    const excludedNoPlanEntry = result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0;
+    const excludedManually = result["Excluded Participants"]?.["Excluded Manually"] ?? 0;
+    const excludedNotActive = result["Excluded Participants"]?.["Not Active"] ?? 0;
+    const excludedUnion = result["Excluded Participants"]?.["Union Employees"] ?? 0;
+    const excludedPartTime = result["Excluded Participants"]?.["Part-Time or Seasonal"] ?? 0;
+    const excludedTerminated = result["Excluded Participants"]?.["Terminated Before Plan Year"] ?? 0;
 
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", plan],
       ["Total Employees", totalEmployees],
-      ["Total Participants", totalParticipants],
-      ["Eligibility Percentage (%)", eligibilityPercentage],
-      ["Test Result", testRes],
+      ["Total Eligible Employees", totalEligible],
+      ["Total Participants (Benefiting)", totalParticipants],
+      ["HCE Benefiting Percentage (%)", formatPercentage(hceBenefitingPercentage)],
+      ["NHCE Benefiting Percentage (%)", formatPercentage(nhceBenefitingPercentage)],
+      ["Ratio Percentage (%)", formatPercentage(ratioPercentage)],
+      ["Test Result", testResult],
+      ["Excluded - Under Age 21", excludedUnderAge21],
+      ["Excluded - Under 1 Year of Service", excludedUnder1Year],
+      ["Excluded - No Plan Entry Date", excludedNoPlanEntry],
+      ["Excluded - Manually", excludedManually],
+      ["Excluded - Not Active", excludedNotActive],
+      ["Excluded - Union Employees", excludedUnion],
+      ["Excluded - Part-Time or Seasonal", excludedPartTime],
+      ["Excluded - Terminated Before Plan Year", excludedTerminated],
     ];
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
@@ -226,122 +199,150 @@ const CoverageTest = () => {
     document.body.removeChild(link);
   };
 
-  // =========================
-  // 6. Export to PDF (with Firebase saving)
-  // =========================
+  // ----- 5. Export Results to PDF -----
   const exportToPDF = async (customAiReview) => {
     if (!result) {
       setError("❌ No results available to export.");
       return;
     }
+    try {
+      const finalAIText = customAiReview !== undefined ? customAiReview : aiReview;
+      const plan = planYear || "N/A";
+      const totalEmployees = result["Total Employees"] ?? 0;
+      const totalEligible = result["Total Eligible Employees"] ?? 0;
+      const totalParticipants = result["Total Participants (Benefiting)"] ?? 0;
+      const hceBenefitingPercentage = result["HCE Benefiting Percentage (%)"] ?? 0;
+      const nhceBenefitingPercentage = result["NHCE Benefiting Percentage (%)"] ?? 0;
+      const ratioPercentage = result["Ratio Percentage (%)"] ?? 0;
+      const testResult = result["Test Result"] ?? "N/A";
+      const testCriterion = result["Test Criterion"] ?? "N/A";
+      const failed = testResult.toLowerCase() === "failed";
 
-    const plan = planYear || "N/A";
-    const totalEmployees = result["Total Employees"] ?? "N/A";
-    const totalParticipants = result["Total Participants"] ?? "N/A";
-    const eligibilityPercentage =
-      result["Eligibility Percentage (%)"] !== undefined
-        ? formatPercentage(result["Eligibility Percentage (%)"])
-        : "N/A";
-    const testResult = result["Test Result"] ?? "N/A";
-    const failed = testResult.toLowerCase() === "failed";
-    const finalAIText = customAiReview !== undefined ? customAiReview : aiReview;
+      const pdf = new jsPDF("p", "mm", "a4");
+      pdf.setFont("helvetica", "normal");
 
-    const pdf = new jsPDF("p", "mm", "a4");
-    pdf.setFont("helvetica", "normal");
+      // PDF Header
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Coverage Test Results", 105, 15, { align: "center" });
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
+      const generatedTimestamp = new Date().toLocaleString();
+      pdf.text(`Generated on: ${generatedTimestamp}`, 105, 32, { align: "center" });
 
-    // Header
-    pdf.setFontSize(18);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Coverage Test Results", 105, 15, { align: "center" });
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(`Plan Year: ${plan}`, 105, 25, { align: "center" });
-    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
+      // Subheader with test criterion
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(
+        `Test Criterion: ${testCriterion}`,
+        105,
+        38,
+        { align: "center", maxWidth: 180 }
+      );
 
-    // Subheader with test criterion
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "italic");
-    pdf.setTextColor(60, 60, 60);
-    pdf.text(
-      "Test Criterion: IRC §410(b): The Coverage Test ensures that a qualified retirement or benefit plan does not disproportionately favor highly compensated employees by requiring the plan to benefit a minimum percentage of non-highly compensated employees.",
-      105,
-      38,
-      { align: "center", maxWidth: 180 }
-    );
-
-    // Results Table
-    pdf.autoTable({
-      startY: 54,
-      theme: "grid",
-      head: [["Metric", "Value"]],
-      body: [
-        ["Total Employees", totalEmployees],
-        ["Total Participants", totalParticipants],
-        ["Eligibility Percentage", eligibilityPercentage],
-        ["Test Result", testResult],
-      ],
-      headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
-      styles: { fontSize: 12, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-
-    // Insert AI Review Section if available
-    if (finalAIText) {
+      // Results Table
       pdf.autoTable({
-        startY: pdf.lastAutoTable.finalY + 10,
+        startY: 48,
         theme: "grid",
-        head: [["AI Corrective Actions (Powered by OpenAI)"]],
-        body: [[finalAIText]],
-        headStyles: { fillColor: [126, 34, 206], textColor: [255, 255, 255] },
-        styles: { fontSize: 11, font: "helvetica" },
+        head: [["Metric", "Value"]],
+        body: [
+          ["Total Employees", totalEmployees],
+          ["Total Eligible Employees", totalEligible],
+          ["Total Participants (Benefiting)", totalParticipants],
+          ["HCE Benefiting Percentage (%)", formatPercentage(hceBenefitingPercentage)],
+          ["NHCE Benefiting Percentage (%)", formatPercentage(nhceBenefitingPercentage)],
+          ["Ratio Percentage (%)", formatPercentage(ratioPercentage)],
+          ["Test Result", testResult],
+        ],
+        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+        styles: { fontSize: 12, font: "helvetica" },
         margin: { left: 10, right: 10 },
       });
-    }
 
-    // Digital Signature with Timestamp (if provided)
-    if (signature.trim()) {
-      const sigTime = new Date().toLocaleString();
-      pdf.setFont("helvetica", "normal");
+      // AI Review Section or Corrective Actions (if test failed)
+      if (finalAIText) {
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["AI Corrective Actions (Powered by OpenAI)"]],
+          body: [[finalAIText]],
+          headStyles: { fillColor: [126, 34, 206], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+      } else if (failed) {
+        const correctiveActions = [
+          "Increase NHCE participation to improve the NHCE benefiting percentage.",
+          "Adjust eligibility criteria to include more NHCEs.",
+          "Review plan design to ensure compliance with coverage requirements.",
+        ];
+        const consequences = [
+          "Plan may fail to qualify for tax advantages.",
+          "Increased IRS audit risk.",
+          "Potential need for corrective amendments.",
+        ];
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Corrective Actions"]],
+          body: correctiveActions.map((action) => [action]),
+          headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Consequences"]],
+          body: consequences.map((item) => [item]),
+          headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+      }
+
+      // Digital Signature with Timestamp (if provided)
+      if (signature.trim()) {
+        const sigTime = new Date().toLocaleString();
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(10);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text(`Digital Signature: ${signature.trim()}`, 10, 280);
+        pdf.text(`Signed on: ${sigTime}`, 10, 285);
+      }
+
+      // Footer
+      pdf.setFont("helvetica", "italic");
       pdf.setFontSize(10);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text(`Digital Signature: ${signature.trim()}`, 10, 280);
-      pdf.text(`Signed on: ${sigTime}`, 10, 285);
-    }
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
 
-    // Footer
-    pdf.setFont("helvetica", "italic");
-    pdf.setFontSize(10);
-    pdf.setTextColor(100, 100, 100);
-    pdf.text("Generated via the Waypoint Reporting Engine", 10, 290);
+      const downloadFileName = finalAIText
+        ? "AI Reviewed: Coverage Test Results.pdf"
+        : "Coverage Test Results.pdf";
 
-    // Output PDF as a blob and save locally
-    let pdfBlob;
-    try {
-      pdfBlob = pdf.output("blob");
-      pdf.save("Coverage Test Results.pdf");
-    } catch (error) {
-      setError(`❌ Error exporting PDF: ${error.message}`);
-      return;
-    }
+      pdf.save(downloadFileName);
 
-    // Save PDF to Firebase using the helper function
-    try {
+      const pdfBlob = pdf.output("blob");
       await savePdfResultToFirebase({
-        fileName: "Coverage Test Results",
+        fileName: finalAIText ? "AI Reviewed: Coverage Test Results" : "Coverage Test Results",
         pdfBlob,
         additionalData: {
           planYear,
-          testResult: testResult || "Unknown",
+          testResult,
         },
       });
+
+      console.log("✅ Export and upload complete");
     } catch (error) {
-      setError(`❌ Error saving PDF to Firebase: ${error.message}`);
+      console.error("❌ Export PDF Error:", error);
+      setError(`❌ ${error.message}`);
     }
   };
 
-  // =========================
-  // 7. AI Review Handler
-  // =========================
+  // ----- 6. AI Review Handler -----
   const handleRunAIReview = async () => {
     if (!result || !result.coverage_summary) {
       setError("❌ No test summary available for AI review.");
@@ -364,41 +365,56 @@ const CoverageTest = () => {
       });
       const aiText = response.data.analysis;
       setAiReview(aiText);
-      // Automatically export PDF with AI review text (this will exclude corrective actions)
       await exportToPDF(aiText);
     } catch (error) {
       console.error("Error fetching AI review:", error);
-      setAiReview("Error fetching AI review.");
+      setError("❌ Error fetching AI review.");
     }
     setLoading(false);
   };
 
-  // =========================
-  // 8. Handle Enter Key
-  // =========================
+  // ----- 7. Handle Enter Key -----
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" && file && !loading) {
+    if (e.key === "Enter" && file && planYear && !loading) {
       e.preventDefault();
       e.stopPropagation();
       handleUpload();
     }
   };
 
-  // =========================
-  // RENDER
-  // =========================
+  // ----- RENDER -----
   return (
     <div
-      className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
+      className="max-w-[625px] mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
       onKeyDown={handleKeyDown}
       tabIndex="0"
     >
       <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
-        📂 Upload Coverage File
+        📂 Upload Coverage Test File
       </h2>
 
       {/* Plan Year Dropdown */}
-      {renderPlanYearDropdown()}
+      <div className="mb-6">
+        <div className="flex items-center">
+          {planYear === "" && (
+            <span className="text-red-500 text-lg mr-2">*</span>
+          )}
+          <select
+            id="planYear"
+            value={planYear}
+            onChange={(e) => setPlanYear(e.target.value)}
+            className="flex-3 px-4 py-2 border border-gray-300 rounded-md"
+            required
+          >
+            <option value="">-- Select Plan Year --</option>
+            {Array.from({ length: 10 }, (_, i) => 2025 - i).map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       {/* Drag & Drop Area */}
       <div
@@ -411,7 +427,7 @@ const CoverageTest = () => {
         {file ? (
           <p className="text-green-600 font-semibold">{file.name}</p>
         ) : isDragActive ? (
-          <p className="text-green-600">📂 Drop the file here...</p>
+          <p className="text-blue-600">📂 Drop the file here...</p>
         ) : (
           <p className="text-gray-600">
             Drag & drop a <strong>CSV file</strong> here.
@@ -440,9 +456,11 @@ const CoverageTest = () => {
       <button
         onClick={handleUpload}
         className={`w-full mt-2 px-4 py-2 text-white rounded-md ${
-          !file ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-400"
+          !file || !planYear
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-green-500 hover:bg-green-400"
         }`}
-        disabled={!file || loading}
+        disabled={!file || !planYear || loading}
       >
         {loading ? "Uploading..." : "Upload & Save PDF"}
       </button>
@@ -450,47 +468,53 @@ const CoverageTest = () => {
       {/* Display Errors */}
       {error && <div className="mt-3 text-red-500">{error}</div>}
 
-      {/* Detailed Coverage Test Summary */}
+      {/* Display results once available */}
       {result && (
-        <div className="mt-4 p-4 bg-gray-100 border border-gray-300 rounded-md">
-          <h4 className="font-bold text-lg text-gray-700 mb-2">
-            Detailed Coverage Test Summary
-          </h4>
-          {/* Subheader with Plan Year & Test Result */}
-          <div className="mb-4 flex justify-between items-center">
-            <p>
-              <strong>Plan Year:</strong>{" "}
-              <span className="text-blue-600">{planYear || "N/A"}</span>
-            </p>
-            <p>
+        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
+          <h2 className="text-xl font-bold text-gray-700 mb-2">Detailed Coverage Test Summary</h2>
+          <div className="flex justify-between items-center">
+            <span>
+              <strong>Plan Year:</strong> {planYear}
+            </span>
+            <span>
               <strong>Test Result:</strong>{" "}
               <span
-                className={`px-2 py-1 rounded-md font-semibold ${
-                  result?.["Test Result"] === "Passed"
-                    ? "bg-green-500 text-white"
-                    : "bg-red-500 text-white"
+                className={`px-2 py-1 rounded text-white ${
+                  result["Test Result"]?.toLowerCase() === "passed"
+                    ? "bg-green-500"
+                    : "bg-red-500"
                 }`}
               >
-                {result?.["Test Result"] || "N/A"}
+                {result?.["Test Result"] ?? "N/A"}
               </span>
-            </p>
+            </span>
           </div>
-          {/* Bullet Points with Data */}
-          <ul className="list-disc list-inside text-gray-800">
-            <li>
-              <strong>Total Employees:</strong>{" "}
-              {result?.["Total Employees"] ?? "N/A"}
-            </li>
-            <li>
-              <strong>Total Participants:</strong>{" "}
-              {result?.["Total Participants"] ?? "N/A"}
-            </li>
-            <li>
-              <strong>Eligibility Percentage:</strong>{" "}
-              {result?.["Eligibility Percentage (%)"] !== undefined
-                ? `${parseFloat(result["Eligibility Percentage (%)"]).toFixed(2)}%`
-                : "N/A"}
-            </li>
+
+          <h3 className="font-semibold text-gray-700 mt-4">Employee Counts</h3>
+          <ul className="list-disc list-inside mt-2">
+            <li><strong>Total Employees:</strong> {result["Total Employees"] ?? 0}</li>
+            <li><strong>Total Eligible Employees:</strong> {result["Total Eligible Employees"] ?? 0}</li>
+            <li><strong>Total Participants (Benefiting):</strong> {result["Total Participants (Benefiting)"] ?? 0}</li>
+          </ul>
+
+          <h3 className="font-semibold text-gray-700 mt-4">Test Results</h3>
+          <ul className="list-disc list-inside mt-2">
+            <li><strong>HCE Benefiting Percentage:</strong> {formatPercentage(result["HCE Benefiting Percentage (%)"])}</li>
+            <li><strong>NHCE Benefiting Percentage:</strong> {formatPercentage(result["NHCE Benefiting Percentage (%)"])}</li>
+            <li><strong>Ratio Percentage:</strong> {formatPercentage(result["Ratio Percentage (%)"])}</li>
+            <li><strong>Test Criterion:</strong> {result["Test Criterion"] ?? "N/A"}</li>
+          </ul>
+
+          <h3 className="font-semibold text-gray-700 mt-4">Excluded Participants</h3>
+          <ul className="list-disc list-inside mt-2">
+            <li><strong>Under Age 21:</strong> {result["Excluded Participants"]?.["Under Age 21"] ?? 0}</li>
+            <li><strong>Under 1 Year of Service:</strong> {result["Excluded Participants"]?.["Under 1 Year of Service"] ?? 0}</li>
+            <li><strong>No Plan Entry Date:</strong> {result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0}</li>
+            <li><strong>Excluded Manually:</strong> {result["Excluded Participants"]?.["Excluded Manually"] ?? 0}</li>
+            <li><strong>Not Active:</strong> {result["Excluded Participants"]?.["Not Active"] ?? 0}</li>
+            <li><strong>Union Employees:</strong> {result["Excluded Participants"]?.["Union Employees"] ?? 0}</li>
+            <li><strong>Part-Time or Seasonal:</strong> {result["Excluded Participants"]?.["Part-Time or Seasonal"] ?? 0}</li>
+            <li><strong>Terminated Before Plan Year:</strong> {result["Excluded Participants"]?.["Terminated Before Plan Year"] ?? 0}</li>
           </ul>
         </div>
       )}
@@ -521,53 +545,43 @@ const CoverageTest = () => {
       )}
 
       {/* Export & Download Buttons */}
-          {result && (
-  <div className="flex flex-col gap-2 mt-2">
-    <button
-      onClick={exportToPDF}
-      className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
-    >
-      Export PDF Results
-    </button>
-    <button
-      onClick={downloadResultsAsCSV}
-      className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
-    >
-      Download CSV Results
-    </button>
-  </div>
-)}
-
+      {result && (
+        <div className="flex flex-col gap-2 mt-2">
+          <button
+            onClick={() => exportToPDF()}
+            className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+          >
+            Export PDF Report
+          </button>
+          <button
+            onClick={downloadResultsAsCSV}
+            className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
+          >
+            Download CSV Report
+          </button>
+        </div>
+      )}
 
       {/* Corrective Actions & Consequences if Test Failed */}
       {result?.["Test Result"]?.toLowerCase() === "failed" && (
-        <React.Fragment>
+        <div>
           <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
             <h4 className="font-bold text-gray-700">Corrective Actions:</h4>
             <ul className="list-disc list-inside text-gray-700">
-              <li>Adjust eligibility requirements to ensure NHCEs meet the 70% threshold.</li>
-              <br />
-              <li>Modify plan design to allow more NHCEs to participate.</li>
-              <br />
-              <li>Ensure compliance with the Ratio Percentage Test.</li>
-              <br />
-              <li>Review employee demographics to adjust contribution structures.</li>
+              <li>Increase NHCE participation to improve the NHCE benefiting percentage.</li>
+              <li>Adjust eligibility criteria to include more NHCEs.</li>
+              <li>Review plan design to ensure compliance with coverage requirements.</li>
             </ul>
           </div>
-
           <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
             <h4 className="font-bold text-gray-700">Consequences:</h4>
             <ul className="list-disc list-inside text-gray-700">
-              <li>Plan may lose tax-qualified status.</li>
-              <br />
-              <li>HCEs may have contributions refunded, reducing their tax benefits.</li>
-              <br />
-              <li>Additional corrective employer contributions may be required.</li>
-              <br />
-              <li>Increased IRS audit risk due to compliance failure.</li>
+              <li>Plan may fail to qualify for tax advantages.</li>
+              <li>Increased IRS audit risk.</li>
+              <li>Potential need for corrective amendments.</li>
             </ul>
           </div>
-        </React.Fragment>
+        </div>
       )}
 
       {/* Consent Modal for AI Review */}
