@@ -18,9 +18,9 @@ const REQUIRED_HEADERS_BY_TEST = {
   "ADP Test": [
     "Employee ID", "First Name", "Last Name", "DOB",
     "DOH", "Employment Status", "Hours Worked", "Termination Date",
-    "Plan Entry Date", "Compensation", "Employee Deferral",
-    "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "HCE",
-    "Ownership %", "Family Relationship", "Family Member"
+    "Plan Entry Date", "Compensation", "HCE", "Employee Deferral",
+    "Union Employee", "Part-Time / Seasonal",
+    "Ownership %", "Family Relationship", "Family Member", "Excluded from Test"
   ],
   "ACP Test": [
     "Last Name", "First Name", "Employee ID", "DOB", "DOH",
