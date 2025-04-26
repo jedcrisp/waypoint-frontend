@@ -333,7 +333,7 @@ export default function CSVBuilderWizard() {
   return (
     <>
       <div className="min-h-screen bg-gray-50 flex justify-center py-6 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl w-full bg-white rounded-lg shadow-lg p-8">
+        <div className="max-w-7xl w-full bg-white rounded-lg shadow-lg p-8">
           {/* Tour and Title Section */}
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold text-gray-800">CSV Builder</h1>
