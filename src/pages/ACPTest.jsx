@@ -1,100 +1,32 @@
-// src/pages/ACPTest.jsx
 import React, { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import { 
-  savePdfResultToFirebase, 
-  saveAIReviewConsent
-} from "../utils/firebaseTestSaver";
+import { savePdfResultToFirebase, saveAIReviewConsent, reimportPurchasedTest } from "../utils/firebaseTestSaver";
 import Modal from "../components/Modal";
 import { useCart } from "../contexts/CartContext";
 import { ShoppingCart } from "lucide-react";
 import ACPTestBlockedView from "../components/ACPTestBlockedView";
-import { useLocation } from "react-router-dom";
-import { reimportPurchasedTest } from "../utils/firebaseTestSaver";
-
 
 const ACPTest = () => {
   const navigate = useNavigate();
   const auth = getAuth();
   const user = auth.currentUser;
   const userId = user?.uid;
-  const testId = "acpTest"; // Must match the test ID used in your test catalog and purchase flow
+  const testId = "acpTest";
   const location = useLocation();
+  const API_URL = import.meta.env.VITE_BACKEND_URL;
 
-
-  // ---------- Access Control ----------
+  // Access Control State
   const [accessStatus, setAccessStatus] = useState("loading");
   const [cartMsg, setCartMsg] = useState("");
 
-  // ✅ Define outside the useEffect
-async function ensureTestDocExists(userId, testId) {
-  const ref = doc(db, "users", userId, "purchasedTests", testId);
-  const snap = await getDoc(ref);
-
-  // Only create the doc if it does NOT exist
-  if (!snap.exists()) {
-    await setDoc(ref, {
-      unlocked: true,
-      used: false,
-      purchasedAt: serverTimestamp(),
-    });
-    console.log("📦 Test doc created manually");
-  } else {
-    console.log("✅ Test doc already exists, not overwriting");
-  }
-}
-
-
-async function checkAccessToTestWithRetry(retries = 3, delay = 1500) {
-  const queryParams = new URLSearchParams(location.search);
-  const paymentSuccess = queryParams.get("payment") === "success";
-
-  const ref = doc(db, "users", userId, "purchasedTests", testId);
-
-  // 🛠️ If payment was successful, reset BEFORE doing anything else
-  if (paymentSuccess) {
-    console.log("💳 Payment success detected. Reimporting test...");
-    await reimportPurchasedTest(userId, testId);
-  }
-
-  for (let i = 0; i < retries; i++) {
-    const snap = await getDoc(ref);
-
-    if (snap.exists()) {
-      const data = snap.data();
-      const isUnlocked = data.unlocked === true;
-      const isUsed = data.used === true;
-
-      console.log("🔁 Access retry check:", { isUnlocked, isUsed });
-
-      if (isUnlocked && !isUsed) {
-        setAccessStatus("granted");
-        return;
-      } else {
-        setAccessStatus("used");
-        return;
-      }
-    }
-
-    await new Promise((res) => setTimeout(res, delay));
-  }
-
-  setAccessStatus("not-purchased");
-}
-
-
-
-  // ---------- Cart Setup ----------
-  const { addToCart } = useCart();
-
-  // ---------- Component State & Helpers ----------
+  // Component State
   const [file, setFile] = useState(null);
   const [planYear, setPlanYear] = useState("");
   const [result, setResult] = useState(null);
@@ -104,17 +36,92 @@ async function checkAccessToTestWithRetry(retries = 3, delay = 1500) {
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
   const [signature, setSignature] = useState("");
-  const [normalPdfExported, setNormalPdfExported] = useState(false); // flag to export normal PDF only once
-  const API_URL = import.meta.env.VITE_BACKEND_URL; // Ensure this is set in .env.local
+  const [normalPdfExported, setNormalPdfExported] = useState(false);
 
-  // Dropzone setup
+  // Cart Setup
+  const { addToCart } = useCart();
+
+  // Ensure Test Doc Exists
+  async function ensureTestDocExists(userId, testId) {
+    const ref = doc(db, "users", userId, "purchasedTests", testId);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+      await setDoc(ref, {
+        unlocked: true,
+        used: false,
+        purchasedAt: serverTimestamp(),
+      });
+      console.log("📦 Test doc created manually");
+    } else {
+      // Ensure unlocked is true, even if the document exists
+      await setDoc(ref, { unlocked: true }, { merge: true });
+      console.log("✅ Test doc updated to ensure unlocked: true");
+    }
+  }
+
+  // Check Access with Retry
+  async function checkAccessToTestWithRetry(retries = 3, delay = 1500) {
+    const queryParams = new URLSearchParams(location.search);
+    const paymentSuccess = queryParams.get("payment") === "success";
+    const ref = doc(db, "users", userId, "purchasedTests", testId);
+
+    if (paymentSuccess) {
+      console.log("💳 Payment success detected. Reimporting test...");
+      await reimportPurchasedTest(userId, testId);
+    }
+
+    // Ensure the test document exists and is unlocked
+    await ensureTestDocExists(userId, testId);
+
+    for (let i = 0; i < retries; i++) {
+      const snap = await getDoc(ref);
+
+      if (snap.exists()) {
+        const data = snap.data();
+        const isUnlocked = data.unlocked === true;
+        const isUsed = data.used === true;
+
+        console.log("🔁 Access retry check:", { isUnlocked, isUsed });
+
+        // Only check if the test is unlocked, ignore the used status
+        if (isUnlocked) {
+          setAccessStatus("granted");
+          return;
+        } else {
+          setAccessStatus("not-purchased");
+          return;
+        }
+      }
+
+      await new Promise((res) => setTimeout(res, delay));
+    }
+
+    setAccessStatus("not-purchased");
+  }
+
+  // Run Access Check on Mount
+  useEffect(() => {
+    if (!userId) {
+      setAccessStatus("not-purchased");
+      return;
+    }
+
+    checkAccessToTestWithRetry().catch((err) => {
+      console.error("Error checking access:", err);
+      setAccessStatus("not-purchased");
+      setError("❌ Failed to verify access. Please try again.");
+    });
+  }, [userId, location]);
+
+  // Dropzone Setup
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
       setFile(acceptedFiles[0]);
       setResult(null);
       setError(null);
       setAiReview("");
-      setNormalPdfExported(false); // Reset PDF export flag on new file selection
+      setNormalPdfExported(false);
     }
   }, []);
 
@@ -126,16 +133,14 @@ async function checkAccessToTestWithRetry(retries = 3, delay = 1500) {
     noKeyboard: true,
   });
 
-  // Reset export flag when a new file is chosen
+  // Reset Export Flag When File Changes
   useEffect(() => {
     if (!file) {
       setNormalPdfExported(false);
     }
   }, [file]);
 
-  // Helper functions for file processing (downloadCSVTemplate, handleUpload, downloadResultsAsCSV, exportToPDF, etc.)
-  // (These are assumed to be defined below or imported; see your previous code for full implementations.)
-  
+  // Helper Functions
   const downloadCSVTemplate = () => {
     const csvTemplate = [
       [
@@ -192,14 +197,17 @@ async function checkAccessToTestWithRetry(retries = 3, delay = 1500) {
       setError("❌ Invalid file type. Please upload a CSV or Excel file.");
       return;
     }
+
     setLoading(true);
     setError(null);
     setResult(null);
     setAiReview("");
     setNormalPdfExported(false);
+
     const formData = new FormData();
     formData.append("file", file);
     formData.append("selected_tests", "acp");
+    formData.append("plan_year", planYear);
 
     try {
       const token = await auth.currentUser?.getIdToken(true);
@@ -208,15 +216,22 @@ async function checkAccessToTestWithRetry(retries = 3, delay = 1500) {
         setLoading(false);
         return;
       }
-      const response = await axios.post(`${API_URL}/upload-csv/acp`, formData, {
+      const response = await axios.post(`${API_URL}/upload-csv`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       });
-      setResult(response.data["Test Results"]["acp"]);
+
+      const resultData = response.data.acp;
+      if (!resultData) {
+        throw new Error("No ACP test results found in server response.");
+      }
+
+      setResult(resultData);
     } catch (err) {
-      setError("❌ Failed to upload file. Please check the format and try again.");
+      console.error("❌ Upload error:", err.response?.data || err.message);
+      setError(`❌ Upload failed: ${err.response?.data?.detail || err.message}`);
     } finally {
       setLoading(false);
     }
@@ -256,106 +271,106 @@ async function checkAccessToTestWithRetry(retries = 3, delay = 1500) {
   };
 
   const exportToPDF = async (customAiReview) => {
-  if (!result) {
-    setError("❌ No results available to export.");
-    return;
-  }
-
-  try {
-    const finalAIText = customAiReview !== undefined ? customAiReview : aiReview;
-    const totalEmployees = result?.["Total Employees"] || "N/A";
-    const totalParticipants = result?.["Total Participants"] || "N/A";
-    const hceAvg = result?.["HCE ACP (%)"] !== undefined ? `${result["HCE ACP (%)"]}%` : "N/A";
-    const nhceAvg = result?.["NHCE ACP (%)"] !== undefined ? `${result["NHCE ACP (%)"]}%` : "N/A";
-    const testResult = result?.["Test Result"] || "N/A";
-    const failed = testResult.toLowerCase() === "failed";
-
-    const pdf = new jsPDF("p", "mm", "a4");
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(18);
-    pdf.text("ACP Test Results", 105, 15, { align: "center" });
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(12);
-    pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
-    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
-    pdf.setFont("helvetica", "italic");
-    pdf.setTextColor(60, 60, 60);
-    pdf.text(
-      "Test Criterion: IRC §401(m)(2): The ACP test ensures that employer matching and employee after-tax contributions for HCEs are not disproportionately higher than for NHCEs.",
-      105,
-      38,
-      { align: "center", maxWidth: 180 }
-    );
-
-    pdf.autoTable({
-      startY: 48,
-      theme: "grid",
-      head: [["Metric", "Value"]],
-      body: [
-        ["Total Employees", totalEmployees],
-        ["Total Participants", totalParticipants],
-        ["HCE ACP (%)", hceAvg],
-        ["NHCE ACP (%)", nhceAvg],
-        ["Test Result", testResult],
-      ],
-      headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
-      styles: { fontSize: 12, font: "helvetica" },
-      margin: { left: 10, right: 10 },
-    });
-
-    if (finalAIText) {
-      pdf.autoTable({
-        startY: pdf.lastAutoTable.finalY + 10,
-        theme: "grid",
-        head: [["AI Corrective Actions (Powered by OpenAI)"]],
-        body: [[finalAIText]],
-        headStyles: { fillColor: [126, 34, 206], textColor: [255, 255, 255] },
-        styles: { fontSize: 11, font: "helvetica" },
-        margin: { left: 10, right: 10 },
-      });
+    if (!result) {
+      setError("❌ No results available to export.");
+      return;
     }
 
-    if (failed && !finalAIText) {
-      const correctiveActions = [
-        "Refund Excess Contributions to HCEs by March 15 to avoid penalties.",
-        "Make Additional Contributions to NHCEs via QNEC or QMAC.",
-        "Recharacterize Excess HCE Contributions as Employee Contributions.",
-      ];
-      const consequences = [
-        "Excess Contributions Must Be Refunded",
-        "IRS Penalties and Compliance Risks",
-        "Loss of Tax Benefits for HCEs",
-        "Plan Disqualification Risk",
-        "Employee Dissatisfaction & Legal Risks",
-      ];
-      pdf.autoTable({
-        startY: pdf.lastAutoTable.finalY + 10,
-        theme: "grid",
-        head: [["Corrective Actions"]],
-        body: correctiveActions.map((action) => [action]),
-        headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-        styles: { fontSize: 11, font: "helvetica" },
-        margin: { left: 10, right: 10 },
-      });
-      pdf.autoTable({
-        startY: pdf.lastAutoTable.finalY + 10,
-        theme: "grid",
-        head: [["Consequences"]],
-        body: consequences.map((c) => [c]),
-        headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
-        styles: { fontSize: 11, font: "helvetica" },
-        margin: { left: 10, right: 10 },
-      });
-    }
+    try {
+      const finalAIText = customAiReview !== undefined ? customAiReview : aiReview;
+      const totalEmployees = result?.["Total Employees"] || "N/A";
+      const totalParticipants = result?.["Total Participants"] || "N/A";
+      const hceAvg = result?.["HCE ACP (%)"] !== undefined ? `${result["HCE ACP (%)"]}%` : "N/A";
+      const nhceAvg = result?.["NHCE ACP (%)"] !== undefined ? `${result["NHCE ACP (%)"]}%` : "N/A";
+      const testResult = result?.["Test Result"] || "N/A";
+      const failed = testResult.toLowerCase() === "failed";
 
-    if (signature.trim()) {
-      const sigTime = new Date().toLocaleString();
+      const pdf = new jsPDF("p", "mm", "a4");
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(18);
+      pdf.text("ACP Test Results", 105, 15, { align: "center" });
       pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(10);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text(`Digital Signature: ${signature.trim()}`, 10, 280);
-      pdf.text(`Signed on: ${sigTime}`, 10, 285);
-    }
+      pdf.setFontSize(12);
+      pdf.text(`Plan Year: ${planYear}`, 105, 25, { align: "center" });
+      pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, 32, { align: "center" });
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(
+        "Test Criterion: IRC §401(m)(2): The ACP test ensures that employer matching and employee after-tax contributions for HCEs are not disproportionately higher than for NHCEs.",
+        105,
+        38,
+        { align: "center", maxWidth: 180 }
+      );
+
+      pdf.autoTable({
+        startY: 48,
+        theme: "grid",
+        head: [["Metric", "Value"]],
+        body: [
+          ["Total Employees", totalEmployees],
+          ["Total Participants", totalParticipants],
+          ["HCE ACP (%)", hceAvg],
+          ["NHCE ACP (%)", nhceAvg],
+          ["Test Result", testResult],
+        ],
+        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
+        styles: { fontSize: 12, font: "helvetica" },
+        margin: { left: 10, right: 10 },
+      });
+
+      if (finalAIText) {
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["AI Corrective Actions (Powered by OpenAI)"]],
+          body: [[finalAIText]],
+          headStyles: { fillColor: [126, 34, 206], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+      }
+
+      if (failed && !finalAIText) {
+        const correctiveActions = [
+          "Refund Excess Contributions to HCEs by March 15 to avoid penalties.",
+          "Make Additional Contributions to NHCEs via QNEC or QMAC.",
+          "Recharacterize Excess HCE Contributions as Employee Contributions.",
+        ];
+        const consequences = [
+          "Excess Contributions Must Be Refunded",
+          "IRS Penalties and Compliance Risks",
+          "Loss of Tax Benefits for HCEs",
+          "Plan Disqualification Risk",
+          "Employee Dissatisfaction & Legal Risks",
+        ];
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Corrective Actions"]],
+          body: correctiveActions.map((action) => [action]),
+          headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+        pdf.autoTable({
+          startY: pdf.lastAutoTable.finalY + 10,
+          theme: "grid",
+          head: [["Consequences"]],
+          body: consequences.map((c) => [c]),
+          headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
+          styles: { fontSize: 11, font: "helvetica" },
+          margin: { left: 10, right: 10 },
+        });
+      }
+
+      if (signature.trim()) {
+        const sigTime = new Date().toLocaleString();
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(10);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text(`Digital Signature: ${signature.trim()}`, 10, 280);
+        pdf.text(`Signed on: ${sigTime}`, 10, 285);
+      }
 
       pdf.setFont("helvetica", "italic");
       pdf.setFontSize(10);
@@ -366,69 +381,52 @@ async function checkAccessToTestWithRetry(retries = 3, delay = 1500) {
       pdf.save(downloadFileName);
 
       const pdfBlob = pdf.output("blob");
-     await savePdfResultToFirebase({
-      fileName: downloadFileName,
-      pdfBlob,
-      additionalData: {
-        planYear,
-        testResult,
-        aiConsent: {
-          agreed: !!signature.trim(),
-          signature: signature.trim(),
-          timestamp: new Date().toISOString(),
+      await savePdfResultToFirebase({
+        fileName: downloadFileName,
+        pdfBlob,
+        additionalData: {
+          planYear,
+          testResult,
+          aiConsent: {
+            agreed: !!signature.trim(),
+            signature: signature.trim(),
+            timestamp: new Date().toISOString(),
+          },
         },
-      },
-    });
-
-    // 🔐 Attempt to lock the test after saving
-    try {
-      console.log("🔐 Attempting to lock test", { userId, testId });
-      const response = await axios.post(`${API_URL}/api/lock-test`, {
-        userId,
-        testId,
       });
-      console.log("✅ Lock test response:", response.data);
-    } catch (lockError) {
-      console.error("❌ Lock test failed:", lockError.message);
-      setError(`❌ Failed to lock test: ${lockError.message}`);
+    } catch (error) {
+      setError(`❌ ${error.message}`);
     }
-
-    setAccessStatus("not-purchased");
-  } catch (error) {
-    setError(`❌ ${error.message}`);
-  }
-};
+  };
 
   const handleRunAIReview = async () => {
-  if (!result || !result.acp_summary) {
-    setError("❌ No test summary available for AI review.");
-    return;
-  }
-  if (!consentChecked || !signature.trim()) {
-    setShowConsentModal(true);
-    return;
-  }
-  setLoading(true);
-  try {
-    await saveAIReviewConsent({
-      fileName: "ACP Test",
-      signature: signature.trim(),
-    });
-    const response = await axios.post(`${API_URL}/api/ai-review`, {
-      testType: "ACP",
-      testData: result.acp_summary,
-      signature: signature.trim(),
-    });
-    const aiText = response.data.analysis;
-    setAiReview(aiText);
-    await exportToPDF(aiText);
-    setAccessStatus("not-purchased");
-  } catch (error) {
-    setError(`❌ Error during AI review or test removal: ${error.message}`);
-  }
-  setLoading(false);
-};
-
+    if (!result || !result.acp_summary) {
+      setError("❌ No test summary available for AI review.");
+      return;
+    }
+    if (!consentChecked || !signature.trim()) {
+      setShowConsentModal(true);
+      return;
+    }
+    setLoading(true);
+    try {
+      await saveAIReviewConsent({
+        fileName: "ACP Test",
+        signature: signature.trim(),
+      });
+      const response = await axios.post(`${API_URL}/api/ai-review`, {
+        testType: "ACP",
+        testData: result.acp_summary,
+        signature: signature.trim(),
+      });
+      const aiText = response.data.analysis;
+      setAiReview(aiText);
+      await exportToPDF(aiText);
+    } catch (error) {
+      setError(`❌ Error during AI review: ${error.message}`);
+    }
+    setLoading(false);
+  };
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && file && !loading) {
@@ -438,14 +436,23 @@ async function checkAccessToTestWithRetry(retries = 3, delay = 1500) {
     }
   };
 
-  // ---------- Conditional Rendering ----------
-if (accessStatus === "used") {
-  return <ACPTestBlockedView addToCart={addToCart} testId="acpTest" />;
-}
-  // ---------- Render ACP Test Content if Access Granted ----------
+  // Conditional Rendering Based on Access Status
+  if (accessStatus === "loading") {
+    return (
+      <div className="max-w-[475px] mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200">
+        <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">Loading...</h2>
+      </div>
+    );
+  }
+
+  if (accessStatus === "not-purchased") {
+    return <ACPTestBlockedView addToCart={addToCart} testId="acpTest" />;
+  }
+
+  // Render ACP Test Content if Access Granted
   return (
     <div
-      className="max-w-lg mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
+      className="max-w-[565px] mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg border border-gray-200"
       onKeyDown={handleKeyDown}
       tabIndex="0"
     >
@@ -531,150 +538,135 @@ if (accessStatus === "used") {
 
       {result && (
         <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
-          {/* Detailed Test Summary */}
-          {result?.acp_summary && (
-            <div className="mt-4 p-4 bg-gray-100 border border-gray-300 rounded-md">
-              <h4 className="font-bold text-lg text-gray-700 mb-2">
-                Detailed ACP Test Summary
-              </h4>
-              <div className="mb-4 flex justify-between items-center">
-                <p>
-                  <strong>Plan Year:</strong>{" "}
-                  <span className="text-blue-600">{planYear || "N/A"}</span>
-                </p>
-                <p>
-                  <strong>Test Result:</strong>{" "}
-                  <span
-                    className={`px-2 py-1 rounded-md font-semibold ${
-                      result["Test Result"] === "Passed"
-                        ? "bg-green-500 text-white"
-                        : "bg-red-500 text-white"
-                    }`}
-                  >
-                    {result["Test Result"] || "N/A"}
-                  </span>
-                </p>
-              </div>
-              <ul className="list-disc list-inside text-gray-800 mt-2">
-                <li>
-                  <strong>Total Employees:</strong>{" "}
-                  {result["Total Employees"] ?? "N/A"}
-                </li>
-                <li>
-                  <strong>Total Participants:</strong>{" "}
-                  {result["Total Participants"] ?? "N/A"}
-                </li>
-                <li>
-                  <strong>Number of HCEs:</strong>{" "}
-                  {result.acp_summary.num_hces}
-                </li>
-                <li>
-                  <strong>Number of NHCEs:</strong>{" "}
-                  {result.acp_summary.num_nhces}
-                </li>
-                <li>
-                  <strong>HCE Average Contribution:</strong>{" "}
-                  {result.acp_summary.hce_avg_contribution}%
-                </li>
-                <li>
-                  <strong>NHCE Average Contribution:</strong>{" "}
-                  {result.acp_summary.nhce_avg_contribution}%
-                </li>
-                <li>
-                  <strong>Required Ratio (1.25 x NHCE):</strong>{" "}
-                  {result.acp_summary.required_ratio}%
-                </li>
-                <li>
-                  <strong>Actual HCE Contribution:</strong>{" "}
-                  {result.acp_summary.actual_ratio}%
-                </li>
-              </ul>
-            </div>
-          )}
-
-          {/* AI Review Section */}
-          {result?.acp_summary && (
-            <div className="mt-6">
-              <button
-                onClick={handleRunAIReview}
-                disabled={loading}
-                className={`w-full px-4 py-2 text-white rounded-md ${
-                  loading ? "bg-purple-500 animate-pulse" : "bg-purple-500 hover:bg-purple-600"
-                }`}
+          <h2 className="text-xl font-bold text-gray-700 mb-2">Detailed ACP Test Summary</h2>
+         <div className="flex justify-between items-center">
+            <span>
+               <strong>Plan Year:</strong> {planYear}
+            </span>
+            <span>
+               <strong>Test Result:</strong>{" "}
+            <span
+                className={`px-2 py-1 rounded text-white ${
+                result["Test Result"]?.toLowerCase() === "passed"
+                ? "bg-green-500"
+                : "bg-red-500"
+              }`}
               >
-                {loading ? "Processing AI Review..." : "Run AI Review"}
-              </button>
-            </div>
-          )}
-
-          {/* Display AI Review Results */}
-          {aiReview && (
-            <div className="mt-2 p-4 bg-indigo-50 border border-indigo-300 rounded-md">
-              <h4 className="font-bold text-indigo-700">
-                AI Corrective Actions (Powered by OpenAI):
-              </h4>
-              <p className="text-indigo-900">{aiReview}</p>
-            </div>
-          )}
-
-          {/* Export & Download Buttons */}
-          <div className="flex flex-col gap-2 mt-2">
-            <button
-              onClick={() => exportToPDF()}
-              className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
-            >
-              Export PDF Results
-            </button>
-            <button
-              onClick={downloadResultsAsCSV}
-              className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
-            >
-              Download CSV Results
-            </button>
+            {result?.["Test Result"] ?? "N/A"}
+              </span>
+            </span>
           </div>
 
-          {/* Additional info for failed test */}
-          {result["Test Result"] &&
-            result["Test Result"].toLowerCase() === "failed" && (
-              <>
-                <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
-                  <h4 className="font-bold text-black-600">
-                    Corrective Actions:
-                  </h4>
-                  <ul className="list-disc list-inside text-black-600">
-                    <li>
-                      Refund Excess Contributions to HCEs by March 15 to avoid penalties.
-                    </li>
-                    <br />
-                    <li>
-                      Make Additional Contributions to NHCEs via QNEC or QMAC.
-                    </li>
-                    <br />
-                    <li>
-                      Recharacterize Excess HCE Contributions as Employee Contributions.
-                    </li>
-                  </ul>
-                </div>
+          <h3 className="font-semibold text-gray-700 mt-4">Employee Counts</h3>
+          <ul className="list-disc list-inside mt-2">
+            <li><strong>Total Employees:</strong> {result["Total Employees"] ?? "N/A"}</li>
+            <li><strong>Total Eligible Employees:</strong> {result["Total Eligible Employees"] ?? "N/A"}</li>
+            <li><strong>Total Participants:</strong> {result["Total Participants"] ?? "N/A"}</li>
+            <li><strong>HCE Eligible:</strong> {result["HCE Eligible"] ?? "N/A"}</li>
+            <li><strong>HCE Participants:</strong> {result["HCE Participants"] ?? "N/A"}</li>
+            <li><strong>NHCE Eligible:</strong> {result["NHCE Eligible"] ?? "N/A"}</li>
+            <li><strong>NHCE Participants:</strong> {result["NHCE Participants"] ?? "N/A"}</li>
+          </ul>
 
-                <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
-                  <h4 className="font-bold text-black-600">
-                    Consequences:
-                  </h4>
-                  <ul className="list-disc list-inside text-black-600">
-                    <li>Excess Contributions Must Be Refunded</li>
-                    <br />
-                    <li>IRS Penalties and Compliance Risks</li>
-                    <br />
-                    <li>Loss of Tax Benefits for HCEs</li>
-                    <br />
-                    <li>Plan Disqualification Risk</li>
-                    <br />
-                    <li>Employee Dissatisfaction &amp; Legal Risks</li>
-                  </ul>
-                </div>
-              </>
-            )}
+          <h3 className="font-semibold text-gray-700 mt-4">Test Results</h3>
+          <ul className="list-disc list-inside mt-2">
+            <li><strong>HCE ACP:</strong> {result["HCE ACP (%)"] ?? "N/A"}%</li>
+            <li><strong>NHCE ACP:</strong> {result["NHCE ACP (%)"] ?? "N/A"}%</li>
+            <li><strong>Test Criterion:</strong> {result["Test Criterion"] ?? "N/A"}</li>
+          </ul>
+
+          <h3 className="font-semibold text-gray-700 mt-4">Breakdown</h3>
+          <ul className="list-disc list-inside mt-2">
+            <li><strong>HCE Contribution Sum:</strong> ${result?.Breakdown?.["HCE Contribution Sum"]?.toLocaleString() ?? "N/A"}</li>
+            <li><strong>HCE Compensation Sum:</strong> ${result?.Breakdown?.["HCE Compensation Sum"]?.toLocaleString() ?? "N/A"}</li>
+            <li><strong>NHCE Contribution Sum:</strong> ${result?.Breakdown?.["NHCE Contribution Sum"]?.toLocaleString() ?? "N/A"}</li>
+            <li><strong>NHCE Compensation Sum:</strong> ${result?.Breakdown?.["NHCE Compensation Sum"]?.toLocaleString() ?? "N/A"}</li>
+          </ul>
+
+          <h3 className="font-semibold text-gray-700 mt-4">Excluded Participants</h3>
+          <ul className="list-disc list-inside mt-2">
+            <li><strong>No Plan Entry Date:</strong> {result?.["Excluded Participants"]?.["No Plan Entry Date"] ?? 0}</li>
+            <li><strong>After Plan Year:</strong> {result?.["Excluded Participants"]?.["After Plan Year"] ?? 0}</li>
+            <li><strong>Excluded Manually:</strong> {result?.["Excluded Participants"]?.["Excluded Manually"] ?? 0}</li>
+            <li><strong>Union Employees:</strong> {result?.["Excluded Participants"]?.["Union Employees"] ?? 0}</li>
+            <li><strong>Part-Time/Seasonal:</strong> {result?.["Excluded Participants"]?.["Part-Time/Seasonal"] ?? 0}</li>
+            <li><strong>Terminated/Inactive:</strong> {result?.["Excluded Participants"]?.["Terminated/Inactive"] ?? 0}</li>
+          </ul>
         </div>
+      )}
+
+      {/* AI Review Section */}
+      {result?.acp_summary && (
+        <div className="mt-6">
+          <button
+            onClick={handleRunAIReview}
+            disabled={loading}
+            className={`w-full px-4 py-2 text-white rounded-md ${
+              loading ? "bg-purple-500 animate-pulse" : "bg-purple-500 hover:bg-purple-600"
+            }`}
+          >
+            {loading ? "Processing AI Review..." : "Run AI Review"}
+          </button>
+        </div>
+      )}
+
+      {/* Display AI Review Results */}
+      {aiReview && (
+        <div className="mt-2 p-4 bg-indigo-50 border border-indigo-300 rounded-md">
+          <h4 className="font-bold text-indigo-700">
+            AI Corrective Actions (Powered by OpenAI):
+          </h4>
+          <p className="text-indigo-900">{aiReview}</p>
+        </div>
+      )}
+
+      {/* Export & Download Buttons */}
+      {result && (
+        <div className="flex flex-col gap-2 mt-2">
+          <button
+            onClick={() => exportToPDF()}
+            className="w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+          >
+            Export PDF Results
+          </button>
+          <button
+            onClick={downloadResultsAsCSV}
+            className="w-full px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md"
+          >
+            Download CSV Results
+          </button>
+        </div>
+      )}
+
+      {/* Additional Info for Failed Test */}
+      {result && result["Test Result"]?.toLowerCase() === "failed" && (
+        <>
+          <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
+            <h4 className="font-bold text-black-600">Corrective Actions:</h4>
+            <ul className="list-disc list-inside text-black-600">
+              <li>Refund Excess Contributions to HCEs by March 15 to avoid penalties.</li>
+              <br />
+              <li>Make Additional Contributions to NHCEs via QNEC or QMAC.</li>
+              <br />
+              <li>Recharacterize Excess HCE Contributions as Employee Contributions.</li>
+            </ul>
+          </div>
+
+          <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
+            <h4 className="font-bold text-black-600">Consequences:</h4>
+            <ul className="list-disc list-inside text-black-600">
+              <li>Excess Contributions Must Be Refunded</li>
+              <br />
+              <li>IRS Penalties and Compliance Risks</li>
+              <br />
+              <li>Loss of Tax Benefits for HCEs</li>
+              <br />
+              <li>Plan Disqualification Risk</li>
+              <br />
+              <li>Employee Dissatisfaction & Legal Risks</li>
+            </ul>
+          </div>
+        </>
       )}
 
       {/* Consent Modal for AI Review */}
@@ -736,7 +728,6 @@ if (accessStatus === "used") {
         </Modal>
       )}
     </div>
-  
   );
 };
 
