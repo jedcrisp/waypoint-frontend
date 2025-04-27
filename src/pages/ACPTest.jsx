@@ -555,7 +555,7 @@ const ACPTest = () => {
       {aiReview && (
         <div className="mt-2 p-4 bg-indigo-50 border border-indigo-300 rounded-md">
           <h4 className="font-bold text-indigo-700">
-            AI Corrective Actions (Powered by OpenAI):
+            AI Corrective Actions:
           </h4>
           <p className="text-indigo-900">{aiReview}</p>
         </div>
@@ -605,7 +605,7 @@ const ACPTest = () => {
       {showConsentModal && (
         <Modal title="AI Review Consent" onClose={() => setShowConsentModal(false)}>
           <p className="mb-4 text-sm text-gray-700">
-            By proceeding, you acknowledge that any uploaded data may contain PII and you authorize its redaction and analysis using OpenAI’s language model. This is strictly for suggesting corrective actions.
+            By proceeding, you acknowledge that any uploaded data may contain PII and you authorize its redaction and analysis using an AI language model. This is strictly for suggesting corrective actions.
           </p>
           <div className="mb-3 flex items-center">
             <input
@@ -616,7 +616,7 @@ const ACPTest = () => {
               className="mr-2"
             />
             <label htmlFor="consent" className="text-sm text-gray-700">
-              I agree to the processing and redaction of PII through OpenAI.
+              I agree to the processing and redaction of PII through AI.
             </label>
           </div>
           <div className="mb-3">
