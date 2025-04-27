@@ -1,4 +1,3 @@
-
 import React, { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -54,18 +53,18 @@ const Home = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0074d9] flex flex-col items-center py-16 px-6">
+    <div className="min-h-screen bg-[#0074d9] flex flex-col items-center py-8 px-6">
       <h1 className="text-5xl font-light text-white mb-4 text-center">
         Comprehensive NDT's
       </h1>
       <p className="text-lg text-white text-center max-w-2xl mb-8">
         Explore our full range of compliance tests. Click "View Tests" to see tests in each category.
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-7xl">
+      <div className="flex justify-center w-full max-w-7xl">
         {sections.map((section) => (
           <div
             key={section.title}
-            className="bg-white rounded-lg shadow p-8 flex flex-col items-center text-center h-full"
+            className="bg-white rounded-lg shadow p-8 flex flex-col items-center text-center w-full max-w-md"
           >
             {section.icon}
             <h2 className="text-2xl font-semibold text-[#0074d9] mb-4">
