@@ -11,11 +11,11 @@ const dashboardItems = [
   { title: "Account", route: "/account", description: "Manage your profile and settings", icon: User },
   { title: "Tests", route: "/home", description: "Start or continue available nondiscrimination tests", icon: FileText },
   { title: "Test History", route: "/test-history", description: "View saved and past test results", icon: History },
-  { title: "Test Info", route: "/test-info", description: "Overview of test types and their use", icon: BookOpen },
+  //{ title: "Test Info", route: "/test-info", description: "Overview of test types and their use", icon: BookOpen },
   { title: "CSV Builder", route: "/csv-builder", description: "Map and export formatted CSVs for tests", icon: FileCog },
   { title: "About", route: "/about", description: "Learn more about this platform", icon: Info },
   { title: "Security", route: "/security", description: "Update password and secure your account", icon: Shield },
-  { title: "Contact", route: "/contact", description: "Get in touch with support", icon: Mail },
+  //{ title: "Contact", route: "/contact", description: "Get in touch with support", icon: Mail },
 ];
 
 export default function Dashboard() {
