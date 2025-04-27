@@ -4,12 +4,12 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../firebase"; // Adjust the path if needed
 import { useCart } from "../contexts/CartContext";
 import { ArrowLeft, ShoppingCart, LayoutDashboard, LogOut } from "lucide-react";
-  
+
 export default function Navbar() {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Listen for authentication state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -17,7 +17,7 @@ export default function Navbar() {
     });
     return () => unsubscribe();
   }, []);
-  
+
   // Handle sign-out
   const handleSignOut = async () => {
     try {
@@ -27,10 +27,10 @@ export default function Navbar() {
       console.error("Error signing out:", error);
     }
   };
-  
+
   // Get cart data from CartContext
   const { cartItems } = useCart();
-  
+
   // Determine if the current route qualifies as a special test page.
   const isSpecialTestPage =
     location.pathname.includes("/account") ||
@@ -40,7 +40,7 @@ export default function Navbar() {
     location.pathname.includes("/faq") ||
     location.pathname.includes("/dashboard") ||
     location.pathname.includes("/unauthorized") ||
-    location.pathname.includes("/cart") ||
+    //location.pathname.includes("/cart") ||
     location.pathname.includes("/security") ||
     location.pathname.includes("/test-history") ||
     location.pathname.includes("/dcap-tests") ||
@@ -81,13 +81,13 @@ export default function Navbar() {
     location.pathname.includes("/test-hra-25-owner-rule") ||
     location.pathname.includes("/test-adp-safe-harbor") ||
     location.pathname.includes("/test-average-benefit");
-  
+
   const navbarBgColor = isSpecialTestPage ? "#0074d9" : "white";
   const textColor = isSpecialTestPage ? "text-white" : "text-black";
-  
+
   // Show the back button only if on a special page and not on the dashboard route
   const showBackButton = isSpecialTestPage && !location.pathname.startsWith("/dashboard");
-  
+
   return (
     <nav
       className="shadow-md py-4 px-8 flex justify-between items-center relative"
@@ -97,7 +97,7 @@ export default function Navbar() {
       <h1 className={`text-lg font-semibold ${textColor}`}>
         Waypoint
       </h1>
-  
+
       {/* Center: Back Button (if applicable) */}
       {showBackButton && (
         <div className="absolute left-1/2 transform -translate-x-1/2">
@@ -110,7 +110,7 @@ export default function Navbar() {
           </button>
         </div>
       )}
-  
+
       {/* Right: Dashboard, Cart, and Sign Out */}
       <div className="flex items-center space-x-4">
         <button
@@ -119,7 +119,8 @@ export default function Navbar() {
         >
           <LayoutDashboard className="w-5 h-5 mr-1" />
         </button>
-        <button
+        {/* Commented out the cart button to hide it, but kept the logic intact */}
+        {/* <button
           onClick={() => navigate("/cart")}
           className={`relative flex items-center ${textColor} hover:text-gray-300`}
         >
@@ -129,7 +130,7 @@ export default function Navbar() {
               {cartItems.length}
             </span>
           )}
-        </button>
+        </button> */}
         <button
           onClick={handleSignOut}
           className={`flex items-center ${textColor} hover:text-gray-300`}
