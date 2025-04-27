@@ -1,4 +1,4 @@
-import React, { useState, Fragment } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import {
   getAuth,
   EmailAuthProvider,
@@ -33,6 +33,14 @@ const Security = () => {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
+
+  // Detect if we're on the demo subdomain
+  useEffect(() => {
+    const hostname = window.location.hostname;
+    const subdomain = hostname.split(".")[0];
+    setIsDemo(subdomain === "demo");
+  }, []);
 
   const passwordMeetsRequirements = (password) => {
     const regex =
@@ -44,6 +52,11 @@ const Security = () => {
     setShowPasswordConfirm(false);
     setError(null);
     setMessage(null);
+
+    if (isDemo) {
+      setError("Password updates are disabled in demo mode.");
+      return;
+    }
 
     if (!user) {
       setError("User is not signed in.");
@@ -96,6 +109,11 @@ const Security = () => {
     setError(null);
     setMessage(null);
 
+    if (isDemo) {
+      setError("Email updates are disabled in demo mode.");
+      return;
+    }
+
     if (!user || !user.email) {
       setError("User is not signed in or email is missing.");
       return;
@@ -138,6 +156,10 @@ const Security = () => {
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            if (isDemo) {
+              setError("Password updates are disabled in demo mode.");
+              return;
+            }
             setShowPasswordConfirm(true);
           }}
           className="space-y-4"
@@ -150,11 +172,13 @@ const Security = () => {
               onChange={(e) => setCurrentPassword(e.target.value)}
               className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-md"
               required
+              disabled={isDemo}
             />
             <button
               type="button"
               onClick={() => setShowCurrentPassword(!showCurrentPassword)}
               className="absolute right-3 top-9 text-gray-500"
+              disabled={isDemo}
             >
               {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -168,11 +192,13 @@ const Security = () => {
               onChange={(e) => setNewPassword(e.target.value)}
               className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-md"
               required
+              disabled={isDemo}
             />
             <button
               type="button"
               onClick={() => setShowNewPassword(!showNewPassword)}
               className="absolute right-3 top-9 text-gray-500"
+              disabled={isDemo}
             >
               {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -186,11 +212,13 @@ const Security = () => {
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-md"
               required
+              disabled={isDemo}
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               className="absolute right-3 top-9 text-gray-500"
+              disabled={isDemo}
             >
               {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -198,9 +226,9 @@ const Security = () => {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || isDemo}
             className={`w-full px-4 py-2 text-white rounded-md ${
-              loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+              loading || isDemo ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
             }`}
           >
             {loading ? "Updating..." : "Update Password"}
@@ -217,6 +245,10 @@ const Security = () => {
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            if (isDemo) {
+              setError("Email updates are disabled in demo mode.");
+              return;
+            }
             setShowEmailConfirm(true);
           }}
           className="space-y-4"
@@ -229,6 +261,7 @@ const Security = () => {
               onChange={(e) => setNewEmail(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-md"
               required
+              disabled={isDemo}
             />
           </div>
 
@@ -240,11 +273,13 @@ const Security = () => {
               onChange={(e) => setEmailCurrentPassword(e.target.value)}
               className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-md"
               required
+              disabled={isDemo}
             />
             <button
               type="button"
               onClick={() => setShowEmailCurrentPassword(!showEmailCurrentPassword)}
               className="absolute right-3 top-9 text-gray-500"
+              disabled={isDemo}
             >
               {showEmailCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -252,9 +287,9 @@ const Security = () => {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || isDemo}
             className={`w-full px-4 py-2 text-white rounded-md ${
-              loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+              loading || isDemo ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
             }`}
           >
             {loading ? "Updating..." : "Update Email"}
