@@ -3,7 +3,7 @@ import Joyride, { ACTIONS, EVENTS, STATUS } from "react-joyride";
 
 const steps = [
   {
-    target: ".test-dropdown",
+    target: ".test-dropdown-select",
     content: "Select a test to begin building your CSV.",
     event: "click",
     placement: "bottom",
@@ -21,6 +21,15 @@ const steps = [
     disableCloseOnEsc: false,
   },
   {
+  target: ".download-blank-template-button",
+  content: "Click here to download a completely blank CSV template for chosen test’s headers—no mapping needed!",
+  event: "click",
+  placement: "bottom",
+  offset: 10,
+  disableBeacon: true,
+  disableCloseOnEsc: false,
+},
+  {
     target: ".file-uploader",
     content: "Upload your CSV file here.",
     event: "click",
@@ -32,15 +41,6 @@ const steps = [
   {
     target: ".header-mapper",
     content: "Map your CSV headers to the required fields.",
-    event: "click",
-    placement: "bottom",
-    offset: 10,
-    disableBeacon: true,
-    disableCloseOnEsc: false,
-  },
-  {
-    target: ".preview-data-button",
-    content: "Preview your data after mapping the headers.",
     event: "click",
     placement: "bottom",
     offset: 10,
@@ -78,7 +78,6 @@ const CSVBuilderTour = ({ run, callback }) => {
       }}
       continuous
       showProgress
-      showSkipButton
       styles={{
         options: {
           zIndex: 10000,
