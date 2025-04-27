@@ -6,6 +6,7 @@ import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { savePdfResultToFirebase, saveAIReviewConsent } from "../utils/firebaseTestSaver";
 import Modal from "../components/Modal";
+import { useNavigate } from "react-router-dom"; // Added for routing
 
 const ADPTest = () => {
   // ----- State -----
@@ -21,6 +22,7 @@ const ADPTest = () => {
   const [normalPdfExported, setNormalPdfExported] = useState(false);
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
+  const navigate = useNavigate(); // Added for routing
 
   // ---------- Formatting Helpers ----------
   const formatCurrency = (value) => {
@@ -122,35 +124,14 @@ const ADPTest = () => {
     }
   };
 
-  // ----- 3. Download CSV Template -----
-  const downloadCSVTemplate = () => {
-    const csvTemplate = [
-      [
-        "Last Name", "First Name", "Employee ID", "Compensation", "Employee Deferral", 
-        "HCE", "Plan Entry Date", "Excluded from Test", "DOB", "DOH",
-        "Employment Status", "Union Employee", "Part-Time / Seasonal", "Ownership %", "Family Relationship", "Family Member"
-      ],
-      ["Doe", "John", "E001", 200000, 23500, "Yes", "2010-01-01", "No", "1980-04-12", "2010-01-01", "Active", "No", "No", "5", "spouse", "Jane Doe"],
-      ["Doe", "Jane", "E002", 180000, 18000, "No", "2012-01-01", "No", "1985-03-22", "2012-05-30", "Active", "No", "No", "0", "", ""],
-      ["Smith", "Alice", "E003", 300000, 23500, "Yes", "2005-08-01", "No", "1975-07-12", "2005-08-01", "Active", "No", "No", "10", "child", "Bob Smith"],
-      ["Smith", "Bob", "E004", 50000, 5000, "No", "2021-04-05", "No", "1992-10-19", "2021-04-05", "Active", "No", "No", "0", "", ""],
-      ["Johnson", "Mark", "E005", 250000, 23500, "Yes", "2008-07-20", "No", "1983-06-14", "2008-07-20", "Active", "No", "No", "20", "", ""],
-      ["Williams", "Sarah", "E006", 60000, 0, "No", "2022-09-01", "Yes", "1998-12-05", "2022-09-01", "Terminated", "No", "No", "0", "", ""],
-      ["Brown", "Tom", "E007", 80000, 8000, "No", "2018-03-15", "No", "1990-09-09", "2018-03-15", "Leave", "No", "No", "0", "", ""],
-      ["Lee", "Emily", "E008", 220000, 22000, "Yes", "2003-02-10", "No", "1978-04-25", "2003-02-10", "Active", "No", "No", "15", "parent", "Mark Johnson"],
-      ["Davis", "Chris", "E009", 45000, 4500, "No", "2023-01-05", "No", "1995-11-11", "2023-01-05", "Active", "No", "No", "0", "", ""],
-      ["Clark", "Lisa", "E010", 270000, 23500, "Yes", "2011-06-30", "No", "1982-02-02", "2011-06-30", "Active", "No", "No", "8", "", ""],
-    ]
-      .map((row) => row.join(","))
-      .join("\n");
-    const blob = new Blob([csvTemplate], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "ADP Template.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // ----- 3. Route to CSV Builder -----
+  const routeToCsvBuilder = () => {
+    navigate("/csv-builder", {
+      state: {
+        selectedTest: "adp",
+        planYear: planYear || new Date().getFullYear().toString(),
+      },
+    });
   };
 
   // ----- 4. Download Results as CSV -----
@@ -276,7 +257,7 @@ const ADPTest = () => {
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
-          head: [["AI Corrective Actions"]],
+          head: [["AI Corrective Actions (Powered by OpenAI)"]],
           body: [[finalAIText]],
           headStyles: { fillColor: [126, 34, 206], textColor: [255, 255, 255] },
           styles: { fontSize: 11, font: "helvetica" },
@@ -447,7 +428,7 @@ const ADPTest = () => {
 
       {/* Download CSV Template Button */}
       <button
-        onClick={downloadCSVTemplate}
+        onClick={routeToCsvBuilder}
         className="mt-4 w-full px-4 py-2 text-white bg-gray-500 hover:bg-gray-600 rounded-md"
       >
         Download CSV Template
@@ -546,7 +527,7 @@ const ADPTest = () => {
       {aiReview && (
         <div className="mt-2 p-4 bg-indigo-50 border border-indigo-300 rounded-md">
           <h4 className="font-bold text-indigo-700">
-            AI Corrective Actions:
+            AI Corrective Actions (Powered by OpenAI):
           </h4>
           <p className="text-indigo-900">{aiReview}</p>
         </div>
@@ -596,7 +577,7 @@ const ADPTest = () => {
       {showConsentModal && (
         <Modal title="AI Review Consent" onClose={() => setShowConsentModal(false)}>
           <p className="mb-4 text-sm text-gray-700">
-            By proceeding, you acknowledge that any uploaded data may contain PII and you authorize its redaction and analysis using an AI language model. This is strictly for suggesting corrective actions.
+            By proceeding, you acknowledge that any uploaded data may contain PII and you authorize its redaction and analysis using OpenAI’s language model. This is strictly for suggesting corrective actions.
           </p>
           <div className="mb-3 flex items-center">
             <input
@@ -607,7 +588,7 @@ const ADPTest = () => {
               className="mr-2"
             />
             <label htmlFor="consent" className="text-sm text-gray-700">
-              I agree to the processing and redaction of PII through AI.
+              I agree to the processing and redaction of PII through OpenAI.
             </label>
           </div>
           <div className="mb-3">
