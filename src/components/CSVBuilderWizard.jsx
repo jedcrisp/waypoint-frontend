@@ -58,17 +58,17 @@ const TEST_TYPE_MAP = {
 };
 
 const TEST_ROUTE_MAP = {
-  "ADP Test": "/adp-test",
-  "ACP Test": "/acp-test",
-  "Top Heavy Test": "/top-heavy-test",
-  "Average Benefit Test": "/average-benefit-test",
-  "Coverage Test": "/coverage-test",
+  "ADP Test": "/test-adp",
+  "ACP Test": "/test-acp-standard",
+  "Top Heavy Test": "/test-top-heavy",
+  "Average Benefit Test": "/test-average-benefit",
+  "Coverage Test": "/test-coverage",
 };
 
-// Create test options including a "Select All" option
 const TEST_OPTIONS = [
-  { value: "select-all", label: "Select All" }, // Added "Select All" option
+  { value: "select-all", label: "Select All" },
   ...Object.entries(TEST_TYPE_MAP).map(([label, value]) => ({
+   postalAddress: null,
     value,
     label,
   })),
@@ -101,12 +101,13 @@ export default function CSVBuilderWizard() {
   const [isTestListOpen, setIsTestListOpen] = useState(false);
   const [autoGenerateHCE, setAutoGenerateHCE] = useState(false);
   const [autoGenerateKeyEmployee, setAutoGenerateKeyEmployee] = useState(false);
+  const [isFileUploaded, setIsFileUploaded] = useState(false);
 
   const dropdownRef = useRef(null);
+  const fileInputRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Pre-select test and plan year from navigation state
   useEffect(() => {
     if (location.state) {
       const { selectedTest, planYear: incomingPlanYear } = location.state;
@@ -119,7 +120,6 @@ export default function CSVBuilderWizard() {
     }
   }, [location.state]);
 
-  // Initialize suggestedMap and columnMap with required headers when selectedTests changes
   useEffect(() => {
     if (selectedTests.length > 0) {
       const testLabels = selectedTests.map(value =>
@@ -132,7 +132,7 @@ export default function CSVBuilderWizard() {
 
       const autoMap = {};
       headers.forEach(header => {
-        autoMap[header] = header;
+        autoMap[header] = undefined;
       });
       autoMap.autoHCE = autoGenerateHCE;
       autoMap.autoKey = autoGenerateKeyEmployee;
@@ -153,27 +153,6 @@ export default function CSVBuilderWizard() {
     []
   );
 
-  function downloadBlankTemplate() {
-    const testLabels = selectedTests.map(value =>
-      Object.keys(TEST_TYPE_MAP).find(key => TEST_TYPE_MAP[key] === value) || ""
-    ).filter(Boolean);
-
-    const selectedHeaders = Array.from(
-      new Set(testLabels.flatMap(t => REQUIRED_HEADERS_BY_TEST[t] || []))
-    );
-
-    const headersToDownload = selectedHeaders.length > 0 ? selectedHeaders : [];
-
-    const csv = Papa.unparse([headersToDownload]);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute("download", "Waypoint_Blank_Template.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-
   const requiredHeaders = useMemo(() => {
     const testLabels = selectedTests.map(value => 
       Object.keys(TEST_TYPE_MAP).find(key => TEST_TYPE_MAP[key] === value) || ""
@@ -182,7 +161,7 @@ export default function CSVBuilderWizard() {
   }, [selectedTests]);
 
   const mandatoryHeaders = requiredHeaders.filter(h => h !== "HCE" && h !== "Key Employee");
-  const isDownloadEnabled = selectedTests.length > 0 && mandatoryHeaders.every(h => columnMap[h]);
+  const isDownloadEnabled = mandatoryHeaders.every(h => columnMap[h] && columnMap[h] !== "none");
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -230,7 +209,6 @@ export default function CSVBuilderWizard() {
       return out;
     });
     setMappedRows(processedRows);
-    console.log("Processed mappedRows:", processedRows);
     return processedRows;
   };
 
@@ -248,6 +226,7 @@ export default function CSVBuilderWizard() {
     });
     setOriginalRows(objRows);
     setRawHeaders(headers);
+    setIsFileUploaded(true);
     const norm = headers.map(h => ({ original: h, normalized: normalizeHeader(h) }));
     const autoMap = {};
     requiredHeaders.forEach(req => {
@@ -263,14 +242,27 @@ export default function CSVBuilderWizard() {
       if (match) {
         autoMap[req] = match.original;
       } else {
-        autoMap[req] = columnMap[req] || req;
+        autoMap[req] = undefined;
       }
     });
     autoMap.autoHCE = autoGenerateHCE;
     autoMap.autoKey = autoGenerateKeyEmployee;
     setSuggestedMap(autoMap);
     setColumnMap(autoMap);
-    console.log("Suggested columnMap:", autoMap);
+  }
+
+  function handleChangeFile() {
+    setRawHeaders([]);
+    setOriginalRows([]);
+    setMappedRows([]);
+    setSuggestedMap({});
+    setColumnMap({});
+    setIsFileUploaded(false);
+    setErrorMessage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
+    }
   }
 
   async function handlePreview() {
@@ -329,7 +321,6 @@ export default function CSVBuilderWizard() {
         return mappedRow;
       });
 
-      console.log("mappedRowsForUpload after mapping:", mappedRowsForUpload);
       const csv = Papa.unparse(mappedRowsForUpload);
       const blob = new Blob([csv], { type: "text/csv" });
 
@@ -339,17 +330,9 @@ export default function CSVBuilderWizard() {
         form.append("test_type", testValue);
         form.append("plan_year", parseInt(planYear, 10));
 
-        console.log("Sending request to /preview-csv with:", {
-          test_type: testValue,
-          plan_year: parseInt(planYear, 10),
-          file: form.get("file"),
-          token: token.substring(0, 10) + "...",
-        });
-
         const { data } = await axios.post(`${API_URL}/preview-csv`, form, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        console.log("Preview response:", data);
       }
     } catch (err) {
       console.error("Preview error:", err);
@@ -384,9 +367,13 @@ export default function CSVBuilderWizard() {
       return out;
     });
 
-    console.log("Rows for download:", rowsForDownload);
-    const csv = Papa.unparse(rowsForDownload, { header: true });
-    console.log("Generated CSV content:", csv);
+    const metadataRow = { PlanYear: planYear };
+    const csvData = [metadataRow, ...rowsForDownload];
+    const csv = Papa.unparse(csvData, { header: true });
+
+    // Store CSV in sessionStorage for auto-loading on test page
+    sessionStorage.setItem('newCSV', csv);
+
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -404,9 +391,17 @@ export default function CSVBuilderWizard() {
       const testValue = selectedTests[0];
       const testLabel = Object.keys(TEST_TYPE_MAP).find(key => TEST_TYPE_MAP[key] === testValue) || "";
       const route = TEST_ROUTE_MAP[testLabel];
+
       if (route) {
-        navigate(route);
+        navigate(route, { 
+          state: { loadNewCSV: true, planYear }, 
+          replace: false 
+        });
+      } else {
+        setErrorMessage("Failed to navigate to test page: Route not found.");
       }
+    } else {
+      setErrorMessage("Navigation failed: Please select exactly one test.");
     }
     setShowRoutePrompt(false);
   }
@@ -442,9 +437,7 @@ export default function CSVBuilderWizard() {
                   value={TEST_OPTIONS.filter(o => selectedTests.includes(o.value))}
                   onChange={(opts) => {
                     const newTests = opts.map(o => o.value);
-                    // Handle "Select All" option
                     if (newTests.includes("select-all")) {
-                      // Select all test options except "select-all"
                       const allTests = Object.values(TEST_TYPE_MAP);
                       setSelectedTests(allTests);
                       setRawHeaders([]);
@@ -452,14 +445,15 @@ export default function CSVBuilderWizard() {
                       setColumnMap({});
                       setMappedRows([]);
                       setErrorMessage(null);
+                      setIsFileUploaded(false);
                     } else {
-                      // Handle regular multi-select
                       setSelectedTests(newTests);
                       setRawHeaders([]);
                       setSuggestedMap({});
                       setColumnMap({});
                       setMappedRows([]);
                       setErrorMessage(null);
+                      setIsFileUploaded(false);
                     }
                   }}
                   isMulti
@@ -501,7 +495,20 @@ export default function CSVBuilderWizard() {
             </div>
 
             <div className="file-uploader">
-              <FileUploader onParse={handleParse} error={errorMessage} setError={setErrorMessage} />
+              <FileUploader 
+                onParse={handleParse} 
+                error={errorMessage} 
+                setError={setErrorMessage} 
+                fileInputRef={fileInputRef}
+              />
+              {isFileUploaded && (
+                <button
+                  onClick={handleChangeFile}
+                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Change File
+                </button>
+              )}
             </div>
 
             <div className="header-mapper">
@@ -547,7 +554,7 @@ export default function CSVBuilderWizard() {
                     autoGenerateKeyEmployee={autoGenerateKeyEmployee}
                     canAutoGenerateKeyEmployee={() => !!columnMap.Compensation && !!columnMap["Ownership %"] && !!columnMap["Family Member"] && !!columnMap["Employment Status"]}
                     suggestedMap={suggestedMap}
-                    isFileUploaded={rawHeaders.length > 0}
+                    isFileUploaded={isFileUploaded}
                   />
                 </div>
               ) : (
@@ -566,7 +573,7 @@ export default function CSVBuilderWizard() {
             {showDownloadConfirm && (
               <ConfirmModal
                 title="Confirm Download"
-                message="Proceed?"
+                message="Wait! Confirm the correct Plan Year has been chosen?"
                 confirmLabel="Download"
                 cancelLabel="Cancel"
                 onConfirm={doDownload}
