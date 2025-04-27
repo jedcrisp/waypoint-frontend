@@ -68,7 +68,6 @@ const TEST_ROUTE_MAP = {
 const TEST_OPTIONS = [
   { value: "select-all", label: "Select All" },
   ...Object.entries(TEST_TYPE_MAP).map(([label, value]) => ({
-   postalAddress: null,
     value,
     label,
   })),
@@ -371,7 +370,6 @@ export default function CSVBuilderWizard() {
     const csvData = [metadataRow, ...rowsForDownload];
     const csv = Papa.unparse(csvData, { header: true });
 
-    // Store CSV in sessionStorage for auto-loading on test page
     sessionStorage.setItem('newCSV', csv);
 
     const blob = new Blob([csv], { type: "text/csv" });
@@ -404,6 +402,32 @@ export default function CSVBuilderWizard() {
       setErrorMessage("Navigation failed: Please select exactly one test.");
     }
     setShowRoutePrompt(false);
+  }
+
+  function downloadBlankTemplate() {
+    try {
+      const testLabels = selectedTests.map(value =>
+        Object.keys(TEST_TYPE_MAP).find(key => TEST_TYPE_MAP[key] === value) || ""
+      ).filter(Boolean);
+
+      const selectedHeaders = Array.from(
+        new Set(testLabels.flatMap(t => REQUIRED_HEADERS_BY_TEST[t] || []))
+      );
+
+      const headersToDownload = selectedHeaders.length > 0 ? selectedHeaders : [];
+
+      const csv = Papa.unparse([headersToDownload]);
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute("download", "Waypoint_Blank_Template.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error("Error in downloadBlankTemplate:", err);
+      setErrorMessage("Failed to download blank template. Please try again.");
+    }
   }
 
   return (
@@ -476,21 +500,26 @@ export default function CSVBuilderWizard() {
 
               <div className="flex gap-2 ml-auto">
                 <button
-                  onClick={downloadBlankTemplate}
+                  onClick={() => {
+                    if (typeof downloadBlankTemplate === "function") {
+                      downloadBlankTemplate();
+                    } else {
+                      console.error("downloadBlankTemplate is not defined");
+                      setErrorMessage("Failed to download blank template: Function not found.");
+                    }
+                  }}
                   className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 download-blank-template-button"
                 >
                   Download Blank Template
                 </button>
-                <button
-                  onClick={handleDownloadClick}
-                  disabled={!isDownloadEnabled}
-                  className={`px-4 py-2 rounded download-csv-button
-                    ${isDownloadEnabled
-                      ? 'bg-gray-600 text-white hover:bg-gray-700'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
-                >
-                  Download Mapped CSV
-                </button>
+                <DownloadActions
+                  isDownloadEnabled={isDownloadEnabled}
+                  onDownloadClick={handleDownloadClick}
+                  showDownloadConfirm={showDownloadConfirm}
+                  onConfirmDownload={doDownload}
+                  onCancelDownload={() => setShowDownloadConfirm(false)}
+                  className="download-csv-button"
+                />
               </div>
             </div>
 
@@ -504,7 +533,7 @@ export default function CSVBuilderWizard() {
               {isFileUploaded && (
                 <button
                   onClick={handleChangeFile}
-                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium"
                 >
                   Change File
                 </button>
@@ -568,18 +597,6 @@ export default function CSVBuilderWizard() {
               <div className="mt-4 p-4 bg-red-100 text-red-700 rounded error-message">
                 {errorMessage}
               </div>
-            )}
-
-            {showDownloadConfirm && (
-              <ConfirmModal
-                title="Confirm Download"
-                message="Wait! Confirm the correct Plan Year has been chosen?"
-                confirmLabel="Download"
-                cancelLabel="Cancel"
-                onConfirm={doDownload}
-                onCancel={() => setShowDownloadConfirm(false)}
-                className="download-confirm-modal"
-              />
             )}
 
             {showPostDownload && (
