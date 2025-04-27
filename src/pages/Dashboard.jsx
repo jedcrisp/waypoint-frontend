@@ -48,6 +48,14 @@ export default function Dashboard() {
           </motion.div>
         ))}
       </div>
+      
+     // {/* Purchased Tests Section */}
+      //{loading ? (
+       // <div>Loading your tests...</div>
+      //) : (
+        // Pass user.uid and the full list of tests to YourTests
+       // <YourTests userId={user?.uid} allTests={tests} />
+      //)}
     </div>
   );
 }
