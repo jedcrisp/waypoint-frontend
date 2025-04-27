@@ -282,7 +282,7 @@ const ACPTest = () => {
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
-          head: [["AI Corrective Actions (Powered by OpenAI)"]],
+          head: [["AI Corrective Actions"]],
           body: [[finalAIText]],
           headStyles: { fillColor: [126, 34, 206], textColor: [255, 255, 255] },
           styles: { fontSize: 11, font: "helvetica" },
