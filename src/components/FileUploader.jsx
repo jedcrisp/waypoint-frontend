@@ -2,13 +2,20 @@ import React, { useRef, useState } from "react";
 import Papa from "papaparse";
 import PropTypes from "prop-types";
 
-export default function FileUploader({ onParse, error, setError, buttonClassName = "" }) {
+export default function FileUploader({ onParse, error, setError, buttonClassName = "", fileInputRef }) {
   const [fileName, setFileName] = useState("Drag and Drop file Here");
-  const [isDragging, setIsDragging] = useState(false); // Track drag-over state
-  const fileInputRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const localInputRef = useRef(null);
+  const inputRef = fileInputRef || localInputRef;
 
   const handleFileChange = (file) => {
     if (!file) {
+      setFileName("Drag and Drop file Here");
+      return;
+    }
+
+    if (!file.name.endsWith('.csv')) {
+      setError("Please upload a CSV file.");
       setFileName("Drag and Drop file Here");
       return;
     }
@@ -18,20 +25,32 @@ export default function FileUploader({ onParse, error, setError, buttonClassName
 
     Papa.parse(file, {
       complete: (result) => {
-        const headers = result.data[0] || [];
-        const rows = result.data.slice(1).filter(row => row.some(cell => cell));
+        if (result.errors.length) {
+          setError("Error parsing CSV. Please check the file format.");
+          setFileName("Drag and Drop file Here");
+          return;
+        }
+        const { data } = result;
+        if (data.length === 0) {
+          setError("Uploaded CSV is empty.");
+          setFileName("Drag and Drop file Here");
+          return;
+        }
+        const headers = data[0] || [];
+        const rows = data.slice(1).filter(row => row.some(cell => cell));
         onParse(rows, headers);
       },
       header: false,
       skipEmptyLines: true,
       error: (err) => {
-        setError("Error parsing CSV file: " + err.message);
+        setError(`Error parsing CSV file: ${err.message}`);
+        setFileName("Drag and Drop file Here");
       },
     });
   };
 
   const handleClick = () => {
-    fileInputRef.current.click();
+    inputRef.current.click();
   };
 
   const handleInputChange = (event) => {
@@ -47,6 +66,7 @@ export default function FileUploader({ onParse, error, setError, buttonClassName
       handleFileChange(file);
     } else {
       setError("Please drop a valid CSV file.");
+      setFileName("Drag and Drop file Here");
     }
   };
 
@@ -64,7 +84,7 @@ export default function FileUploader({ onParse, error, setError, buttonClassName
       <input
         type="file"
         accept=".csv"
-        ref={fileInputRef}
+        ref={inputRef}
         onChange={handleInputChange}
         className="hidden"
       />
@@ -78,12 +98,15 @@ export default function FileUploader({ onParse, error, setError, buttonClassName
       >
         <button
           onClick={handleClick}
-          className={`border border-gray-300 rounded px-3 py-2 bg-white text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 mr-3 ${buttonClassName}`}
+          className={`px-4 py-2 rounded text-white bg-blue-600 hover:bg-blue-700 text-sm font-medium mr-3 ${buttonClassName}`}
         >
           Choose File
         </button>
         <span className="text-gray-500">{fileName}</span>
       </div>
+      {error && (
+        <p className="mt-2 text-sm text-red-600">{error}</p>
+      )}
     </div>
   );
 }
@@ -93,4 +116,5 @@ FileUploader.propTypes = {
   error: PropTypes.string,
   setError: PropTypes.func.isRequired,
   buttonClassName: PropTypes.string,
+  fileInputRef: PropTypes.shape({ current: PropTypes.instanceOf(Element) }),
 };
