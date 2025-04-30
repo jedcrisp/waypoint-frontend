@@ -6,7 +6,8 @@ import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { savePdfResultToFirebase, saveAIReviewConsent } from "../utils/firebaseTestSaver";
 import Modal from "../components/Modal";
-import { useNavigate } from "react-router-dom"; // Added for routing
+import { useNavigate } from "react-router-dom";
+import Papa from "papaparse";
 
 const TopHeavyTest = () => {
   // ----- State -----
@@ -22,7 +23,7 @@ const TopHeavyTest = () => {
   const [normalPdfExported, setNormalPdfExported] = useState(false);
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
-  const navigate = useNavigate(); // Added for routing
+  const navigate = useNavigate();
 
   // ---------- Formatting Helpers ----------
   const formatCurrency = (value) => {
@@ -49,11 +50,39 @@ const TopHeavyTest = () => {
   // ----- 1. Drag & Drop Logic -----
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
-      setFile(acceptedFiles[0]);
+      const uploadedFile = acceptedFiles[0];
+      setFile(uploadedFile);
       setResult(null);
       setError(null);
       setNormalPdfExported(false);
       setAiReview("");
+
+      // Parse the CSV file to extract the plan year
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target.result;
+        Papa.parse(text, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (result) => {
+            const data = result.data;
+            if (data.length > 0 && data[0].PlanYear) {
+              const extractedPlanYear = data[0].PlanYear;
+              const validYears = Array.from({ length: 10 }, (_, i) => (2025 - i).toString());
+              if (validYears.includes(extractedPlanYear)) {
+                setPlanYear(extractedPlanYear);
+              } else {
+                setError(`❌ Invalid Plan Year (${extractedPlanYear}) in CSV. Please select a year between 2016 and 2025.`);
+              }
+            }
+          },
+          error: (err) => {
+            console.error("Error parsing CSV:", err);
+            setError("❌ Failed to parse CSV file.");
+          },
+        });
+      };
+      reader.readAsText(uploadedFile);
     }
   }, []);
 
@@ -145,16 +174,15 @@ const TopHeavyTest = () => {
     const totalParticipants = result["Total Participants"] ?? 0;
     const keyEmployeeAssets = result["Key Employee Assets"] ?? 0;
     const nonKeyEmployeeAssets = result["Non-Key Employee Assets"] ?? 0;
-    const totalAssets = result["Total Assets"] ?? 0;
-    const topHeavyRatio = result["Top Heavy Ratio (%)"] ?? 0;
+    const totalAssets = result["Total Plan Assets"] ?? 0;
+    const topHeavyRatio = result["Top Heavy Percentage (%)"] ?? 0;
     const testResult = result["Test Result"] ?? "N/A";
     const excludedUnderAge21 = result["Excluded Participants"]?.["Under Age 21"] ?? 0;
-    const excludedNoPlanEntry = result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0;
+    const excludedUnder1Year = result["Excluded Participants"]?.["Under 1 Year of Service"] ?? 0;
     const excludedManually = result["Excluded Participants"]?.["Excluded Manually"] ?? 0;
-    const excludedNotActive = result["Excluded Participants"]?.["Not Active"] ?? 0;
+    const excludedNotActive = result["Excluded Participants"]?.["Terminated/Inactive"] ?? 0;
     const excludedUnion = result["Excluded Participants"]?.["Union Employees"] ?? 0;
-    const excludedPartTime = result["Excluded Participants"]?.["Part-Time or Seasonal"] ?? 0;
-    const excludedTerminated = result["Excluded Participants"]?.["Terminated Before Plan Year"] ?? 0;
+    const excludedPartTime = result["Excluded Participants"]?.["Part-Time/Seasonal"] ?? 0;
 
     const csvRows = [
       ["Metric", "Value"],
@@ -167,12 +195,11 @@ const TopHeavyTest = () => {
       ["Top Heavy Ratio (%)", formatPercentage(topHeavyRatio)],
       ["Test Result", testResult],
       ["Excluded - Under Age 21", excludedUnderAge21],
-      ["Excluded - No Plan Entry Date", excludedNoPlanEntry],
+      ["Excluded - Under 1 Year of Service", excludedUnder1Year],
       ["Excluded - Manually", excludedManually],
-      ["Excluded - Not Active", excludedNotActive],
+      ["Excluded - Terminated/Inactive", excludedNotActive],
       ["Excluded - Union Employees", excludedUnion],
-      ["Excluded - Part-Time or Seasonal", excludedPartTime],
-      ["Excluded - Terminated Before Plan Year", excludedTerminated],
+      ["Excluded - Part-Time/Seasonal", excludedPartTime],
     ];
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
@@ -199,8 +226,8 @@ const TopHeavyTest = () => {
       const totalParticipants = result["Total Participants"] ?? 0;
       const keyEmployeeAssets = result["Key Employee Assets"] ?? 0;
       const nonKeyEmployeeAssets = result["Non-Key Employee Assets"] ?? 0;
-      const totalAssets = result["Total Assets"] ?? 0;
-      const topHeavyRatio = result["Top Heavy Ratio (%)"] ?? 0;
+      const totalAssets = result["Total Plan Assets"] ?? 0;
+      const topHeavyRatio = result["Top Heavy Percentage (%)"] ?? 0;
       const testResult = result["Test Result"] ?? "N/A";
       const testCriterion = result["Test Criterion"] ?? "N/A";
       const failed = testResult.toLowerCase() === "failed";
@@ -481,26 +508,30 @@ const TopHeavyTest = () => {
           <ul className="list-disc list-inside mt-2">
             <li><strong>Total Employees:</strong> {result["Total Employees"] ?? 0}</li>
             <li><strong>Total Participants:</strong> {result["Total Participants"] ?? 0}</li>
+            <li><strong>Key Employee Eligible:</strong> {result["Key Employee Eligible"] ?? 0}</li>
+            <li><strong>Key Employee Participants:</strong> {result["Key Employee Participants"] ?? 0}</li>
+            <li><strong>Non-Key Employee Eligible:</strong> {result["Non-Key Employee Eligible"] ?? 0}</li>
+            <li><strong>Non-Key Employee Participants:</strong> {result["Non-Key Employee Participants"] ?? 0}</li>
           </ul>
 
           <h3 className="font-semibold text-gray-700 mt-4">Test Results</h3>
           <ul className="list-disc list-inside mt-2">
             <li><strong>Key Employee Assets:</strong> {formatCurrency(result["Key Employee Assets"])}</li>
             <li><strong>Non-Key Employee Assets:</strong> {formatCurrency(result["Non-Key Employee Assets"])}</li>
-            <li><strong>Total Assets:</strong> {formatCurrency(result["Total Assets"])}</li>
-            <li><strong>Top Heavy Ratio:</strong> {formatPercentage(result["Top Heavy Ratio (%)"])}</li>
+            <li><strong>Total Assets:</strong> {formatCurrency(result["Total Plan Assets"])}</li>
+            <li><strong>Top Heavy Ratio:</strong> {formatPercentage(result["Top Heavy Percentage (%)"])}</li>
             <li><strong>Test Criterion:</strong> {result["Test Criterion"] ?? "N/A"}</li>
+            <li><strong>Test Result:</strong> {result["Test Result"] ?? "N/A"}</li>
           </ul>
 
           <h3 className="font-semibold text-gray-700 mt-4">Excluded Participants</h3>
           <ul className="list-disc list-inside mt-2">
             <li><strong>Under Age 21:</strong> {result["Excluded Participants"]?.["Under Age 21"] ?? 0}</li>
-            <li><strong>No Plan Entry Date:</strong> {result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0}</li>
+            <li><strong>Under 1 Year of Service:</strong> {result["Excluded Participants"]?.["Under 1 Year of Service"] ?? 0}</li>
             <li><strong>Excluded Manually:</strong> {result["Excluded Participants"]?.["Excluded Manually"] ?? 0}</li>
-            <li><strong>Not Active:</strong> {result["Excluded Participants"]?.["Not Active"] ?? 0}</li>
+            <li><strong>Terminated/Inactive:</strong> {result["Excluded Participants"]?.["Terminated/Inactive"] ?? 0}</li>
             <li><strong>Union Employees:</strong> {result["Excluded Participants"]?.["Union Employees"] ?? 0}</li>
-            <li><strong>Part-Time or Seasonal:</strong> {result["Excluded Participants"]?.["Part-Time or Seasonal"] ?? 0}</li>
-            <li><strong>Terminated Before Plan Year:</strong> {result["Excluded Participants"]?.["Terminated Before Plan Year"] ?? 0}</li>
+            <li><strong>Part-Time/Seasonal:</strong> {result["Excluded Participants"]?.["Part-Time/Seasonal"] ?? 0}</li>
           </ul>
         </div>
       )}
