@@ -17,34 +17,50 @@ import { calculateYearsOfService, isHCE, isKeyEmployee } from "../utils/planCalc
 
 const REQUIRED_HEADERS_BY_TEST = {
   "ADP Test": [
-    "Employee ID", "First Name", "Last Name", "DOB",
-    "DOH", "Employment Status", "Hours Worked", "Termination Date",
-    "Plan Entry Date", "Compensation", "HCE", "Employee Deferral",
-    "Union Employee", "Part-Time / Seasonal",
-    "OwnershipPercentage", "FamilyRelationshipToOwner", "FamilyMemberOwnerID", "Excluded from Test"
-  ],
+    "Employee ID", "Last Name", "First Name", "DOB", "DOH",
+      "Employment Status", "Hours Worked", "Termination Date",
+      "Plan Entry Date",
+      "Compensation", "Employee Deferral",
+      "HCE",
+      "OwnershipPercentage", "FamilyRelationshipToOwner", "FamilyMemberOwnerID",
+      "Excluded from Test", "Union Employee", "Part-Time / Seasonal"
+    ],
   "ACP Test": [
-    "Last Name", "First Name", "Employee ID", "DOB", "DOH",
-    "Employment Status", "Plan Entry Date", "Compensation", "Employer Match",
-    "Contribution Percentage", "Participating", "Total Contribution",
-    "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "HCE",
-    "FamilyRelationshipToOwner", "FamilyMemberOwnerID"
-  ],
+    "Employee ID", "Last Name", "First Name", "DOB", "DOH",
+      "Employment Status",
+      "Plan Entry Date",
+      "Compensation", "Employer Match", "Contribution Percentage", "Total Contribution", "Participating",
+      "HCE",
+      "OwnershipPercentage", "FamilyRelationshipToOwner", "FamilyMemberOwnerID",
+      "Excluded from Test", "Union Employee", "Part-Time / Seasonal"
+    ],
   "Top Heavy Test": [
-    "Last Name", "First Name", "Employee ID", "Plan Assets", "Key Employee",
-        "OwnershipPercentage", "FamilyRelationshipToOwner", "FamilyMemberOwnerID", 
-        "Employment Status", "Excluded from Test", "Compensation", "Officer Status"
-  ],
+    "Employee ID", "Last Name", "First Name", "DOB", "DOH",
+      "Employment Status",
+      "Plan Assets",
+      "Compensation",
+      "Key Employee", "Officer Status",
+      "OwnershipPercentage", "FamilyRelationshipToOwner", "FamilyMemberOwnerID",
+      "Excluded from Test"
+    ],
   "Average Benefit Test": [
-    "Employee ID", "First Name", "Last Name", "Compensation", "Employee Deferral", "Employer Match",
-        "HCE", "Employment Status", "Excluded from Test", "Plan Entry Date", "DOB", "DOH",
-        "OwnershipPercentage", "Eligible for Plan", "FamilyRelationshipToOwner", "FamilyMemberOwnerID"
-  ],
+    "Employee ID", "Last Name", "First Name", "DOB", "DOH",
+      "Employment Status",
+      "Plan Entry Date", "Eligible for Plan",
+      "Compensation", "Employee Deferral", "Employer Match",
+      "HCE",
+      "OwnershipPercentage", "FamilyRelationshipToOwner", "FamilyMemberOwnerID",
+      "Excluded from Test", "Union Employee", "Part-Time / Seasonal"
+    ],
   "Coverage Test": [
-    "Last Name", "First Name", "Employee ID", "DOB", "DOH", "Compensation", "Eligible for Plan", "HCE",
-        "Employment Status", "Excluded from Test", "Union Employee", 
-        "Part-Time / Seasonal", "Plan Entry Date", "FamilyRelationshipToOwner", "FamilyMemberOwnerID"
-  ],
+    "Employee ID", "Last Name", "First Name", "DOB", "DOH",
+      "Employment Status",
+      "Plan Entry Date", "Eligible for Plan",
+      "Compensation",
+      "HCE",
+      "OwnershipPercentage", "FamilyRelationshipToOwner", "FamilyMemberOwnerID",
+      "Excluded from Test", "Union Employee", "Part-Time / Seasonal"
+    ],
 };
 
 const TEST_TYPE_MAP = {
