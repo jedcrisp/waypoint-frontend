@@ -6,7 +6,8 @@ import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { savePdfResultToFirebase, saveAIReviewConsent } from "../utils/firebaseTestSaver";
 import Modal from "../components/Modal";
-import { useNavigate } from "react-router-dom"; // Added for routing
+import { useNavigate } from "react-router-dom";
+import Papa from "papaparse";
 
 const ACPTest = () => {
   // ----- State -----
@@ -22,7 +23,7 @@ const ACPTest = () => {
   const [normalPdfExported, setNormalPdfExported] = useState(false);
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
-  const navigate = useNavigate(); // Added for routing
+  const navigate = useNavigate();
 
   // ---------- Formatting Helpers ----------
   const formatCurrency = (value) => {
@@ -49,11 +50,39 @@ const ACPTest = () => {
   // ----- 1. Drag & Drop Logic -----
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
-      setFile(acceptedFiles[0]);
+      const uploadedFile = acceptedFiles[0];
+      setFile(uploadedFile);
       setResult(null);
       setError(null);
       setNormalPdfExported(false);
       setAiReview("");
+
+      // Parse the CSV file to extract the plan year
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target.result;
+        Papa.parse(text, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (result) => {
+            const data = result.data;
+            if (data.length > 0 && data[0].PlanYear) {
+              const extractedPlanYear = data[0].PlanYear;
+              const validYears = Array.from({ length: 10 }, (_, i) => (2025 - i).toString());
+              if (validYears.includes(extractedPlanYear)) {
+                setPlanYear(extractedPlanYear);
+              } else {
+                setError(`❌ Invalid Plan Year (${extractedPlanYear}) in CSV. Please select a year between 2016 and 2025.`);
+              }
+            }
+          },
+          error: (err) => {
+            console.error("Error parsing CSV:", err);
+            setError("❌ Failed to parse CSV file.");
+          },
+        });
+      };
+      reader.readAsText(uploadedFile);
     }
   }, []);
 
@@ -142,41 +171,35 @@ const ACPTest = () => {
     }
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? 0;
-    const totalEligible = result["Total Eligible Employees"] ?? 0;
     const totalParticipants = result["Total Participants"] ?? 0;
-    const hceEligible = result["HCE Eligible"] ?? 0;
-    const hceParticipants = result["HCE Participants"] ?? 0;
-    const hceAcp = result["HCE ACP (%)"] ?? 0;
-    const nhceEligible = result["NHCE Eligible"] ?? 0;
-    const nhceParticipants = result["NHCE Participants"] ?? 0;
-    const nhceAcp = result["NHCE ACP (%)"] ?? 0;
+    const hceAvgContribution = result["HCE ACP (%)"] ?? 0; // Updated key
+    const nhceAvgContribution = result["NHCE ACP (%)"] ?? 0; // Updated key
     const testResult = result["Test Result"] ?? "N/A";
+    const excludedUnderAge21 = result["Excluded Participants"]?.["Under Age 21"] ?? 0;
+    const excludedUnder1Year = result["Excluded Participants"]?.["Under 1 Year of Service"] ?? 0;
     const excludedNoPlanEntry = result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0;
-    const excludedAfterPlanYear = result["Excluded Participants"]?.["After Plan Year"] ?? 0;
     const excludedManually = result["Excluded Participants"]?.["Excluded Manually"] ?? 0;
+    const excludedNotActive = result["Excluded Participants"]?.["Not Active"] ?? 0;
     const excludedUnion = result["Excluded Participants"]?.["Union Employees"] ?? 0;
-    const excludedPartTime = result["Excluded Participants"]?.["Part-Time/Seasonal"] ?? 0;
-    const excludedTerminated = result["Excluded Participants"]?.["Terminated/Inactive"] ?? 0;
+    const excludedPartTime = result["Excluded Participants"]?.["Part-Time/Seasonal"] ?? 0; // Updated key
+    const excludedTerminated = result["Excluded Participants"]?.["Terminated Before Plan Year"] ?? 0;
 
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", plan],
       ["Total Employees", totalEmployees],
-      ["Total Eligible Employees", totalEligible],
       ["Total Participants", totalParticipants],
-      ["HCE Eligible", hceEligible],
-      ["HCE Participants", hceParticipants],
-      ["HCE ACP (%)", formatPercentage(hceAcp)],
-      ["NHCE Eligible", nhceEligible],
-      ["NHCE Participants", nhceParticipants],
-      ["NHCE ACP (%)", formatPercentage(nhceAcp)],
+      ["HCE Avg Contribution (%)", formatPercentage(hceAvgContribution)],
+      ["NHCE Avg Contribution (%)", formatPercentage(nhceAvgContribution)],
       ["Test Result", testResult],
+      ["Excluded - Under Age 21", excludedUnderAge21],
+      ["Excluded - Under 1 Year of Service", excludedUnder1Year],
       ["Excluded - No Plan Entry Date", excludedNoPlanEntry],
-      ["Excluded - After Plan Year", excludedAfterPlanYear],
       ["Excluded - Manually", excludedManually],
+      ["Excluded - Not Active", excludedNotActive],
       ["Excluded - Union Employees", excludedUnion],
-      ["Excluded - Part-Time/Seasonal", excludedPartTime],
-      ["Excluded - Terminated/Inactive", excludedTerminated],
+      ["Excluded - Part-Time/Seasonal", excludedPartTime], // Updated label
+      ["Excluded - Terminated Before Plan Year", excludedTerminated],
     ];
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
@@ -200,14 +223,9 @@ const ACPTest = () => {
       const finalAIText = customAiReview !== undefined ? customAiReview : aiReview;
       const plan = planYear || "N/A";
       const totalEmployees = result["Total Employees"] ?? 0;
-      const totalEligible = result["Total Eligible Employees"] ?? 0;
       const totalParticipants = result["Total Participants"] ?? 0;
-      const hceEligible = result["HCE Eligible"] ?? 0;
-      const hceParticipants = result["HCE Participants"] ?? 0;
-      const hceAcp = result["HCE ACP (%)"] ?? 0;
-      const nhceEligible = result["NHCE Eligible"] ?? 0;
-      const nhceParticipants = result["NHCE Participants"] ?? 0;
-      const nhceAcp = result["NHCE ACP (%)"] ?? 0;
+      const hceAvgContribution = result["HCE ACP (%)"] ?? 0; // Updated key
+      const nhceAvgContribution = result["NHCE ACP (%)"] ?? 0; // Updated key
       const testResult = result["Test Result"] ?? "N/A";
       const testCriterion = result["Test Criterion"] ?? "N/A";
       const failed = testResult.toLowerCase() === "failed";
@@ -243,14 +261,9 @@ const ACPTest = () => {
         head: [["Metric", "Value"]],
         body: [
           ["Total Employees", totalEmployees],
-          ["Total Eligible Employees", totalEligible],
           ["Total Participants", totalParticipants],
-          ["HCE Eligible", hceEligible],
-          ["HCE Participants", hceParticipants],
-          ["HCE ACP (%)", formatPercentage(hceAcp)],
-          ["NHCE Eligible", nhceEligible],
-          ["NHCE Participants", nhceParticipants],
-          ["NHCE ACP (%)", formatPercentage(nhceAcp)],
+          ["HCE Avg Contribution (%)", formatPercentage(hceAvgContribution)],
+          ["NHCE Avg Contribution (%)", formatPercentage(nhceAvgContribution)],
           ["Test Result", testResult],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
@@ -271,14 +284,14 @@ const ACPTest = () => {
         });
       } else if (failed) {
         const correctiveActions = [
-          "Increase NHCE contributions to raise NHCE ACP.",
-          "Limit HCE contributions to meet the ACP limit.",
-          "Implement a safe harbor plan design to avoid testing.",
+          "Increase NHCE contributions to raise their average contribution percentage.",
+          "Limit HCE contributions to meet the 2% spread requirement.",
+          "Review plan design to ensure compliance with ACP test rules.",
         ];
         const consequences = [
-          "Excess contributions may be refunded to HCEs.",
+          "Excess contributions may need to be refunded to HCEs.",
           "Potential tax penalties for non-compliance.",
-          "Plan may need corrective distributions.",
+          "Plan may face corrective actions or disqualification risks.",
         ];
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
@@ -490,7 +503,6 @@ const ACPTest = () => {
           <h3 className="font-semibold text-gray-700 mt-4">Employee Counts</h3>
           <ul className="list-disc list-inside mt-2">
             <li><strong>Total Employees:</strong> {result["Total Employees"] ?? 0}</li>
-            <li><strong>Total Eligible Employees:</strong> {result["Total Eligible Employees"] ?? 0}</li>
             <li><strong>Total Participants:</strong> {result["Total Participants"] ?? 0}</li>
             <li><strong>HCE Eligible:</strong> {result["HCE Eligible"] ?? 0}</li>
             <li><strong>HCE Participants:</strong> {result["HCE Participants"] ?? 0}</li>
@@ -500,19 +512,22 @@ const ACPTest = () => {
 
           <h3 className="font-semibold text-gray-700 mt-4">Test Results</h3>
           <ul className="list-disc list-inside mt-2">
-            <li><strong>HCE ACP:</strong> {formatPercentage(result["HCE ACP (%)"])}</li>
-            <li><strong>NHCE ACP:</strong> {formatPercentage(result["NHCE ACP (%)"])}</li>
+            <li><strong>HCE Avg Contribution:</strong> {formatPercentage(result["HCE ACP (%)"])}</li> {/* Updated key */}
+            <li><strong>NHCE Avg Contribution:</strong> {formatPercentage(result["NHCE ACP (%)"])}</li> {/* Updated key */}
             <li><strong>Test Criterion:</strong> {result["Test Criterion"] ?? "N/A"}</li>
+            <li><strong>Test Result:</strong> {result["Test Result"] ?? "N/A"}</li> {/* Added Test Result */}
           </ul>
 
           <h3 className="font-semibold text-gray-700 mt-4">Excluded Participants</h3>
           <ul className="list-disc list-inside mt-2">
+            <li><strong>Under Age 21:</strong> {result["Excluded Participants"]?.["Under Age 21"] ?? 0}</li>
+            <li><strong>Under 1 Year of Service:</strong> {result["Excluded Participants"]?.["Under 1 Year of Service"] ?? 0}</li>
             <li><strong>No Plan Entry Date:</strong> {result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0}</li>
-            <li><strong>After Plan Year:</strong> {result["Excluded Participants"]?.["After Plan Year"] ?? 0}</li>
             <li><strong>Excluded Manually:</strong> {result["Excluded Participants"]?.["Excluded Manually"] ?? 0}</li>
+            <li><strong>Not Active:</strong> {result["Excluded Participants"]?.["Terminated/Inactive"] ?? 0}</li> {/* Updated key */}
             <li><strong>Union Employees:</strong> {result["Excluded Participants"]?.["Union Employees"] ?? 0}</li>
-            <li><strong>Part-Time/Seasonal:</strong> {result["Excluded Participants"]?.["Part-Time/Seasonal"] ?? 0}</li>
-            <li><strong>Terminated/Inactive:</strong> {result["Excluded Participants"]?.["Terminated/Inactive"] ?? 0}</li>
+            <li><strong>Part-Time/Seasonal:</strong> {result["Excluded Participants"]?.["Part-Time/Seasonal"] ?? 0}</li> {/* Updated key */}
+            <li><strong>Terminated Before Plan Year:</strong> {result["Excluded Participants"]?.["Terminated Before Plan Year"] ?? 0}</li>
           </ul>
         </div>
       )}
@@ -566,17 +581,17 @@ const ACPTest = () => {
           <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
             <h4 className="font-bold text-gray-700">Corrective Actions:</h4>
             <ul className="list-disc list-inside text-gray-700">
-              <li>Increase NHCE contributions to raise NHCE ACP.</li>
-              <li>Limit HCE contributions to meet the ACP limit.</li>
-              <li>Implement a safe harbor plan design to avoid testing.</li>
+              <li>Increase NHCE contributions to raise their average contribution percentage.</li>
+              <li>Limit HCE contributions to meet the 2% spread requirement.</li>
+              <li>Review plan design to ensure compliance with ACP test rules.</li>
             </ul>
           </div>
           <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
             <h4 className="font-bold text-gray-700">Consequences:</h4>
             <ul className="list-disc list-inside text-gray-700">
-              <li>Excess contributions may be refunded to HCEs.</li>
+              <li>Excess contributions may need to be refunded to HCEs.</li>
               <li>Potential tax penalties for non-compliance.</li>
-              <li>Plan may need corrective distributions.</li>
+              <li>Plan may face corrective actions or disqualification risks.</li>
             </ul>
           </div>
         </div>
