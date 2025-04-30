@@ -55,17 +55,17 @@ const HEADER_INFO = {
     definition: "The amount the employee deferred into the plan.",
     example: "23500",
   },
-  "Ownership %": {
+  "Ownership Percentage": {
     definition: "The percentage of ownership the employee has in the company.",
     example: "5",
   },
-  "Family Relationship": {
-    definition: "The type of family relationship to another employee, if any.",
+  "Family Relationship To Owner": {
+    definition: "The type of family relationship to an owner, if any.",
     example: "spouse",
   },
-  "Family Member": {
-    definition: "The name of the related family member, if applicable.",
-    example: "Jane Doe",
+  "Family Member Owner ID": {
+    definition: "The Employee ID of the owner to whom the employee is related, if applicable.",
+    example: "E002",
   },
   "Hours Worked": {
     definition: "Total hours worked by the employee in the plan year.",
@@ -103,6 +103,11 @@ const HEADER_INFO = {
     definition: "Indicates if the employee is eligible to participate in the plan (Yes/No).",
     example: "Yes",
   },
+  "Officer Status": {
+  "definition": "Indicates whether the employee holds a corporate officer position (Yes/No), subject to the officer compensation threshold for key‐employee status.",
+  "example": "Yes"
+}
+
 };
 
 export default function HeaderMapper({
@@ -128,7 +133,7 @@ export default function HeaderMapper({
   const handleMappingChange = (header, value) => {
     setColumnMap(prev => ({
       ...prev,
-      [header]: value === "none" ? undefined : value,
+      [header]: value === "none" ? "none" : value,
     }));
   };
 
@@ -162,7 +167,7 @@ export default function HeaderMapper({
             )}
           </label>
           <select
-            value={isFileUploaded && columnMap[header] ? columnMap[header] : "none"}
+            value={isFileUploaded && columnMap[header] !== undefined ? columnMap[header] : "none"}
             onChange={(e) => handleMappingChange(header, e.target.value)}
             className="w-2/3 border rounded px-3 py-2"
             disabled={!isFileUploaded}
