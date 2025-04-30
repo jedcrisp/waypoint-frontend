@@ -6,7 +6,8 @@ import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { savePdfResultToFirebase, saveAIReviewConsent } from "../utils/firebaseTestSaver";
 import Modal from "../components/Modal";
-import { useNavigate } from "react-router-dom"; // Added for routing
+import { useNavigate } from "react-router-dom";
+import Papa from "papaparse"; // Added for CSV parsing
 
 const AverageBenefitTest = () => {
   // ----- State -----
@@ -22,7 +23,7 @@ const AverageBenefitTest = () => {
   const [normalPdfExported, setNormalPdfExported] = useState(false);
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
-  const navigate = useNavigate(); // Added for routing
+  const navigate = useNavigate();
 
   // ---------- Formatting Helpers ----------
   const formatCurrency = (value) => {
@@ -49,11 +50,39 @@ const AverageBenefitTest = () => {
   // ----- 1. Drag & Drop Logic -----
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
-      setFile(acceptedFiles[0]);
+      const uploadedFile = acceptedFiles[0];
+      setFile(uploadedFile);
       setResult(null);
       setError(null);
       setNormalPdfExported(false);
       setAiReview("");
+
+      // Parse the CSV file to extract the plan year
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target.result;
+        Papa.parse(text, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (result) => {
+            const data = result.data;
+            if (data.length > 0 && data[0].PlanYear) {
+              const extractedPlanYear = data[0].PlanYear;
+              const validYears = Array.from({ length: 10 }, (_, i) => (2025 - i).toString());
+              if (validYears.includes(extractedPlanYear)) {
+                setPlanYear(extractedPlanYear);
+              } else {
+                setError(`❌ Invalid Plan Year (${extractedPlanYear}) in CSV. Please select a year between 2016 and 2025.`);
+              }
+            }
+          },
+          error: (err) => {
+            console.error("Error parsing CSV:", err);
+            setError("❌ Failed to parse CSV file.");
+          },
+        });
+      };
+      reader.readAsText(uploadedFile);
     }
   }, []);
 
@@ -143,17 +172,17 @@ const AverageBenefitTest = () => {
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? 0;
     const totalParticipants = result["Total Participants"] ?? 0;
-    const hceAvgBenefit = result["HCE Avg Benefit (%)"] ?? 0;
-    const nhceAvgBenefit = result["NHCE Avg Benefit (%)"] ?? 0;
-    const avgBenefitRatio = result["Average Benefit Ratio (%)"] ?? 0;
+    const hceAvgBenefit = result["HCE Average Benefit (%)"] ?? 0;
+    const nhceAvgBenefit = result["NHCE Average Benefit (%)"] ?? 0;
     const testResult = result["Test Result"] ?? "N/A";
     const excludedUnderAge21 = result["Excluded Participants"]?.["Under Age 21"] ?? 0;
     const excludedNoPlanEntry = result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0;
     const excludedManually = result["Excluded Participants"]?.["Excluded Manually"] ?? 0;
-    const excludedNotActive = result["Excluded Participants"]?.["Not Active"] ?? 0;
+    const excludedNotActive = result["Excluded Participants"]?.["Terminated/Inactive"] ?? 0;
     const excludedUnion = result["Excluded Participants"]?.["Union Employees"] ?? 0;
-    const excludedPartTime = result["Excluded Participants"]?.["Part-Time or Seasonal"] ?? 0;
+    const excludedPartTime = result["Excluded Participants"]?.["Part-Time/Seasonal"] ?? 0;
     const excludedTerminated = result["Excluded Participants"]?.["Terminated Before Plan Year"] ?? 0;
+    const excludedNotEligible = result["Excluded Participants"]?.["Not Eligible for Plan"] ?? 0;
 
     const csvRows = [
       ["Metric", "Value"],
@@ -162,15 +191,15 @@ const AverageBenefitTest = () => {
       ["Total Participants", totalParticipants],
       ["HCE Avg Benefit (%)", formatPercentage(hceAvgBenefit)],
       ["NHCE Avg Benefit (%)", formatPercentage(nhceAvgBenefit)],
-      ["Average Benefit Ratio (%)", formatPercentage(avgBenefitRatio)],
       ["Test Result", testResult],
       ["Excluded - Under Age 21", excludedUnderAge21],
       ["Excluded - No Plan Entry Date", excludedNoPlanEntry],
       ["Excluded - Manually", excludedManually],
-      ["Excluded - Not Active", excludedNotActive],
+      ["Excluded - Terminated/Inactive", excludedNotActive],
       ["Excluded - Union Employees", excludedUnion],
-      ["Excluded - Part-Time or Seasonal", excludedPartTime],
+      ["Excluded - Part-Time/Seasonal", excludedPartTime],
       ["Excluded - Terminated Before Plan Year", excludedTerminated],
+      ["Excluded - Not Eligible for Plan", excludedNotEligible],
     ];
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
@@ -195,9 +224,8 @@ const AverageBenefitTest = () => {
       const plan = planYear || "N/A";
       const totalEmployees = result["Total Employees"] ?? 0;
       const totalParticipants = result["Total Participants"] ?? 0;
-      const hceAvgBenefit = result["HCE Avg Benefit (%)"] ?? 0;
-      const nhceAvgBenefit = result["NHCE Avg Benefit (%)"] ?? 0;
-      const avgBenefitRatio = result["Average Benefit Ratio (%)"] ?? 0;
+      const hceAvgBenefit = result["HCE Average Benefit (%)"] ?? 0;
+      const nhceAvgBenefit = result["NHCE Average Benefit (%)"] ?? 0;
       const testResult = result["Test Result"] ?? "N/A";
       const testCriterion = result["Test Criterion"] ?? "N/A";
       const failed = testResult.toLowerCase() === "failed";
@@ -236,7 +264,6 @@ const AverageBenefitTest = () => {
           ["Total Participants", totalParticipants],
           ["HCE Avg Benefit (%)", formatPercentage(hceAvgBenefit)],
           ["NHCE Avg Benefit (%)", formatPercentage(nhceAvgBenefit)],
-          ["Average Benefit Ratio (%)", formatPercentage(avgBenefitRatio)],
           ["Test Result", testResult],
         ],
         headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
@@ -327,7 +354,7 @@ const AverageBenefitTest = () => {
 
   // ----- 6. AI Review Handler -----
   const handleRunAIReview = async () => {
-    if (!result || !result.average_benefit_summary) {
+    if (!result || !result.abp_summary) { // Updated to match backend key
       setError("❌ No test summary available for AI review.");
       return;
     }
@@ -343,7 +370,7 @@ const AverageBenefitTest = () => {
       });
       const response = await axios.post(`${API_URL}/api/ai-review`, {
         testType: "Average Benefit",
-        testData: result.average_benefit_summary,
+        testData: result.abp_summary, // Updated to match backend key
         signature: signature.trim(),
       });
       const aiText = response.data.analysis;
@@ -477,14 +504,18 @@ const AverageBenefitTest = () => {
           <ul className="list-disc list-inside mt-2">
             <li><strong>Total Employees:</strong> {result["Total Employees"] ?? 0}</li>
             <li><strong>Total Participants:</strong> {result["Total Participants"] ?? 0}</li>
+            <li><strong>HCE Eligible:</strong> {result["HCE Eligible"] ?? 0}</li>
+            <li><strong>HCE Participants:</strong> {result["HCE Participants"] ?? 0}</li>
+            <li><strong>NHCE Eligible:</strong> {result["NHCE Eligible"] ?? 0}</li>
+            <li><strong>NHCE Participants:</strong> {result["NHCE Participants"] ?? 0}</li>
           </ul>
 
           <h3 className="font-semibold text-gray-700 mt-4">Test Results</h3>
           <ul className="list-disc list-inside mt-2">
-            <li><strong>HCE Avg Benefit:</strong> {formatPercentage(result["HCE Avg Benefit (%)"])}</li>
-            <li><strong>NHCE Avg Benefit:</strong> {formatPercentage(result["NHCE Avg Benefit (%)"])}</li>
-            <li><strong>Average Benefit Ratio:</strong> {formatPercentage(result["Average Benefit Ratio (%)"])}</li>
+            <li><strong>HCE Avg Benefit:</strong> {formatPercentage(result["HCE Average Benefit (%)"])}</li>
+            <li><strong>NHCE Avg Benefit:</strong> {formatPercentage(result["NHCE Average Benefit (%)"])}</li>
             <li><strong>Test Criterion:</strong> {result["Test Criterion"] ?? "N/A"}</li>
+            <li><strong>Test Result:</strong> {result["Test Result"] ?? "N/A"}</li>
           </ul>
 
           <h3 className="font-semibold text-gray-700 mt-4">Excluded Participants</h3>
@@ -492,16 +523,17 @@ const AverageBenefitTest = () => {
             <li><strong>Under Age 21:</strong> {result["Excluded Participants"]?.["Under Age 21"] ?? 0}</li>
             <li><strong>No Plan Entry Date:</strong> {result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0}</li>
             <li><strong>Excluded Manually:</strong> {result["Excluded Participants"]?.["Excluded Manually"] ?? 0}</li>
-            <li><strong>Not Active:</strong> {result["Excluded Participants"]?.["Not Active"] ?? 0}</li>
+            <li><strong>Terminated/Inactive:</strong> {result["Excluded Participants"]?.["Terminated/Inactive"] ?? 0}</li>
             <li><strong>Union Employees:</strong> {result["Excluded Participants"]?.["Union Employees"] ?? 0}</li>
-            <li><strong>Part-Time or Seasonal:</strong> {result["Excluded Participants"]?.["Part-Time or Seasonal"] ?? 0}</li>
+            <li><strong>Part-Time/Seasonal:</strong> {result["Excluded Participants"]?.["Part-Time/Seasonal"] ?? 0}</li>
             <li><strong>Terminated Before Plan Year:</strong> {result["Excluded Participants"]?.["Terminated Before Plan Year"] ?? 0}</li>
+            <li><strong>Not Eligible for Plan:</strong> {result["Excluded Participants"]?.["Not Eligible for Plan"] ?? 0}</li>
           </ul>
         </div>
       )}
 
       {/* AI Review Section */}
-      {result?.average_benefit_summary && (
+      {result?.abp_summary && (
         <div className="mt-6">
           <button
             onClick={handleRunAIReview}
