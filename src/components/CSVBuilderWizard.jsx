@@ -21,31 +21,29 @@ const REQUIRED_HEADERS_BY_TEST = {
     "DOH", "Employment Status", "Hours Worked", "Termination Date",
     "Plan Entry Date", "Compensation", "HCE", "Employee Deferral",
     "Union Employee", "Part-Time / Seasonal",
-    "Ownership %", "Family Relationship", "Family Member", "Excluded from Test"
+    "OwnershipPercentage", "FamilyRelationshipToOwner", "FamilyMemberOwnerID", "Excluded from Test"
   ],
   "ACP Test": [
     "Last Name", "First Name", "Employee ID", "DOB", "DOH",
     "Employment Status", "Plan Entry Date", "Compensation", "Employer Match",
     "Contribution Percentage", "Participating", "Total Contribution",
     "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "HCE",
-    "Family Relationship", "Family Member"
+    "FamilyRelationshipToOwner", "FamilyMemberOwnerID"
   ],
   "Top Heavy Test": [
-    "Last Name", "First Name", "Employee ID", "DOB", "DOH",
-    "Employment Status", "Plan Assets", "Compensation",
-    "Excluded from Test", "Key Employee", "Ownership %", "Family Relationship", "Family Member"
+    "Last Name", "First Name", "Employee ID", "Plan Assets", "Key Employee",
+        "OwnershipPercentage", "FamilyRelationshipToOwner", "FamilyMemberOwnerID", 
+        "Employment Status", "Excluded from Test", "Compensation", "Officer Status"
   ],
   "Average Benefit Test": [
-    "Last Name", "First Name", "Employee ID", "DOB", "DOH",
-    "Employment Status", "Plan Entry Date", "Plan Assets", "HCE", "Compensation",
-    "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "Key Employee",
-    "Family Relationship", "Family Member"
+    "Employee ID", "First Name", "Last Name", "Compensation", "Employee Deferral", "Employer Match",
+        "HCE", "Employment Status", "Excluded from Test", "Plan Entry Date", "DOB", "DOH",
+        "OwnershipPercentage", "Eligible for Plan", "FamilyRelationshipToOwner", "FamilyMemberOwnerID"
   ],
   "Coverage Test": [
-    "Last Name", "First Name", "Employee ID", "DOB", "DOH",
-    "Employment Status", "Plan Entry Date", "Eligible for Plan",
-    "Excluded from Test", "Union Employee", "Part-Time / Seasonal", "HCE",
-    "Family Relationship", "Family Member"
+    "Last Name", "First Name", "Employee ID", "DOB", "DOH", "Compensation", "Eligible for Plan", "HCE",
+        "Employment Status", "Excluded from Test", "Union Employee", 
+        "Part-Time / Seasonal", "Plan Entry Date", "FamilyRelationshipToOwner", "FamilyMemberOwnerID"
   ],
 };
 
@@ -91,6 +89,7 @@ export default function CSVBuilderWizard() {
   const [suggestedMap, setSuggestedMap] = useState({});
   const [columnMap, setColumnMap] = useState({});
   const [originalRows, setOriginalRows] = useState([]);
+  const [idToRow, setIdToRow] = useState({}); // Mapping of employee IDs to rows
   const [mappedRows, setMappedRows] = useState([]);
   const [errorMessage, setErrorMessage] = useState(null);
   const [showDownloadConfirm, setShowDownloadConfirm] = useState(false);
@@ -106,6 +105,11 @@ export default function CSVBuilderWizard() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Log when CSVBuilderWizard is rendered
+  useEffect(() => {
+    console.log("CSVBuilderWizard rendered");
+  }, []);
+
   // Pre-select test and plan year from navigation state
   useEffect(() => {
     if (location.state) {
@@ -119,7 +123,7 @@ export default function CSVBuilderWizard() {
     }
   }, [location.state]);
 
-  // Initialize suggestedMap and columnMap with required headers when selectedTests changes
+  // Initialize suggestedMap and columnMap when selectedTests changes
   useEffect(() => {
     if (selectedTests.length > 0) {
       const testLabels = selectedTests.map(value =>
@@ -131,9 +135,8 @@ export default function CSVBuilderWizard() {
       );
 
       const autoMap = {};
-      // Initialize headers as undefined instead of pre-mapping to their own values
       headers.forEach(header => {
-        autoMap[header] = undefined; // Headers start unmapped
+        autoMap[header] = "none"; // Headers start unmapped with "none"
       });
       autoMap.autoHCE = autoGenerateHCE;
       autoMap.autoKey = autoGenerateKeyEmployee;
@@ -144,36 +147,16 @@ export default function CSVBuilderWizard() {
       setSuggestedMap({});
       setColumnMap({});
     }
-  }, [selectedTests, autoGenerateHCE, autoGenerateKeyEmployee]);
+  }, [selectedTests]);
 
-  const allHeaders = useMemo(
-    () =>
-      Array.from(
-        new Set(Object.values(REQUIRED_HEADERS_BY_TEST).flat())
-      ),
-    []
-  );
-
-  function downloadBlankTemplate() {
-    const testLabels = selectedTests.map(value =>
-      Object.keys(TEST_TYPE_MAP).find(key => TEST_TYPE_MAP[key] === value) || ""
-    ).filter(Boolean);
-
-    const selectedHeaders = Array.from(
-      new Set(testLabels.flatMap(t => REQUIRED_HEADERS_BY_TEST[t] || []))
-    );
-
-    const headersToDownload = selectedHeaders.length > 0 ? selectedHeaders : [];
-
-    const csv = Papa.unparse([headersToDownload]);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute("download", "Waypoint_Blank_Template.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
+  // Update columnMap's autoHCE and autoKey when autoGenerateHCE or autoGenerateKeyEmployee changes
+  useEffect(() => {
+    setColumnMap(prevMap => ({
+      ...prevMap,
+      autoHCE: autoGenerateHCE,
+      autoKey: autoGenerateKeyEmployee,
+    }));
+  }, [autoGenerateHCE, autoGenerateKeyEmployee]);
 
   const requiredHeaders = useMemo(() => {
     const testLabels = selectedTests.map(value => 
@@ -183,8 +166,18 @@ export default function CSVBuilderWizard() {
   }, [selectedTests]);
 
   const mandatoryHeaders = requiredHeaders.filter(h => h !== "HCE" && h !== "Key Employee");
-  // Updated: isDownloadEnabled checks that all mandatory headers are mapped to a non-"none" value
-  const isDownloadEnabled = mandatoryHeaders.every(h => columnMap[h] && columnMap[h] !== "none");
+  const isDownloadEnabled = selectedTests.length > 0 && rawHeaders.length > 0 && mandatoryHeaders.every(h => columnMap[h] && columnMap[h] !== "none" && columnMap[h] !== undefined);
+
+  // Add debugging logs
+  useEffect(() => {
+    console.log("selectedTests:", selectedTests);
+    console.log("rawHeaders:", rawHeaders);
+    console.log("mandatoryHeaders:", mandatoryHeaders);
+    console.log("columnMap:", columnMap);
+    console.log("isDownloadEnabled:", isDownloadEnabled);
+    console.log("originalRows:", originalRows);
+    console.log("idToRow:", idToRow);
+  }, [selectedTests, rawHeaders, mandatoryHeaders, columnMap, isDownloadEnabled, originalRows, idToRow]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -209,47 +202,96 @@ export default function CSVBuilderWizard() {
 
   const processRows = () => {
     if (originalRows.length === 0) {
+      console.log("originalRows is empty, cannot process rows.");
       setMappedRows([]);
       return [];
     }
 
-    const processedRows = originalRows.map(r => {
+    console.log("Processing rows with columnMap:", columnMap);
+    console.log("Required headers:", requiredHeaders);
+
+    const processedRows = originalRows.map((r, index) => {
+      console.log(`Processing row ${index}:`, r);
       const out = {};
       requiredHeaders.forEach(h => {
-        if (columnMap[h]) {
-          out[h] = r[columnMap[h]] ?? "";
+        if (columnMap[h] && columnMap[h] !== "none") {
+          const mappedValue = r[columnMap[h]] !== undefined ? r[columnMap[h]] : "";
+          out[h] = mappedValue;
+          console.log(`Mapped ${h} to ${columnMap[h]}: ${mappedValue}`);
         } else if (h === "HCE" && columnMap.autoHCE) {
-          out.HCE = isHCE(r[columnMap.Compensation], planYear);
+          const compensation = r[columnMap.Compensation] || 0;
+          out.HCE = isHCE(compensation, planYear, r, columnMap, idToRow);
+          console.log(`Auto-generated HCE for compensation ${compensation}: ${out.HCE}`);
         } else if (h === "Key Employee" && columnMap.autoKey) {
           out["Key Employee"] = isKeyEmployee(r, columnMap, planYear);
+          console.log(`Auto-generated Key Employee: ${out["Key Employee"]}`);
         } else {
           out[h] = "";
+          console.log(`Set ${h} to empty string (no mapping)`);
         }
-        if (h === "DOH" && columnMap["DOH"] && r[columnMap["DOH"]]) {
+        if (h === "DOH" && columnMap["DOH"] && columnMap["DOH"] !== "none" && r[columnMap["DOH"]]) {
           out["Years of Service"] = calculateYearsOfService(r[columnMap["DOH"]], planYear);
+          console.log(`Calculated Years of Service for DOH ${r[columnMap["DOH"]]}: ${out["Years of Service"]}`);
         }
       });
       return out;
     });
+
+    console.log("Processed rows:", processedRows);
     setMappedRows(processedRows);
-    console.log("Processed mappedRows:", processedRows);
     return processedRows;
   };
 
   useEffect(() => {
     processRows();
-  }, [originalRows, columnMap, planYear, requiredHeaders]);
+  }, [originalRows, columnMap, planYear, requiredHeaders, idToRow]);
 
   function handleParse(rows, headers) {
-    const objRows = rows.map(rowArray => {
+    console.log("handleParse called with rows:", rows);
+    console.log("handleParse headers:", headers);
+
+    if (!rows || rows.length === 0) {
+      console.log("No rows to parse.");
+      setOriginalRows([]);
+      setRawHeaders([]);
+      setIdToRow({});
+      setErrorMessage("The standards-compliant CSV file has no data rows.");
+      return;
+    }
+
+    if (!headers || headers.length === 0) {
+      console.log("No headers provided.");
+      setOriginalRows([]);
+      setRawHeaders([]);
+      setIdToRow({});
+      setErrorMessage("The standards-compliant CSV file has no headers.");
+      return;
+    }
+
+    const objRows = rows.map((rowArray, index) => {
+      console.log(`Parsing row ${index}:`, rowArray);
       const obj = {};
       headers.forEach((hdr, i) => {
-        obj[hdr] = rowArray[i];
+        obj[hdr] = rowArray[i] !== undefined ? String(rowArray[i]) : "";
       });
       return obj;
     });
+
+    console.log("Parsed objRows:", objRows);
     setOriginalRows(objRows);
     setRawHeaders(headers);
+
+    // Create idToRow mapping
+    const newIdToRow = {};
+    objRows.forEach(row => {
+      const employeeId = row["Employee ID"] || "";
+      if (employeeId) {
+        newIdToRow[employeeId.toLowerCase()] = row;
+      }
+    });
+    setIdToRow(newIdToRow);
+    console.log("Created idToRow mapping:", newIdToRow);
+
     const norm = headers.map(h => ({ original: h, normalized: normalizeHeader(h) }));
     const autoMap = {};
     requiredHeaders.forEach(req => {
@@ -257,15 +299,13 @@ export default function CSVBuilderWizard() {
       let match;
       if (req === "DOH") {
         match = norm.find(c => ["doh", "dateofhire", "hiredate", "startdate", "date_hired"].includes(c.normalized));
-      } else if (req === "DOB") {
-        match = norm.find(c => ["dob", "birthdate", "dateofbirth"].includes(c.normalized));
       } else {
         match = norm.find(c => c.normalized === key);
       }
       if (match) {
         autoMap[req] = match.original;
       } else {
-        autoMap[req] = undefined; // Ensure unmapped headers are undefined
+        autoMap[req] = "none";
       }
     });
     autoMap.autoHCE = autoGenerateHCE;
@@ -273,6 +313,27 @@ export default function CSVBuilderWizard() {
     setSuggestedMap(autoMap);
     setColumnMap(autoMap);
     console.log("Suggested columnMap:", autoMap);
+  }
+
+  function downloadBlankTemplate() {
+    const testLabels = selectedTests.map(value =>
+      Object.keys(TEST_TYPE_MAP).find(key => TEST_TYPE_MAP[key] === value) || ""
+    ).filter(Boolean);
+
+    const selectedHeaders = Array.from(
+      new Set(testLabels.flatMap(t => REQUIRED_HEADERS_BY_TEST[t] || []))
+    );
+
+    const headersToDownload = selectedHeaders.length > 0 ? selectedHeaders : [];
+
+    const csv = Papa.unparse([headersToDownload]);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", "Waypoint_Blank_Template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   async function handlePreview() {
@@ -295,7 +356,7 @@ export default function CSVBuilderWizard() {
       const mappedRowsForUpload = rowsToUpload.map(row => {
         const mappedRow = { ...row };
         requiredHeaders.forEach(header => {
-          if (!mappedRow[header] && columnMap[header]) {
+          if (!mappedRow[header] && columnMap[header] && columnMap[header] !== "none") {
             mappedRow[header] = row[columnMap[header]] || "";
           }
           const booleanLikeColumns = [
@@ -303,8 +364,8 @@ export default function CSVBuilderWizard() {
             "Employment Status",
             "Union Employee",
             "Part-Time / Seasonal",
-            "Family Relationship",
-            "Family Member",
+            "FamilyRelationshipToOwner",
+            "FamilyMemberOwnerID",
             "Eligible for Plan",
             "Participating",
             "HCE",
@@ -364,36 +425,73 @@ export default function CSVBuilderWizard() {
       setErrorMessage("Please map all required headers before downloading.");
       return;
     }
+    if (originalRows.length === 0) {
+      setErrorMessage("No data to download. Please upload a CSV file.");
+      return;
+    }
     setShowDownloadConfirm(true);
   }
 
   function doDownload() {
+    console.log("Starting doDownload, originalRows:", originalRows);
+
+    if (!originalRows || originalRows.length === 0) {
+      setErrorMessage("No data to download. Please upload a CSV file.");
+      setShowDownloadConfirm(false);
+      return;
+    }
+
     const processedRows = processRows();
     if (processedRows.length === 0) {
-      setErrorMessage("No data to download. Please ensure a CSV is uploaded and columns are mapped.");
+      setErrorMessage("No data to download after mapping. Please ensure columns are mapped correctly.");
       setShowDownloadConfirm(false);
       return;
     }
 
     const rowsForDownload = processedRows.map(row => {
       const out = { ...row };
-      if (columnMap.autoHCE && !out.HCE && columnMap.Compensation) {
-        out.HCE = isHCE(row.Compensation, planYear);
+      if (columnMap.autoHCE && columnMap.Compensation) {
+        const compensation = row.Compensation || 0;
+        out.HCE = isHCE(compensation, planYear, row, columnMap, idToRow);
+        console.log(`Recalculated HCE for compensation ${compensation}: ${out.HCE}`);
       }
-      if (columnMap.autoKey && !out["Key Employee"] && columnMap.Compensation && columnMap["Ownership %"] && columnMap["Family Member"] && columnMap["Employment Status"]) {
+      if (columnMap.autoKey && columnMap.Compensation && columnMap["OwnershipPercentage"] && columnMap["FamilyMemberOwnerID"] && columnMap["Employment Status"]) {
         out["Key Employee"] = isKeyEmployee(row, columnMap, planYear);
       }
+      // Add PlanYear to each row
+      out.PlanYear = planYear;
       return out;
     });
 
-    console.log("Rows for download:", rowsForDownload);
+    console.log("Rows for download with PlanYear:", rowsForDownload);
 
-    // Add a metadata row with the plan year as the first row
-    const metadataRow = { PlanYear: planYear };
-    const csvData = [metadataRow, ...rowsForDownload];
+    if (rowsForDownload.length === 0) {
+      setErrorMessage("No data to download after processing. Please check your mappings.");
+      setShowDownloadConfirm(false);
+      return;
+    }
 
+    // Reorder columns to have PlanYear first
+    const csvData = rowsForDownload.map(row => {
+      const orderedRow = { PlanYear: row.PlanYear };
+      Object.keys(row).forEach(key => {
+        if (key !== "PlanYear") {
+          orderedRow[key] = row[key];
+        }
+      });
+      return orderedRow;
+    });
+
+    console.log("CSV data before unparse:", csvData);
     const csv = Papa.unparse(csvData, { header: true });
     console.log("Generated CSV content:", csv);
+
+    if (!csv || csv.trim() === "") {
+      setErrorMessage("Generated CSV is empty. Please check your data and mappings.");
+      setShowDownloadConfirm(false);
+      return;
+    }
+
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -443,7 +541,7 @@ export default function CSVBuilderWizard() {
             <h1 className="text-3xl font-bold text-gray-800">CSV Builder</h1>
             <button
               onClick={() => setTourRun(true)}
-              className="px-4 py-2 rounded text-white bg-blue-600 hover:bg-blue-700 text-sm font-medium"
+              className="px-4 py-2 rounded profile text-white bg-blue-600 hover:bg-blue-700 text-sm font-medium"
             >
               Take a Tour
             </button>
@@ -466,9 +564,7 @@ export default function CSVBuilderWizard() {
                   value={TEST_OPTIONS.filter(o => selectedTests.includes(o.value))}
                   onChange={(opts) => {
                     const newTests = opts.map(o => o.value);
-                    // Handle "Select All" option
                     if (newTests.includes("select-all")) {
-                      // Select all test options except "select-all"
                       const allTests = Object.values(TEST_TYPE_MAP);
                       setSelectedTests(allTests);
                       setRawHeaders([]);
@@ -477,7 +573,6 @@ export default function CSVBuilderWizard() {
                       setMappedRows([]);
                       setErrorMessage(null);
                     } else {
-                      // Handle regular multi-select
                       setSelectedTests(newTests);
                       setRawHeaders([]);
                       setSuggestedMap({});
@@ -504,39 +599,38 @@ export default function CSVBuilderWizard() {
                 </select>
               </div>
 
-              <div className="flex gap-2 ml-auto">
+              <div className="flex flex-wrap gap-2 ml-auto">
                 <button
-                  onClick={downloadBlankTemplate}
+                  onClick={() => downloadBlankTemplate()}
                   className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 download-blank-template-button"
                 >
                   Download Blank Template
                 </button>
-                <button
-                  onClick={handleDownloadClick}
-                  disabled={!isDownloadEnabled}
-                  className={`px-4 py-2 rounded download-csv-button
-                    ${isDownloadEnabled
-                      ? 'bg-gray-600 text-white hover:bg-gray-700'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
-                >
-                  Download Mapped CSV
-                </button>
+                <DownloadActions
+                  isDownloadEnabled={isDownloadEnabled}
+                  onDownloadClick={handleDownloadClick}
+                  showDownloadConfirm={showDownloadConfirm}
+                  onConfirmDownload={doDownload}
+                  onCancelDownload={() => setShowDownloadConfirm(false)}
+                  className="download-csv-button"
+                />
               </div>
             </div>
 
             <div className="file-uploader">
-  <FileUploader 
-    onParse={handleParse} 
-    error={errorMessage} 
-    setError={setErrorMessage}
-    isEnabled={selectedTests.length > 0 && planYear && !isNaN(parseInt(planYear, 10))}
-  />
-  {!(selectedTests.length > 0 && planYear && !isNaN(parseInt(planYear, 10))) && (
-    <p className="mt-2 text-sm text-gray-600">
-      Please select at least one test and a plan year to upload a CSV file.
-    </p>
-  )}
-</div>
+              <FileUploader
+                onParse={handleParse}
+                error={errorMessage}
+                setError={setErrorMessage}
+                isEnabled={selectedTests.length > 0 && planYear && !isNaN(parseInt(planYear, 10))}
+                disableTooltip={true}
+              />
+              {!(selectedTests.length > 0 && planYear && !isNaN(parseInt(planYear, 10))) && (
+                <p className="mt-2 text-sm text-gray-600">
+                  Please select at least one test and a plan year to upload a CSV file.
+                </p>
+              )}
+            </div>
 
             <div className="header-mapper">
               {selectedTests.length > 0 ? (
@@ -552,7 +646,7 @@ export default function CSVBuilderWizard() {
                         className="mr-2"
                       />
                       <label className="text-gray-700">Auto-generate HCE</label>
-                      <span className="absolute top-[-50px] left-1/2 transform -translate-x-1/2 bg-blue-100 text-gray-800 text-sm p-2 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none min-w-[300px]">
+                      <span className="absolute left-[110%] top-1/2 transform -translate-y-1/2 bg-blue-500 text-white text-sm p-2 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none min-w-[300px] z-10">
                         Automatically determines if an employee is a Highly<br />Compensated Employee based on compensation.
                       </span>
                     </div>
@@ -561,11 +655,11 @@ export default function CSVBuilderWizard() {
                         type="checkbox"
                         checked={autoGenerateKeyEmployee}
                         onChange={(e) => setAutoGenerateKeyEmployee(e.target.checked)}
-                        disabled={!(columnMap.Compensation && columnMap["Ownership %"] && columnMap["Family Member"] && columnMap["Employment Status"])}
+                        disabled={!(columnMap.Compensation && columnMap["OwnershipPercentage"] && columnMap["FamilyMemberOwnerID"] && columnMap["Employment Status"])}
                         className="mr-2"
                       />
                       <label className="text-gray-700">Auto-generate Key Employee</label>
-                      <span className="absolute top-[-50px] left-1/2 transform -translate-x-1/2 bg-blue-100 text-gray-800 text-sm p-2 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none min-w-[400px]">
+                      <span className="absolute left-[110%] top-1/2 transform -translate-y-1/2 bg-blue-500 text-white text-sm p-2 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none min-w-[400px] z-10">
                         Automatically identifies Key Employees<br />based on compensation, ownership, family relationships, and employment status.
                       </span>
                     </div>
@@ -579,7 +673,7 @@ export default function CSVBuilderWizard() {
                     autoGenerateHCE={autoGenerateHCE}
                     canAutoGenerateHCE={() => !!columnMap.Compensation}
                     autoGenerateKeyEmployee={autoGenerateKeyEmployee}
-                    canAutoGenerateKeyEmployee={() => !!columnMap.Compensation && !!columnMap["Ownership %"] && !!columnMap["Family Member"] && !!columnMap["Employment Status"]}
+                    canAutoGenerateKeyEmployee={() => !!columnMap.Compensation && !!columnMap["OwnershipPercentage"] && !!columnMap["FamilyMemberOwnerID"] && !!columnMap["Employment Status"]}
                     suggestedMap={suggestedMap}
                     isFileUploaded={rawHeaders.length > 0}
                   />
