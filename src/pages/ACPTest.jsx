@@ -248,7 +248,7 @@ const ACPTest = () => {
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
       pdf.text(
-        `Test Criterion: ${testCriterion}`,
+        "Test Criterion: IRC 401(m)(2): The ACP test ensures that employer matching and employee after-tax contributions for HCEs are not disproportionately higher than for NHCEs.",
         105,
         38,
         { align: "center", maxWidth: 180 }
