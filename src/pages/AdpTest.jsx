@@ -224,7 +224,7 @@ const ADPTest = () => {
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
       pdf.text(
-        `Test Criterion: ${testCriterion}`,
+        "Test Criterion: IRC §401(k)(3): The ADP test ensures that elective deferrals made by HCEs do not exceed 125% of the average deferral rate of NHCEs, or meet alternative safe harbor thresholds (200%/2% or 125%/2%).",
         105,
         38,
         { align: "center", maxWidth: 180 }
@@ -232,7 +232,7 @@ const ADPTest = () => {
 
       // Results Table
       pdf.autoTable({
-        startY: 48,
+        startY: 54,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
