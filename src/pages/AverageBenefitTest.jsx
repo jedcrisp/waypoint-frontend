@@ -267,7 +267,6 @@ const AverageBenefitTest = () => {
       pdf.text(
         "Test Criterion: IRC 410(b)(2): The Average Benefit Test is met if the average benefit percentage of Non-Highly Compensated Employees (NHCEs) is at least 70% of that of Highly Compensated Employees (HCEs), ensuring the plan does not disproportionately favor HCEs.",
         105,
-        105,
         38,
         { align: "center", maxWidth: 180 }
       );
@@ -540,7 +539,6 @@ const AverageBenefitTest = () => {
             <li><strong>HCE Avg Benefit:</strong> {formatPercentage(result["HCE Average Benefit (%)"])}</li>
             <li><strong>NHCE Avg Benefit:</strong> {formatPercentage(result["NHCE Average Benefit (%)"])}</li>
             <li><strong>Test Criterion:</strong> {result["Test Criterion"] ?? "N/A"}</li>
-            <li><strong>Test Result:</strong> {result["Test Result"] ?? "N/A"}</li>
           </ul>
 
           <h3 className="font-semibold text-gray-700 mt-4">Excluded Participants</h3>
