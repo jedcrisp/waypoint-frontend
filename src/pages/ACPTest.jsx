@@ -273,7 +273,7 @@ const ACPTest = () => {
 
       // Results Table
       pdf.autoTable({
-        startY: 52,
+        startY: 50,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
