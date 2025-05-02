@@ -7,13 +7,15 @@ import "jspdf-autotable";
 import { savePdfResultToFirebase, saveAIReviewConsent } from "../utils/firebaseTestSaver";
 import Modal from "../components/Modal";
 import { useNavigate } from "react-router-dom";
-import Papa from "papaparse"; // Added for CSV parsing
+import Papa from "papaparse";
+import { ClipLoader } from "react-spinners"; // Import the spinner component
 
 const CoverageTest = () => {
   // ----- State -----
   const [file, setFile] = useState(null);
   const [planYear, setPlanYear] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showSpinner, setShowSpinner] = useState(false); // New state for spinner visibility
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [aiReview, setAiReview] = useState("");
@@ -29,6 +31,12 @@ const CoverageTest = () => {
   const formatPercentage = (value) => {
     if (value === undefined || value === null || isNaN(Number(value))) return "0.00%";
     return `${parseFloat(value).toFixed(2)}%`;
+  };
+
+  // New function to format numbers with commas
+  const formatNumber = (value) => {
+    if (value === undefined || value === null || isNaN(Number(value))) return "0";
+    return Number(value).toLocaleString("en-US");
   };
 
   // Automatically export PDF once results are available (if not already exported)
@@ -106,6 +114,11 @@ const CoverageTest = () => {
     setError(null);
     setResult(null);
 
+    // Show spinner after 1 second if the test is still running
+    const spinnerTimeout = setTimeout(() => {
+      setShowSpinner(true);
+    }, 1000);
+
     const formData = new FormData();
     formData.append("file", file);
     formData.append("selected_tests", "coverage");
@@ -118,6 +131,8 @@ const CoverageTest = () => {
       if (!token) {
         setError("❌ No valid Firebase token found. Are you logged in?");
         setLoading(false);
+        setShowSpinner(false);
+        clearTimeout(spinnerTimeout);
         return;
       }
       const response = await axios.post(`${API_URL}/upload-csv`, formData, {
@@ -142,6 +157,8 @@ const CoverageTest = () => {
       );
     } finally {
       setLoading(false);
+      setShowSpinner(false);
+      clearTimeout(spinnerTimeout);
     }
   };
 
@@ -182,22 +199,22 @@ const CoverageTest = () => {
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", plan],
-      ["Total Employees", totalEmployees],
-      ["Total Eligible Employees", totalEligible],
-      ["Total Participants (Benefiting)", totalParticipants],
+      ["Total Employees", formatNumber(totalEmployees)],
+      ["Total Eligible Employees", formatNumber(totalEligible)],
+      ["Total Participants (Benefiting)", formatNumber(totalParticipants)],
       ["HCE Benefiting Percentage (%)", formatPercentage(hceBenefitingPercentage)],
       ["NHCE Benefiting Percentage (%)", formatPercentage(nhceBenefitingPercentage)],
       ["Ratio Percentage (%)", formatPercentage(ratioPercentage)],
       ["Test Result", testResult],
-      ["Excluded - Under Age 21", excludedUnderAge21],
-      ["Excluded - Under 1 Year of Service", excludedUnder1Year],
-      ["Excluded - No Plan Entry Date", excludedNoPlanEntry],
-      ["Excluded - After Plan Year", excludedAfterPlanYear],
-      ["Excluded - Manually", excludedManually],
-      ["Excluded - Terminated/Inactive", excludedNotActive],
-      ["Excluded - Union Employees", excludedUnion],
-      ["Excluded - Part-Time/Seasonal", excludedPartTime],
-      ["Excluded - Terminated Before Plan Year", excludedTerminated],
+      ["Excluded - Under Age 21", formatNumber(excludedUnderAge21)],
+      ["Excluded - Under 1 Year of Service", formatNumber(excludedUnder1Year)],
+      ["Excluded - No Plan Entry Date", formatNumber(excludedNoPlanEntry)],
+      ["Excluded - After Plan Year", formatNumber(excludedAfterPlanYear)],
+      ["Excluded - Manually", formatNumber(excludedManually)],
+      ["Excluded - Terminated/Inactive", formatNumber(excludedNotActive)],
+      ["Excluded - Union Employees", formatNumber(excludedUnion)],
+      ["Excluded - Part-Time/Seasonal", formatNumber(excludedPartTime)],
+      ["Excluded - Terminated Before Plan Year", formatNumber(excludedTerminated)],
     ];
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
@@ -261,9 +278,9 @@ const CoverageTest = () => {
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
-          ["Total Employees", totalEmployees],
-          ["Total Eligible Employees", totalEligible],
-          ["Total Participants (Benefiting)", totalParticipants],
+          ["Total Employees", formatNumber(totalEmployees)],
+          ["Total Eligible Employees", formatNumber(totalEligible)],
+          ["Total Participants (Benefiting)", formatNumber(totalParticipants)],
           ["HCE Benefiting Percentage (%)", formatPercentage(hceBenefitingPercentage)],
           ["NHCE Benefiting Percentage (%)", formatPercentage(nhceBenefitingPercentage)],
           ["Ratio Percentage (%)", formatPercentage(ratioPercentage)],
@@ -448,6 +465,13 @@ const CoverageTest = () => {
         )}
       </div>
 
+      {/* Loading Spinner */}
+      {showSpinner && (
+        <div className="flex justify-center mt-4">
+          <ClipLoader color="#36D7B7" loading={showSpinner} size={50} />
+        </div>
+      )}
+
       {/* Download CSV Template Button */}
       <button
         onClick={routeToCsvBuilder}
@@ -505,13 +529,13 @@ const CoverageTest = () => {
 
           <h3 className="font-semibold text-gray-700 mt-4">Employee Counts</h3>
           <ul className="list-disc list-inside mt-2">
-            <li><strong>Total Employees:</strong> {result["Total Employees"] ?? 0}</li>
-            <li><strong>Total Eligible Employees:</strong> {result["Total Eligible Employees"] ?? 0}</li>
-            <li><strong>Total Participants (Benefiting):</strong> {result["Total Participants (Benefiting)"] ?? 0}</li>
-            <li><strong>HCE Eligible:</strong> {result["HCE Eligible"] ?? 0}</li>
-            <li><strong>HCE Participants:</strong> {result["HCE Participants"] ?? 0}</li>
-            <li><strong>NHCE Eligible:</strong> {result["NHCE Eligible"] ?? 0}</li>
-            <li><strong>NHCE Participants:</strong> {result["NHCE Participants"] ?? 0}</li>
+            <li><strong>Total Employees:</strong> {formatNumber(result["Total Employees"] ?? 0)}</li>
+            <li><strong>Total Eligible Employees:</strong> {formatNumber(result["Total Eligible Employees"] ?? 0)}</li>
+            <li><strong>Total Participants (Benefiting):</strong> {formatNumber(result["Total Participants (Benefiting)"] ?? 0)}</li>
+            <li><strong>HCE Eligible:</strong> {formatNumber(result["HCE Eligible"] ?? 0)}</li>
+            <li><strong>HCE Participants:</strong> {formatNumber(result["HCE Participants"] ?? 0)}</li>
+            <li><strong>NHCE Eligible:</strong> {formatNumber(result["NHCE Eligible"] ?? 0)}</li>
+            <li><strong>NHCE Participants:</strong> {formatNumber(result["NHCE Participants"] ?? 0)}</li>
           </ul>
 
           <h3 className="font-semibold text-gray-700 mt-4">Test Results</h3>
@@ -525,15 +549,15 @@ const CoverageTest = () => {
 
           <h3 className="font-semibold text-gray-700 mt-4">Excluded Participants</h3>
           <ul className="list-disc list-inside mt-2">
-            <li><strong>Under Age 21:</strong> {result["Excluded Participants"]?.["Under Age 21"] ?? 0}</li>
-            <li><strong>Under 1 Year of Service:</strong> {result["Excluded Participants"]?.["Under 1 Year of Service"] ?? 0}</li>
-            <li><strong>No Plan Entry Date:</strong> {result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0}</li>
-            <li><strong>After Plan Year:</strong> {result["Excluded Participants"]?.["After Plan Year"] ?? 0}</li>
-            <li><strong>Excluded Manually:</strong> {result["Excluded Participants"]?.["Excluded Manually"] ?? 0}</li>
-            <li><strong>Terminated/Inactive:</strong> {result["Excluded Participants"]?.["Terminated/Inactive"] ?? 0}</li>
-            <li><strong>Union Employees:</strong> {result["Excluded Participants"]?.["Union Employees"] ?? 0}</li>
-            <li><strong>Part-Time/Seasonal:</strong> {result["Excluded Participants"]?.["Part-Time/Seasonal"] ?? 0}</li>
-            <li><strong>Terminated Before Plan Year:</strong> {result["Excluded Participants"]?.["Terminated Before Plan Year"] ?? 0}</li>
+            <li><strong>Under Age 21:</strong> {formatNumber(result["Excluded Participants"]?.["Under Age 21"] ?? 0)}</li>
+            <li><strong>Under 1 Year of Service:</strong> {formatNumber(result["Excluded Participants"]?.["Under 1 Year of Service"] ?? 0)}</li>
+            <li><strong>No Plan Entry Date:</strong> {formatNumber(result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0)}</li>
+            <li><strong>After Plan Year:</strong> {formatNumber(result["Excluded Participants"]?.["After Plan Year"] ?? 0)}</li>
+            <li><strong>Excluded Manually:</strong> {formatNumber(result["Excluded Participants"]?.["Excluded Manually"] ?? 0)}</li>
+            <li><strong>Terminated/Inactive:</strong> {formatNumber(result["Excluded Participants"]?.["Terminated/Inactive"] ?? 0)}</li>
+            <li><strong>Union Employees:</strong> {formatNumber(result["Excluded Participants"]?.["Union Employees"] ?? 0)}</li>
+            <li><strong>Part-Time/Seasonal:</strong> {formatNumber(result["Excluded Participants"]?.["Part-Time/Seasonal"] ?? 0)}</li>
+            <li><strong>Terminated Before Plan Year:</strong> {formatNumber(result["Excluded Participants"]?.["Terminated Before Plan Year"] ?? 0)}</li>
           </ul>
         </div>
       )}
