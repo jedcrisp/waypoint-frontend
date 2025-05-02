@@ -31,13 +31,35 @@ export default function FileUploader({ onParse, error, setError, buttonClassName
           return;
         }
         const { data } = result;
+        console.log("Papa.parse result data:", data);
+
         if (data.length === 0) {
           setError("Uploaded CSV is empty.");
           setFileName("Drag and Drop file Here");
           return;
         }
+
         const headers = data[0] || [];
-        const rows = data.slice(1).filter(row => row.some(cell => cell));
+        if (headers.length === 0) {
+          setError("Uploaded CSV has no headers.");
+          setFileName("Drag and Drop file Here");
+          return;
+        }
+
+        // Filter rows: keep rows that have the same length as headers
+        const rows = data.slice(1).filter(row => {
+          const isValidLength = row.length === headers.length;
+          console.log(`Row after header: ${row}, Valid length: ${isValidLength}`);
+          return isValidLength;
+        });
+
+        console.log("Filtered rows:", rows);
+        if (rows.length === 0) {
+          setError("Uploaded CSV has no valid data rows.");
+          setFileName("Drag and Drop file Here");
+          return;
+        }
+
         onParse(rows, headers);
       },
       header: false,
@@ -125,7 +147,7 @@ export default function FileUploader({ onParse, error, setError, buttonClassName
         </button>
         <span className="text-gray-500">{fileName}</span>
         {!isEnabled && (
-          <div className="absolute right-0 top-full mt-2 hidden group-hover:block bg-gray-800 text-white text-sm rounded-lg py-2 px-3 shadow-lg z-10">
+          <div className="absolute right-0 top-full mt-2 hidden bg-gray-800 text-white text-sm rounded-lg py-2 px-3 shadow-lg z-10">
             Please select at least one test and a plan year to upload a file.
           </div>
         )}
