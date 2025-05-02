@@ -248,7 +248,7 @@ const AverageBenefitTest = () => {
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
       pdf.text(
-        "Test Criterion: IRC §410(b)(2): The Average Benefit Test is met if the average benefit percentage of Non-Highly Compensated Employees (NHCEs) is at least 70% of that of Highly Compensated Employees (HCEs), ensuring the plan does not disproportionately favor HCEs.",
+        "Test Criterion: IRC 410(b)(2): The Average Benefit Test is met if the average benefit percentage of Non-Highly Compensated Employees (NHCEs) is at least 70% of that of Highly Compensated Employees (HCEs), ensuring the plan does not disproportionately favor HCEs.",
         105,
         38,
         { align: "center", maxWidth: 180 }
