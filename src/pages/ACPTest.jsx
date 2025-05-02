@@ -273,7 +273,7 @@ const ACPTest = () => {
 
       // Results Table
       pdf.autoTable({
-        startY: 50,
+        startY: 52,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
@@ -539,7 +539,6 @@ const ACPTest = () => {
             <li><strong>HCE Avg Contribution:</strong> {formatPercentage(result["HCE ACP (%)"])}</li>
             <li><strong>NHCE Avg Contribution:</strong> {formatPercentage(result["NHCE ACP (%)"])}</li>
             <li><strong>Test Criterion:</strong> {result["Test Criterion"] ?? "N/A"}</li>
-            <li><strong>Test Result:</strong> {result["Test Result"] ?? "N/A"}</li>
           </ul>
 
           <h3 className="font-semibold text-gray-700 mt-4">Excluded Participants</h3>
