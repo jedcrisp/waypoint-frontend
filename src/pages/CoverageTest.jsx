@@ -543,7 +543,6 @@ const CoverageTest = () => {
             <li><strong>NHCE Benefiting Percentage:</strong> {formatPercentage(result["NHCE Benefiting Percentage (%)"])}</li>
             <li><strong>Ratio Percentage:</strong> {formatPercentage(result["Ratio Percentage (%)"])}</li>
             <li><strong>Test Criterion:</strong> {result["Test Criterion"] ?? "N/A"}</li>
-            <li><strong>Test Result:</strong> {result["Test Result"] ?? "N/A"}</li>
           </ul>
 
           <h3 className="font-semibold text-gray-700 mt-4">Excluded Participants</h3>
