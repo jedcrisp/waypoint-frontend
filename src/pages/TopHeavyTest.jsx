@@ -250,7 +250,7 @@ const TopHeavyTest = () => {
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
       pdf.text(
-        `Test Criterion: ${testCriterion}`,
+        "Test Criterion: Under IRC 416(g), a plan is top-heavy if more than 60% of total benefits or account balances are attributable to key employees.",
         105,
         38,
         { align: "center", maxWidth: 180 }
