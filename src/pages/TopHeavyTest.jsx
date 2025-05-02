@@ -545,7 +545,6 @@ const TopHeavyTest = () => {
             <li><strong>Total Assets:</strong> {formatCurrency(result["Total Plan Assets"])}</li>
             <li><strong>Top Heavy Ratio:</strong> {formatPercentage(result["Top Heavy Percentage (%)"])}</li>
             <li><strong>Test Criterion:</strong> {result["Test Criterion"] ?? "N/A"}</li>
-            <li><strong>Test Result:</strong> {result["Test Result"] ?? "N/A"}</li>
           </ul>
 
           <h3 className="font-semibold text-gray-700 mt-4">Excluded Participants</h3>
