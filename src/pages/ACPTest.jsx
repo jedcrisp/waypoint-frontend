@@ -8,12 +8,14 @@ import { savePdfResultToFirebase, saveAIReviewConsent } from "../utils/firebaseT
 import Modal from "../components/Modal";
 import { useNavigate } from "react-router-dom";
 import Papa from "papaparse";
+import { ClipLoader } from "react-spinners"; // Import the spinner component
 
 const ACPTest = () => {
   // ----- State -----
   const [file, setFile] = useState(null);
   const [planYear, setPlanYear] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showSpinner, setShowSpinner] = useState(false); // New state for spinner visibility
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [aiReview, setAiReview] = useState("");
@@ -37,6 +39,12 @@ const ACPTest = () => {
   const formatPercentage = (value) => {
     if (value === undefined || value === null || isNaN(Number(value))) return "0.00%";
     return `${parseFloat(value).toFixed(2)}%`;
+  };
+
+  // New function to format numbers with commas
+  const formatNumber = (value) => {
+    if (value === undefined || value === null || isNaN(Number(value))) return "0";
+    return Number(value).toLocaleString("en-US");
   };
 
   // Automatically export PDF once results are available (if not already exported)
@@ -114,6 +122,11 @@ const ACPTest = () => {
     setError(null);
     setResult(null);
 
+    // Show spinner after 1 second if the test is still running
+    const spinnerTimeout = setTimeout(() => {
+      setShowSpinner(true);
+    }, 1000);
+
     const formData = new FormData();
     formData.append("file", file);
     formData.append("selected_tests", "acp");
@@ -126,6 +139,8 @@ const ACPTest = () => {
       if (!token) {
         setError("❌ No valid Firebase token found. Are you logged in?");
         setLoading(false);
+        setShowSpinner(false);
+        clearTimeout(spinnerTimeout);
         return;
       }
       const response = await axios.post(`${API_URL}/upload-csv`, formData, {
@@ -150,6 +165,8 @@ const ACPTest = () => {
       );
     } finally {
       setLoading(false);
+      setShowSpinner(false);
+      clearTimeout(spinnerTimeout);
     }
   };
 
@@ -172,34 +189,34 @@ const ACPTest = () => {
     const plan = planYear || "N/A";
     const totalEmployees = result["Total Employees"] ?? 0;
     const totalParticipants = result["Total Participants"] ?? 0;
-    const hceAvgContribution = result["HCE ACP (%)"] ?? 0; // Updated key
-    const nhceAvgContribution = result["NHCE ACP (%)"] ?? 0; // Updated key
+    const hceAvgContribution = result["HCE ACP (%)"] ?? 0;
+    const nhceAvgContribution = result["NHCE ACP (%)"] ?? 0;
     const testResult = result["Test Result"] ?? "N/A";
     const excludedUnderAge21 = result["Excluded Participants"]?.["Under Age 21"] ?? 0;
     const excludedUnder1Year = result["Excluded Participants"]?.["Under 1 Year of Service"] ?? 0;
     const excludedNoPlanEntry = result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0;
     const excludedManually = result["Excluded Participants"]?.["Excluded Manually"] ?? 0;
-    const excludedNotActive = result["Excluded Participants"]?.["Not Active"] ?? 0;
+    const excludedNotActive = result["Excluded Participants"]?.["Terminated/Inactive"] ?? 0;
     const excludedUnion = result["Excluded Participants"]?.["Union Employees"] ?? 0;
-    const excludedPartTime = result["Excluded Participants"]?.["Part-Time/Seasonal"] ?? 0; // Updated key
+    const excludedPartTime = result["Excluded Participants"]?.["Part-Time/Seasonal"] ?? 0;
     const excludedTerminated = result["Excluded Participants"]?.["Terminated Before Plan Year"] ?? 0;
 
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", plan],
-      ["Total Employees", totalEmployees],
-      ["Total Participants", totalParticipants],
+      ["Total Employees", formatNumber(totalEmployees)],
+      ["Total Participants", formatNumber(totalParticipants)],
       ["HCE Avg Contribution (%)", formatPercentage(hceAvgContribution)],
       ["NHCE Avg Contribution (%)", formatPercentage(nhceAvgContribution)],
       ["Test Result", testResult],
-      ["Excluded - Under Age 21", excludedUnderAge21],
-      ["Excluded - Under 1 Year of Service", excludedUnder1Year],
-      ["Excluded - No Plan Entry Date", excludedNoPlanEntry],
-      ["Excluded - Manually", excludedManually],
-      ["Excluded - Not Active", excludedNotActive],
-      ["Excluded - Union Employees", excludedUnion],
-      ["Excluded - Part-Time/Seasonal", excludedPartTime], // Updated label
-      ["Excluded - Terminated Before Plan Year", excludedTerminated],
+      ["Excluded - Under Age 21", formatNumber(excludedUnderAge21)],
+      ["Excluded - Under 1 Year of Service", formatNumber(excludedUnder1Year)],
+      ["Excluded - No Plan Entry Date", formatNumber(excludedNoPlanEntry)],
+      ["Excluded - Manually", formatNumber(excludedManually)],
+      ["Excluded - Not Active", formatNumber(excludedNotActive)],
+      ["Excluded - Union Employees", formatNumber(excludedUnion)],
+      ["Excluded - Part-Time/Seasonal", formatNumber(excludedPartTime)],
+      ["Excluded - Terminated Before Plan Year", formatNumber(excludedTerminated)],
     ];
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
@@ -224,8 +241,8 @@ const ACPTest = () => {
       const plan = planYear || "N/A";
       const totalEmployees = result["Total Employees"] ?? 0;
       const totalParticipants = result["Total Participants"] ?? 0;
-      const hceAvgContribution = result["HCE ACP (%)"] ?? 0; // Updated key
-      const nhceAvgContribution = result["NHCE ACP (%)"] ?? 0; // Updated key
+      const hceAvgContribution = result["HCE ACP (%)"] ?? 0;
+      const nhceAvgContribution = result["NHCE ACP (%)"] ?? 0;
       const testResult = result["Test Result"] ?? "N/A";
       const testCriterion = result["Test Criterion"] ?? "N/A";
       const failed = testResult.toLowerCase() === "failed";
@@ -248,7 +265,7 @@ const ACPTest = () => {
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
       pdf.text(
-        "Test Criterion: IRC 401(m)(2): The ACP test ensures that employer matching and employee after-tax contributions for HCEs are not disproportionately higher than for NHCEs.",
+         "Test Criterion: IRC 401(m)(2): The ACP test ensures that employer matching and employee after-tax contributions for HCEs are not disproportionately higher than for NHCEs.",
         105,
         38,
         { align: "center", maxWidth: 180 }
@@ -256,12 +273,12 @@ const ACPTest = () => {
 
       // Results Table
       pdf.autoTable({
-        startY: 48,
+        startY: 52,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
-          ["Total Employees", totalEmployees],
-          ["Total Participants", totalParticipants],
+          ["Total Employees", formatNumber(totalEmployees)],
+          ["Total Participants", formatNumber(totalParticipants)],
           ["HCE Avg Contribution (%)", formatPercentage(hceAvgContribution)],
           ["NHCE Avg Contribution (%)", formatPercentage(nhceAvgContribution)],
           ["Test Result", testResult],
@@ -445,6 +462,13 @@ const ACPTest = () => {
         )}
       </div>
 
+      {/* Loading Spinner */}
+      {showSpinner && (
+        <div className="flex justify-center mt-4">
+          <ClipLoader color="#36D7B7" loading={showSpinner} size={50} />
+        </div>
+      )}
+
       {/* Download CSV Template Button */}
       <button
         onClick={routeToCsvBuilder}
@@ -502,32 +526,32 @@ const ACPTest = () => {
 
           <h3 className="font-semibold text-gray-700 mt-4">Employee Counts</h3>
           <ul className="list-disc list-inside mt-2">
-            <li><strong>Total Employees:</strong> {result["Total Employees"] ?? 0}</li>
-            <li><strong>Total Participants:</strong> {result["Total Participants"] ?? 0}</li>
-            <li><strong>HCE Eligible:</strong> {result["HCE Eligible"] ?? 0}</li>
-            <li><strong>HCE Participants:</strong> {result["HCE Participants"] ?? 0}</li>
-            <li><strong>NHCE Eligible:</strong> {result["NHCE Eligible"] ?? 0}</li>
-            <li><strong>NHCE Participants:</strong> {result["NHCE Participants"] ?? 0}</li>
+            <li><strong>Total Employees:</strong> {formatNumber(result["Total Employees"] ?? 0)}</li>
+            <li><strong>Total Participants:</strong> {formatNumber(result["Total Participants"] ?? 0)}</li>
+            <li><strong>HCE Eligible:</strong> {formatNumber(result["HCE Eligible"] ?? 0)}</li>
+            <li><strong>HCE Participants:</strong> {formatNumber(result["HCE Participants"] ?? 0)}</li>
+            <li><strong>NHCE Eligible:</strong> {formatNumber(result["NHCE Eligible"] ?? 0)}</li>
+            <li><strong>NHCE Participants:</strong> {formatNumber(result["NHCE Participants"] ?? 0)}</li>
           </ul>
 
           <h3 className="font-semibold text-gray-700 mt-4">Test Results</h3>
           <ul className="list-disc list-inside mt-2">
-            <li><strong>HCE Avg Contribution:</strong> {formatPercentage(result["HCE ACP (%)"])}</li> {/* Updated key */}
-            <li><strong>NHCE Avg Contribution:</strong> {formatPercentage(result["NHCE ACP (%)"])}</li> {/* Updated key */}
+            <li><strong>HCE Avg Contribution:</strong> {formatPercentage(result["HCE ACP (%)"])}</li>
+            <li><strong>NHCE Avg Contribution:</strong> {formatPercentage(result["NHCE ACP (%)"])}</li>
             <li><strong>Test Criterion:</strong> {result["Test Criterion"] ?? "N/A"}</li>
-            <li><strong>Test Result:</strong> {result["Test Result"] ?? "N/A"}</li> {/* Added Test Result */}
+            <li><strong>Test Result:</strong> {result["Test Result"] ?? "N/A"}</li>
           </ul>
 
           <h3 className="font-semibold text-gray-700 mt-4">Excluded Participants</h3>
           <ul className="list-disc list-inside mt-2">
-            <li><strong>Under Age 21:</strong> {result["Excluded Participants"]?.["Under Age 21"] ?? 0}</li>
-            <li><strong>Under 1 Year of Service:</strong> {result["Excluded Participants"]?.["Under 1 Year of Service"] ?? 0}</li>
-            <li><strong>No Plan Entry Date:</strong> {result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0}</li>
-            <li><strong>Excluded Manually:</strong> {result["Excluded Participants"]?.["Excluded Manually"] ?? 0}</li>
-            <li><strong>Not Active:</strong> {result["Excluded Participants"]?.["Terminated/Inactive"] ?? 0}</li> {/* Updated key */}
-            <li><strong>Union Employees:</strong> {result["Excluded Participants"]?.["Union Employees"] ?? 0}</li>
-            <li><strong>Part-Time/Seasonal:</strong> {result["Excluded Participants"]?.["Part-Time/Seasonal"] ?? 0}</li> {/* Updated key */}
-            <li><strong>Terminated Before Plan Year:</strong> {result["Excluded Participants"]?.["Terminated Before Plan Year"] ?? 0}</li>
+            <li><strong>Under Age 21:</strong> {formatNumber(result["Excluded Participants"]?.["Under Age 21"] ?? 0)}</li>
+            <li><strong>Under 1 Year of Service:</strong> {formatNumber(result["Excluded Participants"]?.["Under 1 Year of Service"] ?? 0)}</li>
+            <li><strong>No Plan Entry Date:</strong> {formatNumber(result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0)}</li>
+            <li><strong>Excluded Manually:</strong> {formatNumber(result["Excluded Participants"]?.["Excluded Manually"] ?? 0)}</li>
+            <li><strong>Not Active:</strong> {formatNumber(result["Excluded Participants"]?.["Terminated/Inactive"] ?? 0)}</li>
+            <li><strong>Union Employees:</strong> {formatNumber(result["Excluded Participants"]?.["Union Employees"] ?? 0)}</li>
+            <li><strong>Part-Time/Seasonal:</strong> {formatNumber(result["Excluded Participants"]?.["Part-Time/Seasonal"] ?? 0)}</li>
+            <li><strong>Terminated Before Plan Year:</strong> {formatNumber(result["Excluded Participants"]?.["Terminated Before Plan Year"] ?? 0)}</li>
           </ul>
         </div>
       )}
