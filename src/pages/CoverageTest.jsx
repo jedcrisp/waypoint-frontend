@@ -248,7 +248,8 @@ const CoverageTest = () => {
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(60, 60, 60);
       pdf.text(
-        `Test Criterion: ${testCriterion}`,
+        "Test Criterion: IRC 410(b): The Coverage Test ensures that a qualified retirement or benefit plan does not disproportionately favor highly compensated employees by requiring the plan to benefit a minimum percentage of non-highly compensated employees.",
+      105,
         105,
         38,
         { align: "center", maxWidth: 180 }
@@ -256,7 +257,7 @@ const CoverageTest = () => {
 
       // Results Table
       pdf.autoTable({
-        startY: 48,
+        startY: 54,
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
