@@ -6,13 +6,15 @@ import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { savePdfResultToFirebase, saveAIReviewConsent } from "../utils/firebaseTestSaver";
 import Modal from "../components/Modal";
-import { useNavigate } from "react-router-dom"; // Added for routing
+import { useNavigate } from "react-router-dom";
+import { ClipLoader } from "react-spinners"; // Import the spinner component
 
 const ADPTest = () => {
   // ----- State -----
   const [file, setFile] = useState(null);
   const [planYear, setPlanYear] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showSpinner, setShowSpinner] = useState(false); // New state for spinner visibility
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [aiReview, setAiReview] = useState("");
@@ -22,7 +24,7 @@ const ADPTest = () => {
   const [normalPdfExported, setNormalPdfExported] = useState(false);
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
-  const navigate = useNavigate(); // Added for routing
+  const navigate = useNavigate();
 
   // ---------- Formatting Helpers ----------
   const formatCurrency = (value) => {
@@ -36,6 +38,12 @@ const ADPTest = () => {
   const formatPercentage = (value) => {
     if (value === undefined || value === null || isNaN(Number(value))) return "0.00%";
     return `${parseFloat(value).toFixed(2)}%`;
+  };
+
+  // Function to format numbers with commas
+  const formatNumber = (value) => {
+    if (value === undefined || value === null || isNaN(Number(value))) return "0";
+    return Number(value).toLocaleString("en-US");
   };
 
   // Automatically export PDF once results are available (if not already exported)
@@ -85,6 +93,11 @@ const ADPTest = () => {
     setError(null);
     setResult(null);
 
+    // Show spinner after 1 second if the test is still running
+    const spinnerTimeout = setTimeout(() => {
+      setShowSpinner(true);
+    }, 1000);
+
     const formData = new FormData();
     formData.append("file", file);
     formData.append("selected_tests", "adp");
@@ -97,6 +110,8 @@ const ADPTest = () => {
       if (!token) {
         setError("❌ No valid Firebase token found. Are you logged in?");
         setLoading(false);
+        setShowSpinner(false);
+        clearTimeout(spinnerTimeout);
         return;
       }
       const response = await axios.post(`${API_URL}/upload-csv`, formData, {
@@ -121,6 +136,8 @@ const ADPTest = () => {
       );
     } finally {
       setLoading(false);
+      setShowSpinner(false);
+      clearTimeout(spinnerTimeout);
     }
   };
 
@@ -158,19 +175,19 @@ const ADPTest = () => {
     const csvRows = [
       ["Metric", "Value"],
       ["Plan Year", plan],
-      ["Total Employees", totalEmployees],
-      ["Total Eligible Employees", totalEligible],
-      ["Total Participants", totalParticipants],
-      ["HCE Eligible", hceEligible],
-      ["HCE Participants", hceParticipants],
+      ["Total Employees", formatNumber(totalEmployees)],
+      ["Total Eligible Employees", formatNumber(totalEligible)],
+      ["Total Participants", formatNumber(totalParticipants)],
+      ["HCE Eligible", formatNumber(hceEligible)],
+      ["HCE Participants", formatNumber(hceParticipants)],
       ["HCE ADP (%)", formatPercentage(hceAdp)],
-      ["NHCE Eligible", nhceEligible],
-      ["NHCE Participants", nhceParticipants],
+      ["NHCE Eligible", formatNumber(nhceEligible)],
+      ["NHCE Participants", formatNumber(nhceParticipants)],
       ["NHCE ADP (%)", formatPercentage(nhceAdp)],
       ["Test Result", testResult],
-      ["Excluded - No Plan Entry Date", excludedNoPlanEntry],
-      ["Excluded - After Plan Year", excludedAfterPlanYear],
-      ["Excluded - Manually", excludedManually],
+      ["Excluded - No Plan Entry Date", formatNumber(excludedNoPlanEntry)],
+      ["Excluded - After Plan Year", formatNumber(excludedAfterPlanYear)],
+      ["Excluded - Manually", formatNumber(excludedManually)],
     ];
 
     const csvContent = csvRows.map((row) => row.join(",")).join("\n");
@@ -236,14 +253,14 @@ const ADPTest = () => {
         theme: "grid",
         head: [["Metric", "Value"]],
         body: [
-          ["Total Employees", totalEmployees],
-          ["Total Eligible Employees", totalEligible],
-          ["Total Participants", totalParticipants],
-          ["HCE Eligible", hceEligible],
-          ["HCE Participants", hceParticipants],
+          ["Total Employees", formatNumber(totalEmployees)],
+          ["Total Eligible Employees", formatNumber(totalEligible)],
+          ["Total Participants", formatNumber(totalParticipants)],
+          ["HCE Eligible", formatNumber(hceEligible)],
+          ["HCE Participants", formatNumber(hceParticipants)],
           ["HCE ADP (%)", formatPercentage(hceAdp)],
-          ["NHCE Eligible", nhceEligible],
-          ["NHCE Participants", nhceParticipants],
+          ["NHCE Eligible", formatNumber(nhceEligible)],
+          ["NHCE Participants", formatNumber(nhceParticipants)],
           ["NHCE ADP (%)", formatPercentage(nhceAdp)],
           ["Test Result", testResult],
         ],
@@ -426,6 +443,13 @@ const ADPTest = () => {
         )}
       </div>
 
+      {/* Loading Spinner */}
+      {showSpinner && (
+        <div className="flex justify-center mt-4">
+          <ClipLoader color="#36D7B7" loading={showSpinner} size={50} />
+        </div>
+      )}
+
       {/* Download CSV Template Button */}
       <button
         onClick={routeToCsvBuilder}
@@ -483,13 +507,13 @@ const ADPTest = () => {
 
           <h3 className="font-semibold text-gray-700 mt-4">Employee Counts</h3>
           <ul className="list-disc list-inside mt-2">
-            <li><strong>Total Employees:</strong> {result["Total Employees"] ?? 0}</li>
-            <li><strong>Total Eligible Employees:</strong> {result["Total Eligible Employees"] ?? 0}</li>
-            <li><strong>Total Participants:</strong> {result["Total Participants"] ?? 0}</li>
-            <li><strong>HCE Eligible:</strong> {result["HCE Eligible"] ?? 0}</li>
-            <li><strong>HCE Participants:</strong> {result["HCE Participants"] ?? 0}</li>
-            <li><strong>NHCE Eligible:</strong> {result["NHCE Eligible"] ?? 0}</li>
-            <li><strong>NHCE Participants:</strong> {result["NHCE Participants"] ?? 0}</li>
+            <li><strong>Total Employees:</strong> {formatNumber(result["Total Employees"] ?? 0)}</li>
+            <li><strong>Total Eligible Employees:</strong> {formatNumber(result["Total Eligible Employees"] ?? 0)}</li>
+            <li><strong>Total Participants:</strong> {formatNumber(result["Total Participants"] ?? 0)}</li>
+            <li><strong>HCE Eligible:</strong> {formatNumber(result["HCE Eligible"] ?? 0)}</li>
+            <li><strong>HCE Participants:</strong> {formatNumber(result["HCE Participants"] ?? 0)}</li>
+            <li><strong>NHCE Eligible:</strong> {formatNumber(result["NHCE Eligible"] ?? 0)}</li>
+            <li><strong>NHCE Participants:</strong> {formatNumber(result["NHCE Participants"] ?? 0)}</li>
           </ul>
 
           <h3 className="font-semibold text-gray-700 mt-4">Test Results</h3>
@@ -501,9 +525,9 @@ const ADPTest = () => {
 
           <h3 className="font-semibold text-gray-700 mt-4">Excluded Participants</h3>
           <ul className="list-disc list-inside mt-2">
-            <li><strong>No Plan Entry Date:</strong> {result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0}</li>
-            <li><strong>After Plan Year:</strong> {result["Excluded Participants"]?.["After Plan Year"] ?? 0}</li>
-            <li><strong>Excluded Manually:</strong> {result["Excluded Participants"]?.["Excluded Manually"] ?? 0}</li>
+            <li><strong>No Plan Entry Date:</strong> {formatNumber(result["Excluded Participants"]?.["No Plan Entry Date"] ?? 0)}</li>
+            <li><strong>After Plan Year:</strong> {formatNumber(result["Excluded Participants"]?.["After Plan Year"] ?? 0)}</li>
+            <li><strong>Excluded Manually:</strong> {formatNumber(result["Excluded Participants"]?.["Excluded Manually"] ?? 0)}</li>
           </ul>
         </div>
       )}
