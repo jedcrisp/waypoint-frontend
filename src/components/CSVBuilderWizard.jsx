@@ -116,6 +116,8 @@ export default function CSVBuilderWizard() {
   const [isTestListOpen, setIsTestListOpen] = useState(false);
   const [autoGenerateHCE, setAutoGenerateHCE] = useState(false);
   const [autoGenerateKeyEmployee, setAutoGenerateKeyEmployee] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [csvFile, setCsvFile] = useState(null);
 
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
@@ -549,6 +551,21 @@ export default function CSVBuilderWizard() {
     setShowRoutePrompt(false);
   }
 
+  const handleCsvUpload = (e) => {
+    const file = e.target.files ? e.target.files[0] : e[0];
+    if (file && (file.type === 'text/csv' || file.name.endsWith('.csv'))) {
+      setCsvFile(file);
+      Papa.parse(file, {
+        complete: (results) => {
+          handleParse(results.data, results.meta.fields);
+        },
+        error: (err) => setErrorMessage('Failed to parse CSV: ' + err.message),
+      });
+    } else {
+      setErrorMessage('Please upload a CSV file');
+    }
+  };
+
   return (
     <>
       <div className="min-h-screen bg-gray-50 flex justify-center py-6 px-4 sm:px-6 lg:px-8">
@@ -634,18 +651,55 @@ export default function CSVBuilderWizard() {
             </div>
 
             <div className="file-uploader">
-              <FileUploader
-                onParse={handleParse}
-                error={errorMessage}
-                setError={setErrorMessage}
-                isEnabled={selectedTests.length > 0 && planYear && !isNaN(parseInt(planYear, 10))}
-                disableTooltip={true}
-              />
-              {!(selectedTests.length > 0 && planYear && !isNaN(parseInt(planYear, 10))) && (
-                <p className="mt-2 text-sm text-gray-600">
-                  Please select at least one test and a plan year to upload a CSV file.
-                </p>
-              )}
+              <div
+                className={`w-full border-2 border-dashed rounded-md p-6 text-center transition-colors ${
+                  isDragging ? 'border-purple-500 bg-purple-50' : 'border-gray-300 hover:border-purple-400'
+                }`}
+                onDragEnter={e => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+                onDragOver={e => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+                onDragLeave={e => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
+                onDrop={e => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDragging(false);
+                  const files = e.dataTransfer.files;
+                  if (files.length > 0) {
+                    handleCsvUpload([files[0]]);
+                  }
+                }}
+              >
+                <div className="flex flex-col items-center justify-center">
+                  <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <p className="text-gray-600 mb-2">
+                    Drag and drop your CSV file here, or click to browse
+                  </p>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleCsvUpload}
+                    className="hidden"
+                    id="csv-builder-upload"
+                    disabled={!(selectedTests.length > 0 && planYear && !isNaN(parseInt(planYear, 10)))}
+                  />
+                  <label
+                    htmlFor="csv-builder-upload"
+                    className={`px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 cursor-pointer transition-colors ${!(selectedTests.length > 0 && planYear && !isNaN(parseInt(planYear, 10))) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    Browse Files
+                  </label>
+                  {csvFile && (
+                    <p className="mt-2 text-green-600 font-semibold">{csvFile.name}</p>
+                  )}
+                  {!(selectedTests.length > 0 && planYear && !isNaN(parseInt(planYear, 10))) && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      Please select at least one test and a plan year to upload a CSV file.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="header-mapper">
