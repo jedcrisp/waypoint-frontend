@@ -22,6 +22,9 @@ const ADPTest = () => {
   const [consentChecked, setConsentChecked] = useState(false);
   const [signature, setSignature] = useState("");
   const [normalPdfExported, setNormalPdfExported] = useState(false);
+  const [violatorsCsvDownloaded, setViolatorsCsvDownloaded] = useState(false); // Track if violators CSV was downloaded
+  const [updatedViolatorsCsv, setUpdatedViolatorsCsv] = useState(null); // Store the updated violators CSV file
+  const [isDragging, setIsDragging] = useState(false);
 
   const API_URL = import.meta.env.VITE_BACKEND_URL;
   const navigate = useNavigate();
@@ -54,7 +57,7 @@ const ADPTest = () => {
     }
   }, [result, normalPdfExported]);
 
-  // ----- 1. Drag & Drop Logic -----
+  // ----- 1. Drag & Drop Logic for Initial CSV -----
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
       setFile(acceptedFiles[0]);
@@ -62,6 +65,8 @@ const ADPTest = () => {
       setError(null);
       setNormalPdfExported(false);
       setAiReview("");
+      setViolatorsCsvDownloaded(false);
+      setUpdatedViolatorsCsv(null);
     }
   }, []);
 
@@ -201,7 +206,60 @@ const ADPTest = () => {
     document.body.removeChild(link);
   };
 
-  // ----- 5. Export Results to PDF -----
+  // ----- 5. Download Violators CSV -----
+  const downloadViolatorsCSV = async (csvContent) => {
+    try {
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) {
+        setError("❌ No valid Firebase token found. Are you logged in?");
+        return;
+      }
+
+      const response = await axios.post(
+        `${API_URL}/download-violators-csv/adp`,
+        { violators_csv_content: csvContent },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          responseType: 'blob', // Important for file downloads
+        }
+      );
+
+      // Create a blob URL and trigger the download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'adp_violators.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      // Mark that the violators CSV has been downloaded
+      setViolatorsCsvDownloaded(true);
+    } catch (error) {
+      console.error('Error downloading violators CSV:', error);
+      setError('❌ Failed to download violators CSV. Check the console for details.');
+    }
+  };
+
+  // ----- 6. Handle Updated Violators CSV Upload -----
+  const handleUpdatedViolatorsCsvUpload = (event) => {
+    const uploadedFile = event.target.files[0];
+    if (uploadedFile) {
+      const fileType = uploadedFile.name.split(".").pop().toLowerCase();
+      if (fileType !== "csv") {
+        setError("❌ Please upload a CSV file for the updated violators.");
+        return;
+      }
+      setUpdatedViolatorsCsv(uploadedFile);
+      setError(null);
+    }
+  };
+
+  // ----- 7. Export Results to PDF -----
   const exportToPDF = async (customAiReview) => {
     if (!result) {
       setError("❌ No results available to export.");
@@ -274,38 +332,9 @@ const ADPTest = () => {
         pdf.autoTable({
           startY: pdf.lastAutoTable.finalY + 10,
           theme: "grid",
-          head: [["AI Corrective Actions (Powered by OpenAI)"]],
+          head: [["AI Corrective Actions"]],
           body: [[finalAIText]],
           headStyles: { fillColor: [126, 34, 206], textColor: [255, 255, 255] },
-          styles: { fontSize: 11, font: "helvetica" },
-          margin: { left: 10, right: 10 },
-        });
-      } else if (failed) {
-        const correctiveActions = [
-          "Increase NHCE deferral rates to raise NHCE ADP.",
-          "Limit HCE deferrals to meet the ADP limit.",
-          "Implement a safe harbor plan design to avoid testing.",
-        ];
-        const consequences = [
-          "Excess contributions may be refunded to HCEs.",
-          "Potential tax penalties for non-compliance.",
-          "Plan may need corrective distributions.",
-        ];
-        pdf.autoTable({
-          startY: pdf.lastAutoTable.finalY + 10,
-          theme: "grid",
-          head: [["Corrective Actions"]],
-          body: correctiveActions.map((action) => [action]),
-          headStyles: { fillColor: [255, 0, 0], textColor: [255, 255, 255] },
-          styles: { fontSize: 11, font: "helvetica" },
-          margin: { left: 10, right: 10 },
-        });
-        pdf.autoTable({
-          startY: pdf.lastAutoTable.finalY + 10,
-          theme: "grid",
-          head: [["Consequences"]],
-          body: consequences.map((item) => [item]),
-          headStyles: { fillColor: [238, 220, 92], textColor: [255, 255, 255] },
           styles: { fontSize: 11, font: "helvetica" },
           margin: { left: 10, right: 10 },
         });
@@ -350,7 +379,7 @@ const ADPTest = () => {
     }
   };
 
-  // ----- 6. AI Review Handler -----
+  // ----- 8. AI Review Handler -----
   const handleRunAIReview = async () => {
     if (!result || !result.adp_summary) {
       setError("❌ No test summary available for AI review.");
@@ -360,28 +389,63 @@ const ADPTest = () => {
       setShowConsentModal(true);
       return;
     }
+    if (!updatedViolatorsCsv) {
+      setError("❌ Please upload the updated violators CSV before running AI review.");
+      return;
+    }
+
     setLoading(true);
     try {
       await saveAIReviewConsent({
         fileName: "ADP Test",
         signature: signature.trim(),
       });
-      const response = await axios.post(`${API_URL}/api/ai-review`, {
-        testType: "ADP",
-        testData: result.adp_summary,
-        signature: signature.trim(),
-      });
-      const aiText = response.data.analysis;
-      setAiReview(aiText);
-      await exportToPDF(aiText);
+
+      // Read the updated violators CSV content
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const csvText = event.target.result;
+        const auth = getAuth();
+        const token = await auth.currentUser?.getIdToken(true);
+
+        try {
+          const response = await axios.post(
+            `${API_URL}/api/ai-review`,
+            {
+              testType: "ADP",
+              testData: result.adp_summary,
+              signature: signature.trim(),
+              updatedViolatorsCsv: csvText, // Send the updated CSV content
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          const aiText = response.data.analysis;
+          setAiReview(aiText);
+          await exportToPDF(aiText);
+        } catch (error) {
+          console.error("Error fetching AI review:", error);
+          setError("❌ Error fetching AI review.");
+        } finally {
+          setLoading(false);
+        }
+      };
+      reader.onerror = () => {
+        setError("❌ Error reading the updated violators CSV.");
+        setLoading(false);
+      };
+      reader.readAsText(updatedViolatorsCsv);
     } catch (error) {
-      console.error("Error fetching AI review:", error);
-      setError("❌ Error fetching AI review.");
+      console.error("Error saving consent or initiating AI review:", error);
+      setError("❌ Error processing AI review consent.");
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  // ----- 7. Handle Enter Key -----
+  // ----- 9. Handle Enter Key -----
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && file && planYear && !loading) {
       e.preventDefault();
@@ -424,23 +488,54 @@ const ADPTest = () => {
         </div>
       </div>
 
-      {/* Drag & Drop Area */}
+      {/* Main CSV Upload Area */}
       <div
-        {...getRootProps()}
-        className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer ${
-          isDragActive ? "border-green-500 bg-blue-100" : "border-gray-300 bg-gray-50"
+        className={`w-full border-2 border-dashed rounded-md p-6 text-center transition-colors ${
+          isDragging ? 'border-purple-500 bg-purple-50' : 'border-gray-300 hover:border-purple-400'
         }`}
+        onDragEnter={e => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+        onDragOver={e => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+        onDragLeave={e => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
+        onDrop={e => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDragging(false);
+          const files = e.dataTransfer.files;
+          if (files.length > 0) {
+            const file = files[0];
+            if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+              onDrop([file]);
+            } else {
+              setError('Please upload a CSV file');
+            }
+          }
+        }}
       >
-        <input {...getInputProps()} />
-        {file ? (
-          <p className="text-green-600 font-semibold">{file.name}</p>
-        ) : isDragActive ? (
-          <p className="text-blue-600">📂 Drop the file here...</p>
-        ) : (
-          <p className="text-gray-600">
-            Drag & drop a <strong>CSV file</strong> here.
+        <div className="flex flex-col items-center justify-center">
+          <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+          <p className="text-gray-600 mb-2">
+            Drag and drop your CSV file here, or click to browse
           </p>
-        )}
+          <input
+            type="file"
+            accept=".csv"
+            onChange={e => onDrop(e.target.files)}
+            className="hidden"
+            id="main-csv-upload"
+          />
+          <label
+            htmlFor="main-csv-upload"
+            className="px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 cursor-pointer transition-colors"
+          >
+            Browse Files
+          </label>
+          {file && (
+            <p className="mt-2 text-green-600 font-semibold">{file.name}</p>
+          )}
+        </div>
       </div>
 
       {/* Loading Spinner */}
@@ -453,18 +548,9 @@ const ADPTest = () => {
       {/* Download CSV Template Button */}
       <button
         onClick={routeToCsvBuilder}
-        className="mt-4 w-full px-4 py-2 text-white bg-gray-500 hover:bg-gray-600 rounded-md"
+        className="mt-4 w-full px-4 py-2 text-white bg-blue-500 hover:bg-gray-600 rounded-md"
       >
-        Download CSV Template
-      </button>
-
-      {/* Choose File Button */}
-      <button
-        type="button"
-        onClick={open}
-        className="mt-2 w-full px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-md"
-      >
-        Choose File
+        CSV Builder
       </button>
 
       {/* Upload Button */}
@@ -532,18 +618,109 @@ const ADPTest = () => {
         </div>
       )}
 
+      {/* Violators CSV Section (Moved Outside Results Box) */}
+      {result && result["Test Result"]?.toLowerCase() === "failed" && result.violators_csv_content && (
+        <div className="mt-6 p-5 bg-gray-50 border border-gray-300 rounded-lg">
+          <h3 className="text-lg font-bold text-gray-700 mb-4">Violators CSV Workflow</h3>
+          <button
+            onClick={() => downloadViolatorsCSV(result.violators_csv_content)}
+            className="w-full px-4 py-2 text-white bg-orange-500 hover:bg-orange-600 rounded-md"
+          >
+            Download Violators CSV
+          </button>
+
+          {/* Upload Updated Violators CSV */}
+          {violatorsCsvDownloaded && (
+            <div className="mt-4">
+              <label className="block text-gray-700 font-semibold mb-2">
+                Upload Violators CSV:
+              </label>
+              <p className="text-sm text-gray-600 mb-2">
+                To run the AI Review, first download the Violators CSV file. Then, upload the file below and click 'Run AI Review' to begin.
+              </p>
+              <div
+                className={`w-full border-2 border-dashed rounded-md p-6 text-center transition-colors ${
+                  isDragging ? 'border-purple-500 bg-purple-50' : 'border-gray-300 hover:border-purple-400'
+                }`}
+                onDragEnter={e => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+                onDragOver={e => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+                onDragLeave={e => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
+                onDrop={e => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDragging(false);
+                  const files = e.dataTransfer.files;
+                  if (files.length > 0) {
+                    const file = files[0];
+                    if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+                      handleUpdatedViolatorsCsvUpload({ target: { files: [file] } });
+                    } else {
+                      setError('Please upload a CSV file');
+                    }
+                  }
+                }}
+              >
+                <div className="flex flex-col items-center justify-center">
+                  <svg
+                    className="w-12 h-12 text-gray-400 mb-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                    />
+                  </svg>
+                  <p className="text-gray-600 mb-2">
+                    Drag and drop your CSV file here, or click to browse
+                  </p>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleUpdatedViolatorsCsvUpload}
+                    className="hidden"
+                    id="violators-csv-upload"
+                  />
+                  <label
+                    htmlFor="violators-csv-upload"
+                    className="px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 cursor-pointer transition-colors"
+                  >
+                    Browse Files
+                  </label>
+                  {updatedViolatorsCsv && (
+                    <p className="mt-2 text-green-600 font-semibold">
+                      Selected file: {updatedViolatorsCsv.name}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* AI Review Section */}
       {result?.adp_summary && (
         <div className="mt-6">
           <button
             onClick={handleRunAIReview}
-            disabled={loading}
+            disabled={loading || !violatorsCsvDownloaded || !updatedViolatorsCsv}
             className={`w-full px-4 py-2 text-white rounded-md ${
-              loading ? "bg-purple-500 animate-pulse" : "bg-purple-500 hover:bg-purple-600"
+              loading || !violatorsCsvDownloaded || !updatedViolatorsCsv
+                ? "bg-purple-500 opacity-50 cursor-not-allowed"
+                : "bg-purple-500 hover:bg-purple-600"
             }`}
           >
             {loading ? "Processing AI Review..." : "Run AI Review"}
           </button>
+          {result["Test Result"]?.toLowerCase() === "failed" && (
+            <p className="mt-2 text-sm text-gray-600">
+            </p>
+          )}
         </div>
       )}
 
@@ -551,7 +728,7 @@ const ADPTest = () => {
       {aiReview && (
         <div className="mt-2 p-4 bg-indigo-50 border border-indigo-300 rounded-md">
           <h4 className="font-bold text-indigo-700">
-            AI Corrective Actions (Powered by OpenAI):
+            AI Corrective Actions:
           </h4>
           <p className="text-indigo-900">{aiReview}</p>
         </div>
@@ -575,33 +752,11 @@ const ADPTest = () => {
         </div>
       )}
 
-      {/* Corrective Actions & Consequences if Test Failed */}
-      {result?.["Test Result"]?.toLowerCase() === "failed" && (
-        <div>
-          <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-md">
-            <h4 className="font-bold text-gray-700">Corrective Actions:</h4>
-            <ul className="list-disc list-inside text-gray-700">
-              <li>Increase NHCE deferral rates to raise NHCE ADP.</li>
-              <li>Limit HCE deferrals to meet the ADP limit.</li>
-              <li>Implement a safe harbor plan design to avoid testing.</li>
-            </ul>
-          </div>
-          <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
-            <h4 className="font-bold text-gray-700">Consequences:</h4>
-            <ul className="list-disc list-inside text-gray-700">
-              <li>Excess contributions may be refunded to HCEs.</li>
-              <li>Potential tax penalties for non-compliance.</li>
-              <li>Plan may need corrective distributions.</li>
-            </ul>
-          </div>
-        </div>
-      )}
-
       {/* Consent Modal for AI Review */}
       {showConsentModal && (
         <Modal title="AI Review Consent" onClose={() => setShowConsentModal(false)}>
           <p className="mb-4 text-sm text-gray-700">
-            By proceeding, you acknowledge that any uploaded data may contain PII and you authorize its redaction and analysis using OpenAI’s language model. This is strictly for suggesting corrective actions.
+            By proceeding, you acknowledge that any uploaded data may contain PII and you authorize its redaction and analysis using AI's language model. This is strictly for suggesting corrective actions.
           </p>
           <div className="mb-3 flex items-center">
             <input
@@ -612,7 +767,7 @@ const ADPTest = () => {
               className="mr-2"
             />
             <label htmlFor="consent" className="text-sm text-gray-700">
-              I agree to the processing and redaction of PII through OpenAI.
+              I agree to the processing and redaction of PII through AI.
             </label>
           </div>
           <div className="mb-3">
